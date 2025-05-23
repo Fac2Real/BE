@@ -1,7 +1,7 @@
 //package com.factoreal.backend.strategy;
 //
-//import com.factoreal.backend.entity.Worker;
-//import com.factoreal.backend.repository.WorkerRepository;
+//import com.factoreal.backend.domain.worker.entity.Worker;
+//import com.factoreal.backend.domain.worker.dao.WorkerRepository;
 //import com.factoreal.backend.strategy.enums.AlarmEventDto;
 //import com.factoreal.backend.strategy.enums.AlarmType;
 //import com.factoreal.backend.strategy.enums.RiskLevel;
