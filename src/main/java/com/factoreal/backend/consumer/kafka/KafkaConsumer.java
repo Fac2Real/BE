@@ -254,6 +254,15 @@ public class KafkaConsumer {
                     yield 0;
             }
 
+            case "voc" -> {             // TVOC 기준 (WHO, 국내 환경부 권고)
+                if (value >= 1000)       // ≥ 1000 ㎍/㎥  → 위험 (공장 내 고농도, 급배기 필요)
+                    yield 2;
+                else if (value >= 300)   // 300–999 ㎍/㎥  → 주의 (환기·작업자 PPE 권고)
+                    yield 1;
+                else                     // < 300 ㎍/㎥   → 안전
+                    yield 0;
+            }
+
             // 그 외 센서 타입은 안전
             default -> 0;
         };
