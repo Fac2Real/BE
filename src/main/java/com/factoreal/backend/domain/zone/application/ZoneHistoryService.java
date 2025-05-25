@@ -60,4 +60,10 @@ public class ZoneHistoryService {
                 currentLocation != null ? currentLocation.getZone().getZoneId() : "없음", 
                 zoneId);
     }
+
+    public ZoneHist findByWorker_WorkerIdAndExistFlag(String workerid, int existFlag) {
+        return zoneHistRepository.findByWorker_WorkerIdAndExistFlag(workerid,existFlag);
+    }
+
+
 }

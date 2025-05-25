@@ -3,12 +3,12 @@ package com.factoreal.backend.domain.worker.dto.response;
 import com.factoreal.backend.domain.worker.entity.Worker;
 import com.factoreal.backend.domain.zone.entity.Zone;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 @Getter
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 public class ZoneManagerResponse {

@@ -74,7 +74,9 @@ public class ZoneService {
                 .map(ZoneInfoResponse::from)
                 .collect(Collectors.toList());
     }
-
+    public Zone findByZoneId(String zoneId) {
+        return zoneRepository.findByZoneId(zoneId);
+    }
     @Transactional
     public List<ZoneDetailResponse> getZoneItems() {
 

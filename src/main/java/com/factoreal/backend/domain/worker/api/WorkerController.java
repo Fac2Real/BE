@@ -1,14 +1,17 @@
 package com.factoreal.backend.domain.worker.api;
 
+import com.factoreal.backend.domain.worker.application.WorkerService;
+import com.factoreal.backend.domain.worker.dto.response.WorkerDetailResponse;
 import com.factoreal.backend.domain.worker.dto.response.WorkerInfoResponse;
 import com.factoreal.backend.domain.worker.dto.response.ZoneManagerResponse;
-import com.factoreal.backend.domain.worker.application.WorkerService;
-
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
@@ -22,7 +25,7 @@ public class WorkerController {
     
     @Operation(summary = "전체 작업자 목록 조회", description = "전체 작업자 목록을 조회합니다.")
     @GetMapping
-    public List<WorkerInfoResponse> getAllWorkers() {
+    public List<WorkerDetailResponse> getAllWorkers() {
         log.info("전체 작업자 목록 조회 요청");
         return workerService.getAllWorkers();
     }

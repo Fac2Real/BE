@@ -2,12 +2,13 @@ package com.factoreal.backend.messaging.kafka.strategy.alarmMessage;
 
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
 import com.factoreal.backend.messaging.kafka.strategy.enums.SensorType;
+import com.factoreal.backend.messaging.kafka.strategy.enums.WearableDataType;
 import org.springframework.stereotype.Component;
 
 @Component
 public class DefaultRiskMessageProvider implements RiskMessageProvider {
     @Override
-    public String getMessage(SensorType sensorType, RiskLevel riskLevel) {
+    public String getRiskMessageBySensor(SensorType sensorType, RiskLevel riskLevel) {
         return switch (sensorType) {
             case temp -> switch (riskLevel) {
                 case INFO -> "온도가 정상 범위입니다.";
@@ -41,4 +42,17 @@ public class DefaultRiskMessageProvider implements RiskMessageProvider {
             };
         };
     }
+
+    @Override
+    public String getRiskMessageByWearble(WearableDataType wearableDataType, RiskLevel riskLevel) {
+        return switch (wearableDataType) {
+            case heartRate -> switch (riskLevel) {
+                case INFO -> "작업자 심박수 정상.";
+                case WARNING -> "작업자 심박수 140 초과.";
+                case CRITICAL -> null;
+            };
+        };
+    }
+
+
 }

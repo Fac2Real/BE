@@ -2,19 +2,20 @@ package com.factoreal.backend.domain.worker.dto.response;
 
 import com.factoreal.backend.domain.worker.entity.Worker;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@SuperBuilder
 public class WorkerInfoResponse {
     private String workerId;
     private String name;
     private String phoneNumber;
     private String email;
+    private String fcmToken;
     private Boolean isManager;
 
     public static WorkerInfoResponse from(Worker worker, Boolean isManager) {
@@ -23,6 +24,7 @@ public class WorkerInfoResponse {
                 .name(worker.getName())
                 .phoneNumber(worker.getPhoneNumber())
                 .email(worker.getEmail())
+                .fcmToken(worker.getFcmToken())
                 .isManager(isManager)
                 .build();
     }

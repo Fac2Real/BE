@@ -1,5 +1,9 @@
 package com.factoreal.backend.domain.worker.application;
 
+import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
+import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
+import com.factoreal.backend.domain.abnormalLog.dto.response.AbnormalLogResponse;
+import com.factoreal.backend.domain.worker.dto.response.WorkerDetailResponse;
 import com.factoreal.backend.domain.worker.dto.response.WorkerInfoResponse;
 import com.factoreal.backend.domain.worker.dto.response.ZoneManagerResponse;
 import com.factoreal.backend.domain.zone.dao.ZoneHistoryRepository;
@@ -15,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -24,14 +29,47 @@ public class WorkerService {
     private final WorkerRepository workerRepository;
     private final ZoneHistoryRepository zoneHistoryRepository;
     private final WorkerZoneRepository workerZoneRepository;
-
+    private final AbnormalLogService abnormalLogService;
     @Transactional(readOnly = true)
-    public List<WorkerInfoResponse> getAllWorkers() {
+    public List<WorkerDetailResponse> getAllWorkers() {
         log.info("전체 작업자 목록 조회");
         List<Worker> workers = workerRepository.findAll();
+        // workerId 목록
+        List<String> workerIds = workers.stream()
+            .map(Worker::getWorkerId)
+            .toList();
+
+        // AbnormalLog 에서 작업자 상태 조회
+        List<AbnormalLogResponse> statusList = abnormalLogService.
+            findLatestAbnormalLogsForTargets(TargetType.Worker,workerIds);
+        // HistZone에서 작업자 위치 조회
+        List<ZoneHist> zoneHistsList = workerIds.stream()
+                .map(workerId -> zoneHistoryRepository.findByWorker_WorkerIdAndExistFlag(workerId,1))
+                .toList();
+
+        // 상태 Map<workerId, status>
+        Map<String, Integer> statusMap = statusList.stream()
+            .collect(Collectors.toMap(AbnormalLogResponse::getTargetId, AbnormalLogResponse::getDangerLevel));
+
+        // 위치 Map<workerId, zoneName>
+        Map<String, String> zoneMap = workerIds.stream()
+            .collect(Collectors.toMap(
+                workerId -> workerId,
+                workerId -> {
+                    ZoneHist zh = zoneHistoryRepository.findByWorker_WorkerIdAndExistFlag(workerId, 1);
+                    if (zh == null || zh.getZone() == null) {
+                        return "대기실"; // 기본 ZoneId
+                    }
+                    return zh.getZone().getZoneName(); // zoneName이 아니라 zoneId로 변경
+                }
+            ));
         return workers.stream()
-                .map(worker -> WorkerInfoResponse.from(worker, false))
-                .collect(Collectors.toList());
+            .map(worker -> {
+                Integer status = statusMap.getOrDefault(worker.getWorkerId(), 0); // 기본값 예: 정상
+                String zone = zoneMap.getOrDefault(worker.getWorkerId(), "대기실");
+                return WorkerDetailResponse.from(worker, false, status.toString(), zone);
+            })
+            .collect(Collectors.toList());
     }
 
     /**
@@ -65,6 +103,23 @@ public class WorkerService {
         Zone currentZone = currentLocation != null ? currentLocation.getZone() : null;
 
         return ZoneManagerResponse.from(manager, currentZone);
+    }
+    /**
+     *  workerId에 해당하는 작업자 조회
+     */
+    @Transactional(readOnly = true)
+    public Worker getWorkerByWorkerId(String workerId) {
+        return workerRepository.findById(workerId).orElseThrow();
+    }
+
+    /**
+     * FCM 발송용 토큰을 추가하기 위한 메서드
+     * @param worker
+     * @return
+     */
+    @Transactional
+    public Worker saveWorker(Worker worker) {
+        return workerRepository.save(worker);
     }
 }
 

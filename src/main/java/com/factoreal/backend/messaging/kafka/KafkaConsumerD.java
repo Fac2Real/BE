@@ -1,7 +1,7 @@
 package com.factoreal.backend.messaging.kafka;
 
 import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
-import com.factoreal.backend.domain.abnormalLog.dto.LogType;
+import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.domain.zone.dao.ZoneRepository;
 import com.factoreal.backend.messaging.common.dto.SystemLogDto;
@@ -85,11 +85,11 @@ public class KafkaConsumerD {
                     log.error("SensorType not found");
                     throw new Exception("SensorType not found");
                 }
-                AbnormalLog abnormalLog = abnormalLogService.saveAbnormalLogFromKafkaDto(
+                AbnormalLog abnormalLog = abnormalLogService.saveAbnormalLogFromSensorKafkaDto(
                         dto,
                         sensorType,
                         riskLevel,
-                        LogType.Sensor);
+                        TargetType.Sensor);
 
                 // #################################
                 // 웹 앱 SMS 알람 로직

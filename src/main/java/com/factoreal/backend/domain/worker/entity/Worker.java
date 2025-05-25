@@ -24,4 +24,7 @@ public class Worker {
 
     @Column(name = "email", length = 100)
     private String email;
+
+    @Column(name = "fcm_token", length = 200)
+    private String fcmToken;
 }
