@@ -1,5 +1,6 @@
 package com.factoreal.backend.messaging.kafka.strategy.enums;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Data;
 
@@ -9,23 +10,45 @@ import lombok.Data;
  */
 @Builder
 @Data
+@Schema(description = "Kafka 알람 이벤트 DTO. 센서 및 시스템 이벤트에 대한 경보 정보를 포함합니다.")
 public class AlarmEventDto {
+
     // 1. 필수 공통 정보
-    private Long eventId;           // 알람 이벤트 고유 ID (추적용) -> BE에서 할당
+
+    @Schema(description = "알람 이벤트 고유 ID (추적용)", example = "1001")
+    private Long eventId;
+
+    @Schema(description = "구역 ID", example = "zone-001")
     private String zoneId;
+
+    @Schema(description = "장비 ID", example = "equip-xyz")
     private String equipId;
-    private String sensorId;        // 센서 혹은 웨어러블Id
-    private String sensorType;       // 알람 종류 (예: "HIGH_HEART_RATE", "LOW_BATTERY", "SERVER_DOWN") - 분류 및 라우팅에 사용
-    private double sensorValue; // 이상치 값
-    private RiskLevel riskLevel; // 알람 심각도 (예: CRITICAL, WARNING, INFO) - 채널 선택, 표현 방식 결정에 사용
 
-    private String time;      // 알람 발생 시각 -> BE에서 할당
+    @Schema(description = "센서 또는 웨어러블 ID", example = "sensor-abc")
+    private String sensorId;
 
-    // 3. 내용 정보 (프로토콜별로 활용 방식이 다름)
-//        String title,           // 알람 제목 (푸시 제목, 이메일 제목 등에 활용)
-    private String messageBody;    // 알람 본문 (푸시 내용, SMS 내용, 이메일 본문 등에 활용)
+    @Schema(description = "센서 타입 또는 알람 종류", example = "HIGH_HEART_RATE")
+    private String sensorType;
 
-    // 4. 부가 정보 (선택적)
-    private String source;          // 알람 발생 출처 (예: "WearableSensorService", "BatchJobMonitor")
+    @Schema(description = "센서에서 감지된 값", example = "145.0")
+    private double sensorValue;
+
+    @Schema(description = "위험 수준", implementation = RiskLevel.class)
+    private RiskLevel riskLevel;
+
+    @Schema(description = "알람 발생 시각 (ISO 8601)", example = "2025-05-25T12:34:56Z")
+    private String time;
+
+    // 3. 내용 정보
+
+    @Schema(description = "알람 본문 메시지", example = "환자의 심박수가 위험 수준을 초과했습니다.")
+    private String messageBody;
+
+    // 4. 부가 정보
+
+    @Schema(description = "알람 발생 출처 서비스", example = "WearableSensorService")
+    private String source;
+
+    @Schema(description = "구역 이름", example = "응급실 A구역")
     private String zoneName;
 }
