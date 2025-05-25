@@ -13,18 +13,14 @@ import com.factoreal.backend.messaging.kafka.strategy.NotificationStrategyFactor
 import com.factoreal.backend.messaging.kafka.strategy.enums.AlarmEventDto;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
 import com.factoreal.backend.messaging.kafka.strategy.enums.SensorType;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestHighLevelClient;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import com.factoreal.backend.domain.sensor.application.SensorService;
 import com.factoreal.backend.domain.sensor.entity.Sensor;
+
 import java.time.ZonedDateTime;
 import java.time.ZoneId;
 
@@ -50,13 +46,6 @@ public class KafkaConsumerD {
     // 공간(zone)별로 마지막 위험도 저장하기 위한 Map (초기에는 위험도 -1)
     private static final Map<String, Integer> lastDangerLevelMap = new ConcurrentHashMap<>();
 
-    // ELK
-    private final RestHighLevelClient elasticsearchClient; // ELK client
-
-    // Elasticsearch index name from configuration
-    @Value("${elasticsearch.index}")
-    private String esIndex;
-
     // 로그 기록용
     private final AbnormalLogService abnormalLogService;
 
@@ -77,11 +66,7 @@ public class KafkaConsumerD {
 
             // 공간 센서일 때만 히트맵용 웹소켓 전송
             if (dto.getEquipId() != null && dto.getZoneId() != null && dto.getEquipId().equals(dto.getZoneId())) {
-                log.info("✅ 공산 센서 로직 start");
-                // #################################
-                // 비동기 ES 저장
-                // #################################
-                saveToElasticsearch(dto);
+                log.info("✅ 공간 센서 로직 start");
 
                 log.info("▶︎ 위험도 감지 start");
                 int dangerLevel = getDangerLevel(dto.getSensorType(), dto.getVal());
@@ -124,23 +109,6 @@ public class KafkaConsumerD {
             log.error("❌ Kafka 메시지 파싱 실패: {}", message, e);
         }
 
-    }
-
-    // ✅ Elastic 비동기 저장
-    @Async
-    public void saveToElasticsearch(SensorKafkaDto dto) {
-        try {
-            Map<String, Object> map = objectMapper.convertValue(dto, new TypeReference<>() {
-            });
-            map.put("timestamp", Instant.now().toString()); // 타임필드 추가
-
-            IndexRequest request = new IndexRequest(esIndex).source(map);
-            elasticsearchClient.index(request, RequestOptions.DEFAULT);
-
-            log.info("✅ Elasticsearch 저장 완료: {}", dto.getSensorId());
-        } catch (Exception e) {
-            log.error("❌ Elasticsearch 저장 실패: {}", dto, e);
-        }
     }
 
     @Async
@@ -195,11 +163,11 @@ public class KafkaConsumerD {
                 .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
 
         SystemLogDto logDto = new SystemLogDto(
-                    zoneId, zoneName,
-                    dto.getSensorType(),
-                    newLevel,
-                    dto.getVal(),       // 이 부분 추가
-                    timestamp);
+                zoneId, zoneName,
+                dto.getSensorType(),
+                newLevel,
+                dto.getVal(),       // 이 부분 추가
+                timestamp);
 
         webSocketSender.sendSystemLog(logDto);
     }
@@ -338,26 +306,20 @@ public class KafkaConsumerD {
     }
 
     private String buildControlMessage(  // 제어 로직
-            String type, double val, double thresh, double tol) {
+                                         String type, double val, double thresh, double tol) {
         return switch (type.toLowerCase()) {
-            case "temp" ->
-                String.format("현재 온도는 %.1f℃입니다. 적정 온도 범위는 %.1f~%.1f℃입니다.",
-                        val, thresh - tol, thresh + tol);
-            case "humid" ->
-                String.format("현재 습도는 %.1f%%입니다. 적정 습도 범위는 %.1f~%.1f%%입니다.",
-                        val, thresh - tol, thresh + tol);
-            case "vibration" ->
-                String.format("현재 진동 값은 %.1fmm/s입니다. 허용 범위는 %.1f~%.1fmm/s입니다.",
-                        val, thresh - tol, thresh + tol);
-            case "current" ->
-                String.format("현재 전류는 %.1fmA입니다. 허용 범위는 %.1f~%.1fmA입니다.",
-                        val, thresh - tol, thresh + tol);
-            case "dust" ->
-                String.format("현재 미세먼지는 %.1f㎍/㎥입니다. 허용 범위는 %.1f~%.1f㎍/㎥입니다.",
-                        val, thresh - tol, thresh + tol);
-            default ->
-                String.format("현재 값은 %.1f이고, 허용 범위는 %.1f~%.1f입니다.",
-                        val, thresh - tol, thresh + tol);
+            case "temp" -> String.format("현재 온도는 %.1f℃입니다. 적정 온도 범위는 %.1f~%.1f℃입니다.",
+                    val, thresh - tol, thresh + tol);
+            case "humid" -> String.format("현재 습도는 %.1f%%입니다. 적정 습도 범위는 %.1f~%.1f%%입니다.",
+                    val, thresh - tol, thresh + tol);
+            case "vibration" -> String.format("현재 진동 값은 %.1fmm/s입니다. 허용 범위는 %.1f~%.1fmm/s입니다.",
+                    val, thresh - tol, thresh + tol);
+            case "current" -> String.format("현재 전류는 %.1fmA입니다. 허용 범위는 %.1f~%.1fmA입니다.",
+                    val, thresh - tol, thresh + tol);
+            case "dust" -> String.format("현재 미세먼지는 %.1f㎍/㎥입니다. 허용 범위는 %.1f~%.1f㎍/㎥입니다.",
+                    val, thresh - tol, thresh + tol);
+            default -> String.format("현재 값은 %.1f이고, 허용 범위는 %.1f~%.1f입니다.",
+                    val, thresh - tol, thresh + tol);
         };
 
     }

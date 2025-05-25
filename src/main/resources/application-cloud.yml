@@ -28,9 +28,8 @@ aws:
   secret-key: ${AWS_IAM_SECRET_KEY}
   region: ap-northeast-2
 
-
-elasticsearch:
-  host: elasticsearch
-  port: 9200
-  scheme: http
-  index: sensor-data
+grafana:
+  url: ${GRAFANA_URL}
+  api-key: ${GRAFANA_API_KEY}
+  org-id: 1
+  datasource-uid: ${GRAFANA_DATASOURCE_UID}

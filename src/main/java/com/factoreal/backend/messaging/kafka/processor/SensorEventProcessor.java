@@ -98,6 +98,7 @@ public class SensorEventProcessor {
             case "vibration": return val > 7.1 ? 2 : (val > 2.8 ? 1 : 0);
             case "current": return val >= 30 ? 2 : (val >= 7 ? 1 : 0);
             case "dust": return val >= 150 ? 2 : (val >= 75 ? 1 : 0);
+            case "voc": return val >= 1000 ? 2 : (val >= 300 ? 1 : 0);
             default: return 0;
         }
     }

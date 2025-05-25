@@ -11,4 +11,6 @@ import java.util.List;
 
 public interface SensorRepository extends JpaRepository<Sensor, String> {
     List<Sensor> findByZone(Zone zone);
+
+    List<Sensor> findByZone_ZoneId(String zoneId);
 }
