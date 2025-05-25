@@ -1,5 +1,6 @@
 package com.factoreal.backend.domain.zone.application;
 
+import com.factoreal.backend.domain.worker.application.WorkerService;
 import com.factoreal.backend.domain.worker.entity.Worker;
 import com.factoreal.backend.domain.zone.dao.ZoneHistoryRepository;
 import com.factoreal.backend.domain.zone.entity.Zone;
@@ -19,26 +20,26 @@ import java.time.LocalDateTime;
 public class ZoneHistoryService {
     
     private final ZoneHistoryRepository zoneHistRepository;
-    private final WorkerRepository workerRepository;
-    private final ZoneRepository zoneRepository;
+//    private final WorkerRepository workerRepository;
+//    private final ZoneRepository zoneRepository;
+    private final WorkerService workerService;
+    private final ZoneService zoneService;
 
     /**
      * 작업자의 위치 변경을 처리
      */
     @Transactional
     public void updateWorkerLocation(String workerId, String zoneId, LocalDateTime timestamp) {
-        Worker worker = workerRepository.findById(workerId)
-                .orElseThrow(() -> new IllegalArgumentException("작업자를 찾을 수 없습니다: " + workerId));
+        Worker worker = workerService.findById(workerId);
         
-        Zone zone = zoneRepository.findById(zoneId)
-                .orElseThrow(() -> new IllegalArgumentException("공간을 찾을 수 없습니다: " + zoneId));
+        Zone zone = zoneService.findById(zoneId);
 
         // 1. workerId 기반 작업자의 이전 위치가 있으면, 새로운 기록 생성 전 해당 작업자 위치 기록에 endTime 찍어주기
-        ZoneHist currentLocation = zoneHistRepository.findByWorker_WorkerIdAndExistFlag(workerId, 1);
+        ZoneHist currentLocation = findByWorker_WorkerIdAndExistFlag(workerId, 1);
         if (currentLocation != null) {
             currentLocation.setEndTime(timestamp); // 다음 공간의 입장 시간으로 update
             currentLocation.setExistFlag(0);
-            zoneHistRepository.save(currentLocation);
+            save(currentLocation);
         }
 
         // 2. 새로운 위치 기록 생성
@@ -50,7 +51,7 @@ public class ZoneHistoryService {
                 .existFlag(1)
                 .build();
         
-        zoneHistRepository.save(newLocation);
+        save(newLocation);
         
         /**
          * currentLocation이 있으면 (이전 위치가 있으면) -> 그 공간의 ID를 출력
@@ -59,5 +60,20 @@ public class ZoneHistoryService {
         log.info("작업자 {} 위치 변경: {} -> {}", workerId, 
                 currentLocation != null ? currentLocation.getZone().getZoneId() : "없음", 
                 zoneId);
+    }
+
+    /**
+     * 작업자ID와 작업자가 존재하는경우(1) 공간에 대한 기록을 반환하는 레포 접근 메서드
+     * */
+    private ZoneHist findByWorker_WorkerIdAndExistFlag(String workerId, Integer ExistFlag) {
+        return zoneHistRepository.findByWorker_WorkerIdAndExistFlag(workerId, ExistFlag);
+    }
+
+    /**
+     * 공간에 대한 히스토리 저장하는 레포 접근 메서드
+     */
+    @Transactional
+    protected ZoneHist save(ZoneHist zoneHist) {
+        return zoneHistRepository.save(zoneHist);
     }
 }

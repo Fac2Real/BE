@@ -30,6 +30,7 @@ public class SensorService {
     private final ZoneRepository zoneRepository;
     private final EquipRepository equipRepository;
 
+    /** 센서 정보 저장, 하드코딩으로 센서를 저장하고자 할때 사용 */
     @Transactional
     public Sensor saveSensor(SensorCreateRequest dto) {
         Zone zone = getZoneById(dto.getZoneId());
@@ -41,9 +42,10 @@ public class SensorService {
         sens.setZone(zone);
         sens.setEquip(equip);
         sens.setIsZone(dto.getIsZone());
-        return sensorRepository.save(sens);
+        return save(sens);
     }
 
+    /** 모든 센서 리스트 조회 */
     public List<SensorInfoResponse> getAllSensors() {
         return sensorRepository.findAll().stream()
             .map(s -> new SensorInfoResponse(
@@ -58,29 +60,42 @@ public class SensorService {
             .collect(Collectors.toList());
     }
 
+
+    /** 센서 정보 수정 */
     @Transactional
     public void updateSensor(String sensorId, SensorUpdateRequest dto) {
         Sensor sensor = getSensorById(sensorId);
         sensor.setSensorThres(dto.getSensorThres());
         sensor.setAllowVal(dto.getAllowVal());
-        sensorRepository.save(sensor);
+        save(sensor);
     }
 
+    /** 센서 정보 저장을 위한 레포 접근 메서드 */
+    @Transactional
+    protected Sensor save (Sensor sensor){
+        return sensorRepository.save(sensor);
+    }
+
+    /** 공간 Id로 공간 조회하는 레포 접근 메서드 */
     private Zone getZoneById(String zoneId) {
         return zoneRepository.findById(zoneId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "존재하지 않는 공간 ID: " + zoneId));
     }
+
+    /** 설비 Id로 설비를 조회하는 레포 접근 메서드 */
     private Equip getEquipById(String eqiuipId) {
         return equipRepository.findById(eqiuipId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "존재하지 않는 센서 ID: " + eqiuipId));
     }
+    /** 센서 Id로 센서를 조회하는 레포 접근 메서드 */
     public Sensor getSensorById(String sensorId) {
         return sensorRepository.findById(sensorId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "존재하지 않는 센서 ID: " + sensorId));
     }
+    /** 공간에 존재하는 센서 리스트를 조회하는 레포 접근 메서드 */
     public List<Sensor> findByZone(Zone zone) {
         return sensorRepository.findByZone(zone);
     }

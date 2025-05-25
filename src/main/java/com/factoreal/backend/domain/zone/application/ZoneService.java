@@ -3,6 +3,7 @@ package com.factoreal.backend.domain.zone.application;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import com.factoreal.backend.domain.abnormalLog.dao.AbnLogRepository;
@@ -46,6 +47,7 @@ public class ZoneService {
 
     private final SensorService sensorService;
 
+    /** 존 생성 서비스 */
     @Transactional
     public ZoneInfoResponse createZone(ZoneCreateRequest zoneCreateRequest) {
         String zoneName = zoneCreateRequest.getZoneName();
@@ -53,10 +55,11 @@ public class ZoneService {
 
         validateZoneName(zoneName);
 
-        Zone zone = zoneRepository.save(new Zone(zoneId, zoneName));
+        Zone zone = save(new Zone(zoneId, zoneName));
         return ZoneInfoResponse.from(zone);
     }
 
+    /** 존 업데이트 서비스 */
     @Transactional
     public ZoneInfoResponse updateZone(String zoneName, ZoneUpdateRequest dto) {
         // 1. 수정할 공간이 존재하는지 확인
@@ -68,19 +71,26 @@ public class ZoneService {
         }
 
         zone.setZoneName(dto.getZoneName());
-        Zone updatedZone = zoneRepository.save(zone);
+        Zone updatedZone = save(zone);
         return ZoneInfoResponse.from(updatedZone);
     }
 
+    /** 존 데이터 저장하는 레포지토리 접근 서비스 */
+    @Transactional
+    protected Zone save(Zone zone) {
+        return zoneRepository.save(zone);
+    }
+
+    /** 모든 존 목록 조회 서비스 */
     public List<ZoneInfoResponse> getAllZones() {
-        return zoneRepository.findAll().stream()
+        return findAll().stream()
                 .map(ZoneInfoResponse::from)
                 .collect(Collectors.toList());
     }
 
 
     /**
-     *  Zone별 환경‧설비 센서를 모아 ZoneDetailResponse DTO로 반환한다.
+     *  Zone별 환경‧설비 센서를 모아 ZoneDetailResponse DTO로 반환하는 서비스
      *
      *  <pre>
      *  ① Zone 조회
@@ -129,13 +139,14 @@ public class ZoneService {
         // 3) DTO 변환
         return equips.stream()
                 .map(e -> EquipDetailResponse.builder()
-                        .equipId(e.getEquipId())
-                        .equipName(e.getEquipName())
-                        .facSensor(facGroup.getOrDefault(e.getEquipId(), List.of()))
-                        .build())
+                .equipId(e.getEquipId())
+                .equipName(e.getEquipName())
+                .facSensor(facGroup.getOrDefault(e.getEquipId(), List.of()))
+                .build())
                 .toList();
     }
 
+    /** 공간Id로 시스템 로그를 찾는 서비스 */
     @Transactional
     public Page<ZoneLogResponse> findSystemLogsByZoneId(String zoneId, AbnormalPagingRequest pagingDto) {
         log.info("공간 ID: {}의 시스템 로그 조회", zoneId);
@@ -145,7 +156,9 @@ public class ZoneService {
         return logs.map(ZoneLogResponse::from);
     }
 
-    /** getZoneItems 서비스를 위한 레포지토리 접근 서비스 1*/
+
+
+    /** 모든 zone을 조회하는 레포지토리 접근 서비스 */
     private List<Zone> findAll() {
         return zoneRepository.findAll();
     }
@@ -160,13 +173,14 @@ public class ZoneService {
     private String findEquipNameByEquipId(String equipId) {
         return equipRepository.findEquipNameByEquipId(equipId);
     }
-
+    /** 공간 이름으로 공간 조회 */
     private Zone getZoneByName(String zoneName) {
         return zoneRepository.findByZoneName(zoneName)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "존재하지 않는 공간: " + zoneName));
     }
 
+    /** 이름으로 공간이 존재하는지 체크 */
     private void validateZoneName(String zoneName) {
         if (zoneRepository.findByZoneName(zoneName).isPresent()) {
             throw new ResponseStatusException(
@@ -179,5 +193,10 @@ public class ZoneService {
                 abnormalPagingDto.getPage(),
                 abnormalPagingDto.getSize()
         );
+    }
+
+    public Zone findById(String zoneId) {
+        return zoneRepository.findById(zoneId)
+                .orElseThrow(() -> new IllegalArgumentException("공간을 찾을 수 없습니다: " + zoneId));
     }
 }
