@@ -1,6 +1,8 @@
 package com.factoreal.backend.service;
 
+import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
 import com.factoreal.backend.domain.worker.application.WorkerService;
+import com.factoreal.backend.domain.worker.dto.response.WorkerDetailResponse;
 import com.factoreal.backend.domain.worker.dto.response.WorkerInfoResponse;
 import com.factoreal.backend.domain.worker.entity.Worker;
 import com.factoreal.backend.domain.zone.dao.ZoneHistoryRepository;
@@ -25,7 +27,9 @@ public class WorkerServiceTest {
 
     @Mock
     private WorkerRepository workerRepository;
-    
+
+    @Mock
+    private AbnormalLogService abnormalLogService;
     @Mock
     private ZoneHistoryRepository zoneHistoryRepository;
     
@@ -79,7 +83,7 @@ public class WorkerServiceTest {
         when(workerRepository.findAll()).thenReturn(Arrays.asList(worker1, worker2));
         
         // 서비스 메소드 호출
-        List<WorkerInfoResponse> result = workerService.getAllWorkers();
+        List<WorkerDetailResponse> result = workerService.getAllWorkers();
         
         // 결과 검증
         assertNotNull(result);
