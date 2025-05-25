@@ -2,6 +2,12 @@ package com.factoreal.backend.messaging.service;
 
 import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
 import com.factoreal.backend.domain.sensor.entity.Sensor;
+
+import jakarta.transaction.Transactional;
+
+import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
+import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
+import com.factoreal.backend.domain.controlLog.service.ControlLogService;
 import com.factoreal.backend.domain.sensor.dao.SensorRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,12 +23,16 @@ import org.springframework.stereotype.Service;
 public class AutoControlService {
 
     private final SensorRepository sensorRepository;
+    private final ControlLogService controlLogService;
+    private final AbnormalLogService abnormalLogService;
 
     /**
      * 센서 값이 허용 범위를 벗어났을 경우 제어 메시지를 생성하거나 처리하도록 로깅
      */
+    @Transactional
     public void evaluate(SensorKafkaDto dto, int dangerLevel) {
-        if (dangerLevel == 0) return; // 정상 범위면 아무 처리 안 함
+        if (dangerLevel == 0)
+            return; // 정상 범위면 아무 처리 안 함
 
         Sensor sensor = sensorRepository.findById(dto.getSensorId())
                 .orElse(null);
@@ -36,15 +46,29 @@ public class AutoControlService {
         double tolerance = sensor.getAllowVal() != null ? sensor.getAllowVal() : 0.0;
         double value = dto.getVal();
 
+        // 센서 값이 허용 범위를 벗어났을 경우
         if (value < threshold - tolerance || value > threshold + tolerance) {
             String message = buildControlMessage(sensor.getSensorType().name(), value, threshold, tolerance);
             log.info("⚙️ 자동제어 필요: {}", message);
+
+            // 1. 이상 로그 저장
+            AbnormalLog abnormalLog = abnormalLogService.saveAbnormalLog(dto, sensor, dangerLevel);
+
+            // 2. 제어 로그 저장
+            String controlType = getControlType(sensor.getSensorType().name());
+
+            controlLogService.saveControlLog(
+                    abnormalLog,
+                    controlType,
+                    threshold, // controlVal: 임계값을 목표값으로 사용
+                    1, // controlStat: 성공 상태로 설정
+                    sensor.getZone());
+
             // TODO: MQTT 퍼블리시 로직으로 대체
         } else {
             log.info("✅ 측정값은 허용 범위 내: sensorId={}, value={}", dto.getSensorId(), value);
         }
     }
-
 
     // 제어 로직
     private String buildControlMessage(String type, double val, double thresh, double tol) {
@@ -55,6 +79,16 @@ public class AutoControlService {
             case "current" -> String.format("현재 전류 %.1fmA, 허용 범위: %.1f~%.1fmA", val, thresh - tol, thresh + tol);
             case "dust" -> String.format("현재 미세먼지 %.1f㎍/㎥, 허용 범위: %.1f~%.1f㎍/㎥", val, thresh - tol, thresh + tol);
             default -> String.format("현재 값 %.1f, 허용 범위: %.1f~%.1f", val, thresh - tol, thresh + tol);
+        };
+    }
+
+    // 센서 타입에 따른 제어 타입 결정
+    private String getControlType(String sensorType) {
+        return switch (sensorType.toLowerCase()) {
+            case "temp" -> "에어컨";
+            case "humid" -> "제습기";
+            case "dust" -> "공기청정기";
+            default -> sensorType;
         };
     }
 }

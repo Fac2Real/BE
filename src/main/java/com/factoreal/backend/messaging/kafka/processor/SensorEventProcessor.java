@@ -28,7 +28,8 @@ public class SensorEventProcessor {
 
     /**
      * 센서 Kafka 메시지 처리
-     * @param dto 센서 데이터
+     * 
+     * @param dto   센서 데이터
      * @param topic Kafka 토픽명 (EQUIPMENT, ENVIRONMENT)
      */
     public void process(SensorKafkaDto dto, String topic) {
@@ -66,7 +67,6 @@ public class SensorEventProcessor {
                         dto, sensorType, riskLevel, targetType
                 );
 
-
                 // 읽지 않은 알림 수 조회
                 Long count = abnormalLogService.readRequired();
 
@@ -74,12 +74,11 @@ public class SensorEventProcessor {
                 // 1. 히트맵 전송
                 webSocketSender.sendDangerLevel(dto.getZoneId(), dto.getSensorType(), dangerLevel);
                 // 2. 위험 알림 전송 -> 위험도별 Websocket + wearable + Slack(SMS 대체)
-//                webSocketSender.sendDangerAlarm(abnLog.toAlarmEventDto());
-                alarmEventService.startAlarm(dto,abnLog,dangerLevel);
+                // Todo : (As-is) 전략 기반 startAlarm() 메서드 담당자 확인 필요
+                // webSocketSender.sendDangerAlarm(abnLog.toAlarmEventDto());
+                alarmEventService.startAlarm(dto, abnLog, dangerLevel);
                 // 3. 읽지 않은 수 전송
                 webSocketSender.sendUnreadCount(count);
-
-
 
                 log.info("✅ 센서 이벤트 처리 완료: sensorId={}, zoneId={}, level={} ({} topic)",
                         dto.getSensorId(), dto.getZoneId(), dangerLevel, topic);
@@ -90,15 +89,22 @@ public class SensorEventProcessor {
     }
 
     // 공간에 위험도 분기 로직
-    // Todo : Flink에서 적용으로 변경되어 삭제 예정
+    // Flink에서 적용으로 변경되어 사용안함
+    @Deprecated
     private int getDangerLevel(String sensorType, double val) {
         switch (sensorType.toLowerCase()) {
-            case "temp": return val > 40 || val < -35 ? 2 : (val > 30 || val < 25 ? 1 : 0);
-            case "humid": return val >= 80 ? 2 : (val >= 60 ? 1 : 0);
-            case "vibration": return val > 7.1 ? 2 : (val > 2.8 ? 1 : 0);
-            case "current": return val >= 30 ? 2 : (val >= 7 ? 1 : 0);
-            case "dust": return val >= 150 ? 2 : (val >= 75 ? 1 : 0);
-            default: return 0;
+            case "temp":
+                return val > 40 || val < -35 ? 2 : (val > 30 || val < 25 ? 1 : 0);
+            case "humid":
+                return val >= 80 ? 2 : (val >= 60 ? 1 : 0);
+            case "vibration":
+                return val > 7.1 ? 2 : (val > 2.8 ? 1 : 0);
+            case "current":
+                return val >= 30 ? 2 : (val >= 7 ? 1 : 0);
+            case "dust":
+                return val >= 150 ? 2 : (val >= 75 ? 1 : 0);
+            default:
+                return 0;
         }
     }
 

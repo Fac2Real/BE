@@ -4,6 +4,8 @@ import com.factoreal.backend.domain.abnormalLog.dao.AbnLogRepository;
 import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.dto.request.AbnormalPagingRequest;
 import com.factoreal.backend.domain.abnormalLog.dto.response.AbnormalLogResponse;
+import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
+import com.factoreal.backend.domain.sensor.entity.Sensor;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
 import com.factoreal.backend.domain.zone.application.ZoneHistoryService;
@@ -50,6 +52,7 @@ public class AbnormalLogService {
      * @throws Exception
      */
     @Transactional(rollbackFor = Exception.class)
+
     public AbnormalLog saveAbnormalLogFromSensorKafkaDto(
             SensorKafkaDto sensorKafkaDto,
             SensorType sensorType,
@@ -62,10 +65,10 @@ public class AbnormalLogService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 공간 ID: " + sensorKafkaDto.getZoneId());
         }
 
-        log.info(">>>>>> zone : {} " ,zone);
+        log.info(">>>>>> zone : {} ", zone);
 
         // DTO의 severity (AlarmEvent.RiskLevel)를 Entity RiskLevel로 매핑
-//        RiskLevel entityRiskLevel = mapDtoSeverityToEntityRiskLevel(riskLevel);
+        // RiskLevel entityRiskLevel = mapDtoSeverityToEntityRiskLevel(riskLevel);
         // [TODO] 현재는 스프린트 1 웹 푸쉬, 대시보드 히트 맵 알림 로그만 구현되있음. worker, equip 로그용 구현 필요.
         AbnormalLog abnormalLog = AbnormalLog.builder()
                 .targetId(sensorKafkaDto.getSensorId())
@@ -97,8 +100,7 @@ public class AbnormalLogService {
             TargetType targetType
     ){
         // workerId에 해당되는 사람이 제일 최근에 있던 공간 조회
-        ZoneHist zonehist = zoneHistoryService.
-                findByWorker_WorkerIdAndExistFlag(wearableKafkaDto.getWorkerId(), 1);
+        ZoneHist zonehist = zoneHistoryService.getCurrentWorkerLocation(wearableKafkaDto.getWorkerId());
         Zone zone;
         if (zonehist == null){
             zone = zoneService.findByZoneId("00000000000000-000");
@@ -133,7 +135,8 @@ public class AbnormalLogService {
         return abnormalLogs.map(AbnormalLog::fromEntity);
     }
 
-    public Page<AbnormalLogResponse> findAbnormalLogsByAbnormalType(AbnormalPagingRequest abnormalPagingRequest, String abnormalType){
+    public Page<AbnormalLogResponse> findAbnormalLogsByAbnormalType(AbnormalPagingRequest abnormalPagingRequest,
+            String abnormalType) {
         // 한번에 DB전체를 주는 것이 아닌 구간 나눠서 전달하기 위함
         Pageable pageable = getPageable(abnormalPagingRequest);
         Page<AbnormalLog> abnormalLogs = abnLogRepository.findAbnormalLogsByAbnormalType(abnormalType,pageable);
@@ -158,16 +161,14 @@ public class AbnormalLogService {
                 targetId,
                 pageable);
         return abnormalLogs.map(
-                abn_log -> objectMapper.convertValue(abn_log, AbnormalLogResponse.class)
-        );
+                abn_log -> objectMapper.convertValue(abn_log, AbnormalLogResponse.class));
     }
-
 
     // FE에서 알람을 클릭한 경우 읽음으로 수정
     @Transactional
-    public boolean readCheck(Long abnormalLogId){
+    public boolean readCheck(Long abnormalLogId) {
         AbnormalLog abnormalLog = abnLogRepository.findById(abnormalLogId).orElse(null);
-        if(abnormalLog == null){
+        if (abnormalLog == null) {
             return false;
         }
 
@@ -176,18 +177,33 @@ public class AbnormalLogService {
         readRequired();
         return true;
     }
+    @Transactional
+    public AbnormalLog saveAbnormalLog(SensorKafkaDto dto, Sensor sensor, int dangerLevel) {
+        RiskLevel riskLevel = RiskLevel.fromPriority(dangerLevel);
+
+        AbnormalLog abnormalLog = AbnormalLog.builder()
+                .targetId(dto.getSensorId())
+                .targetType(TargetType.Sensor)
+                .abnormalType(riskMessageProvider.getRiskMessageBySensor(sensor.getSensorType(), riskLevel))
+                .abnVal(dto.getVal())
+                .zone(sensor.getZone())
+                .detectedAt(LocalDateTime.parse(dto.getTime()))
+                .isRead(false)
+                .build();
+
+        return abnLogRepository.save(abnormalLog);
+    }
     @Transactional(readOnly = true)
     // 읽지 않은 알람이 몇개인지 반환
-    public Long readRequired(){
-        Long count =  abnLogRepository.countByIsReadFalse();
-//        webSocketSender.sendUnreadCount(count);
+    public Long readRequired() {
+        Long count = abnLogRepository.countByIsReadFalse();
+        // webSocketSender.sendUnreadCount(count);
         return count;
     }
 
-    private Pageable getPageable(AbnormalPagingRequest abnormalPagingRequest){
+    private Pageable getPageable(AbnormalPagingRequest abnormalPagingRequest) {
         return PageRequest.of(
                 abnormalPagingRequest.getPage(),
-                abnormalPagingRequest.getSize()
-        );
+                abnormalPagingRequest.getSize());
     }
 }

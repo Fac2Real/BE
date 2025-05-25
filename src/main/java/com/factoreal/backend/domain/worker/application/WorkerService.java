@@ -1,14 +1,18 @@
 package com.factoreal.backend.domain.worker.application;
 
+import com.factoreal.backend.domain.worker.dto.request.CreateWorkerRequest;
+import com.factoreal.backend.domain.worker.dto.response.WorkerDetailResponse;
 import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
 import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.dto.response.AbnormalLogResponse;
-import com.factoreal.backend.domain.worker.dto.response.WorkerDetailResponse;
 import com.factoreal.backend.domain.worker.dto.response.WorkerInfoResponse;
 import com.factoreal.backend.domain.worker.dto.response.ZoneManagerResponse;
+import com.factoreal.backend.domain.zone.application.ZoneHistoryService;
 import com.factoreal.backend.domain.zone.dao.ZoneHistoryRepository;
+import com.factoreal.backend.domain.zone.dao.ZoneRepository;
 import com.factoreal.backend.domain.worker.entity.Worker;
 import com.factoreal.backend.domain.worker.entity.WorkerZone;
+import com.factoreal.backend.domain.worker.entity.WorkerZoneId;
 import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.domain.zone.entity.ZoneHist;
 import com.factoreal.backend.domain.worker.dao.WorkerRepository;
@@ -18,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -27,9 +32,11 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class WorkerService {
     private final WorkerRepository workerRepository;
-    private final ZoneHistoryRepository zoneHistoryRepository;
     private final WorkerZoneRepository workerZoneRepository;
+    private final ZoneRepository zoneRepository;
+    private final ZoneHistoryService zoneHistoryService;
     private final AbnormalLogService abnormalLogService;
+    private final ZoneHistoryRepository zoneHistoryRepository;
     @Transactional(readOnly = true)
     public List<WorkerDetailResponse> getAllWorkers() {
         log.info("전체 작업자 목록 조회");
@@ -52,23 +59,32 @@ public class WorkerService {
             .collect(Collectors.toMap(AbnormalLogResponse::getTargetId, AbnormalLogResponse::getDangerLevel));
 
         // 위치 Map<workerId, zoneName>
-        Map<String, String> zoneMap = workerIds.stream()
+        Map<String, Map<String, String>> zoneMap = workerIds.stream()
             .collect(Collectors.toMap(
                 workerId -> workerId,
                 workerId -> {
                     ZoneHist zh = zoneHistoryRepository.findByWorker_WorkerIdAndExistFlag(workerId, 1);
                     if (zh == null || zh.getZone() == null) {
-                        return "대기실"; // 기본 ZoneId
+                        Map<String, String> defaultZone = new HashMap<>();
+                        defaultZone.put("zoneId", "00000000000000-000");
+                        defaultZone.put("zoneName", "대기실");
+                        return defaultZone;
                     }
-                    return zh.getZone().getZoneName(); // zoneName이 아니라 zoneId로 변경
+                    Map<String, String> zone = new HashMap<>();
+                    zone.put("zoneId", zh.getZone().getZoneId());
+                    zone.put("zoneName", zh.getZone().getZoneName());
+                    return zone;
                 }
             ));
         return workers.stream()
-            .map(worker -> {
-                Integer status = statusMap.getOrDefault(worker.getWorkerId(), 0); // 기본값 예: 정상
-                String zone = zoneMap.getOrDefault(worker.getWorkerId(), "대기실");
-                return WorkerDetailResponse.from(worker, false, status.toString(), zone);
-            })
+            .map(worker -> WorkerDetailResponse.fromEntity(
+                worker,
+                workerZoneRepository.findByWorkerWorkerIdAndManageYnIsTrue(worker.getWorkerId())
+                            .isPresent(),
+                statusMap.get(worker.getWorkerId()),
+                zoneMap.get(worker.getWorkerId()).get("zoneId"),
+                zoneMap.get(worker.getWorkerId()).get("zoneName")
+            ))
             .collect(Collectors.toList());
     }
 
@@ -90,12 +106,12 @@ public class WorkerService {
     @Transactional(readOnly = true)
     public ZoneManagerResponse getZoneManagerWithLocation(String zoneId) {
         log.info("공간 ID: {}의 담당자 정보 조회", zoneId);
-        
+
         WorkerZone zoneManager = workerZoneRepository.findByZoneZoneIdAndManageYnIsTrue(zoneId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 공간의 담당자를 찾을 수 없습니다: " + zoneId));
-        
+
         Worker manager = zoneManager.getWorker();
-        
+
         // 2. 담당자의 현재 위치 조회 (existFlag = 1)
         ZoneHist currentLocation = zoneHistoryRepository.findByWorker_WorkerIdAndExistFlag(manager.getWorkerId(), 1);
 
@@ -104,6 +120,43 @@ public class WorkerService {
 
         return ZoneManagerResponse.from(manager, currentZone);
     }
+
+    /**
+     * 작업자 생성 및 출입 가능 공간 설정
+     */
+    @Transactional
+    public void createWorker(CreateWorkerRequest request) {
+        log.info("작업자 생성 요청: {}", request);
+
+        // 1. 작업자 정보 저장
+        Worker worker = Worker.builder()
+                .workerId(request.getWorkerId())
+                .name(request.getName())
+                .phoneNumber(request.getPhoneNumber())
+                .email(request.getEmail())
+                .build();
+
+        workerRepository.save(worker); // 작업자 정보 저장
+
+        // 2. 각 공간명으로 Zone 조회 및 WorkerZone 생성
+        for (String zoneName : request.getZoneNames()) {
+            Zone zone = zoneRepository.findByZoneName(zoneName)
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 공간명입니다: " + zoneName));
+
+            // WorkerZone 생성 (기본적으로 관리자 권한은 없음)
+            WorkerZone workerZone = WorkerZone.builder()
+                    .id(new WorkerZoneId(worker.getWorkerId(), zone.getZoneId())) // 복합키 생성
+                    .worker(worker)
+                    .zone(zone)
+                    .manageYn(false) // 담당자 권한은 없음이 default
+                    .build();
+
+            workerZoneRepository.save(workerZone); // WorkerZone 저장
+        }
+
+        log.info("작업자 생성 완료 - workerId: {}", worker.getWorkerId());
+    }
+
     /**
      *  workerId에 해당하는 작업자 조회
      */

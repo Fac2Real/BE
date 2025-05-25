@@ -25,7 +25,7 @@ public class ControlLog {
     private String controlType;
 
     @Column(name = "control_val")
-    private Integer controlVal;
+    private Double controlVal;
 
     @Column(name = "control_stat")
     private Integer controlStat;
@@ -43,6 +43,5 @@ public class ControlLog {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "zone_id", referencedColumnName = "zone_id")
     private Zone zone;
-
 
 }
