@@ -43,7 +43,7 @@ dependencies {
     implementation 'org.bouncycastle:bcpkix-jdk15on:1.70'
 
     // swagger doc
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8'
 
     // flyway db
     implementation 'org.flywaydb:flyway-core'
