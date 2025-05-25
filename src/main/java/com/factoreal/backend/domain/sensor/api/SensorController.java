@@ -30,6 +30,6 @@ public class SensorController {
             @PathVariable("sensorId") String sensorId,
             @RequestBody SensorUpdateRequest sensorUpdateRequest) {
         service.updateSensor(sensorId, sensorUpdateRequest);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok().build(); // 204 응답 반환
     }
 }
