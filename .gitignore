@@ -265,3 +265,4 @@ $RECYCLE.BIN/
 *.html
 
 custom-kibana/
+/src/main/resources/fcm_root_key/monitory-28aad-firebase-adminsdk-fbsvc-0d7886e5f5.json

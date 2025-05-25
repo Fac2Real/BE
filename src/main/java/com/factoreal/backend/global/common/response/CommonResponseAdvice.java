@@ -2,6 +2,8 @@ package com.factoreal.backend.global.common.response;
 
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.core.MethodParameter;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -11,31 +13,42 @@ import org.springframework.http.server.ServletServerHttpResponse;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
+
 @RestControllerAdvice(basePackages = "com.factoreal.backend")
-public class CommonResponseAdvice implements ResponseBodyAdvice {
+public class CommonResponseAdvice implements ResponseBodyAdvice<Object> {
+
     @Override
     public boolean supports(MethodParameter returnType, Class converterType) {
-        return true; // 어떤 응답을 가로채서 반환할 것인지 -> 모든 응답 가로채기
+        String pkgName = returnType.getDeclaringClass().getPackageName();
+        if (pkgName.startsWith("org.springdoc") || pkgName.contains("swagger") || pkgName.contains("springfox")) {
+            return false;
+        }
+        return true;
     }
 
     @Override
     public Object beforeBodyWrite(
-            Object body,
-            MethodParameter returnType,
-            MediaType selectedContentType,
-            Class selectedConverterType,
-            ServerHttpRequest request,
-            ServerHttpResponse response) {
-        HttpServletResponse httpServletResponse =
-                ((ServletServerHttpResponse) response).getServletResponse();
-        int status = httpServletResponse.getStatus();
-        HttpStatus resolve = HttpStatus.resolve(status);
+        Object body,
+        MethodParameter returnType,
+        MediaType selectedContentType,
+        Class selectedConverterType,
+        ServerHttpRequest request,
+        ServerHttpResponse response) {
 
-        if (resolve == null || body instanceof String || body instanceof Resource) {
+        String uri = request.getURI().toString();
+        if (uri.contains("/v3/api-docs") || uri.contains("/swagger") || uri.contains("/swagger-ui")) {
             return body;
         }
 
-        if (resolve.is2xxSuccessful()) {
+        if (body instanceof String || body instanceof Resource) {
+            return body;
+        }
+
+        HttpServletResponse servletResponse = ((ServletServerHttpResponse) response).getServletResponse();
+        int status = servletResponse.getStatus();
+        HttpStatus httpStatus = HttpStatus.resolve(status);
+
+        if (httpStatus != null && httpStatus.is2xxSuccessful()) {
             return CommonResponse.onSuccess(status, body);
         }
 

@@ -1,7 +1,7 @@
 package com.factoreal.backend.messaging.kafka.processor;
 
 import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
-import com.factoreal.backend.domain.abnormalLog.dto.LogType;
+import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.messaging.sender.WebSocketSender;
 import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
@@ -57,14 +57,15 @@ public class SensorEventProcessor {
                 int dangerLevel = dto.getDangerLevel();
                 SensorType sensorType = SensorType.getSensorType(dto.getSensorType());
                 RiskLevel riskLevel = RiskLevel.fromPriority(dangerLevel);
-                LogType logType = topicToLogType(topic);
+                TargetType targetType = topicToLogType(topic);
 
                 // 자동 제어 메시지 판단 (Todo - 진행중)
                 autoControlService.evaluate(dto, dangerLevel);
 
                 // 이상 로그 저장
-                AbnormalLog abnLog = abnormalLogService.saveAbnormalLogFromKafkaDto(
-                        dto, sensorType, riskLevel, logType);
+                AbnormalLog abnLog = abnormalLogService.saveAbnormalLogFromSensorKafkaDto(
+                        dto, sensorType, riskLevel, targetType
+                );
 
                 // 읽지 않은 알림 수 조회
                 Long count = abnormalLogService.readRequired();
@@ -108,10 +109,10 @@ public class SensorEventProcessor {
     }
 
     // topic enum 변경하기
-    private LogType topicToLogType(String topic) {
+    private TargetType topicToLogType(String topic) {
         return switch (topic.toUpperCase()) {
-            case "EQUIPMENT" -> LogType.Equip;
-            case "ENVIRONMENT" -> LogType.Sensor;
+            case "EQUIPMENT" -> TargetType.Equip;
+            case "ENVIRONMENT" -> TargetType.Sensor;
             default -> throw new IllegalArgumentException("지원하지 않는 Kafka 토픽: " + topic);
         };
     }

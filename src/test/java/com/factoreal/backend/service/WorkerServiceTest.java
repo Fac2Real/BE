@@ -1,6 +1,8 @@
 package com.factoreal.backend.service;
 
+import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
 import com.factoreal.backend.domain.worker.application.WorkerService;
+import com.factoreal.backend.domain.worker.dto.response.WorkerDetailResponse;
 import com.factoreal.backend.domain.worker.dto.response.WorkerInfoResponse;
 import com.factoreal.backend.domain.worker.entity.Worker;
 import com.factoreal.backend.domain.zone.dao.ZoneHistoryRepository;
@@ -27,17 +29,20 @@ import static org.mockito.Mockito.when;
 
 public class WorkerServiceTest {
 
-        @Mock
-        private WorkerRepository workerRepository;
-
-        @Mock
-        private ZoneHistoryRepository zoneHistoryRepository;
 
         @Mock
         private WorkerZoneRepository workerZoneRepository;
 
-        @InjectMocks
-        private WorkerService workerService;
+    @Mock
+    private WorkerRepository workerRepository;
+
+    @Mock
+    private AbnormalLogService abnormalLogService;
+    @Mock
+    private ZoneHistoryRepository zoneHistoryRepository;
+    
+    @InjectMocks
+    private WorkerService workerService;
 
         private Worker worker1;
         private Worker worker2;
@@ -90,7 +95,7 @@ public class WorkerServiceTest {
                                 .thenReturn(Optional.empty()); // 모든 작업자가 관리자가 아닌 것으로 설정
 
                 // 서비스 메소드 호출
-                List<WorkerInfoResponse> result = workerService.getAllWorkers();
+                List<WorkerDetailResponse> result = workerService.getAllWorkers();
 
                 // 결과 검증
                 assertNotNull(result);

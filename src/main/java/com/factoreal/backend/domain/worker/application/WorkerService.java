@@ -2,6 +2,9 @@ package com.factoreal.backend.domain.worker.application;
 
 import com.factoreal.backend.domain.worker.dto.request.CreateWorkerRequest;
 import com.factoreal.backend.domain.worker.dto.response.WorkerDetailResponse;
+import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
+import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
+import com.factoreal.backend.domain.abnormalLog.dto.response.AbnormalLogResponse;
 import com.factoreal.backend.domain.worker.dto.response.WorkerInfoResponse;
 import com.factoreal.backend.domain.worker.dto.response.ZoneManagerResponse;
 import com.factoreal.backend.domain.zone.application.ZoneHistoryService;
@@ -19,7 +22,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -30,37 +35,57 @@ public class WorkerService {
     private final WorkerZoneRepository workerZoneRepository;
     private final ZoneRepository zoneRepository;
     private final ZoneHistoryService zoneHistoryService;
-
+    private final AbnormalLogService abnormalLogService;
     private final ZoneHistoryRepository zoneHistoryRepository;
-
     @Transactional(readOnly = true)
     public List<WorkerDetailResponse> getAllWorkers() {
         log.info("전체 작업자 목록 조회");
         List<Worker> workers = workerRepository.findAll();
-        return workers.stream()
-                .map(worker -> {
-                    // 해당 작업자가 어떤 공간의 담당자인지 확인
-                    boolean isManager = workerZoneRepository.findByWorkerWorkerIdAndManageYnIsTrue(worker.getWorkerId())
-                            .isPresent();
+        // workerId 목록
+        List<String> workerIds = workers.stream()
+            .map(Worker::getWorkerId)
+            .toList();
 
-                    // 작업자의 현재 위치 정보 조회
-                    ZoneHist currentLocation = zoneHistoryService.getCurrentWorkerLocation(worker.getWorkerId());
+        // AbnormalLog 에서 작업자 상태 조회
+        List<AbnormalLogResponse> statusList = abnormalLogService.
+            findLatestAbnormalLogsForTargets(TargetType.Worker,workerIds);
+        // HistZone에서 작업자 위치 조회
+        List<ZoneHist> zoneHistsList = workerIds.stream()
+                .map(workerId -> zoneHistoryRepository.findByWorker_WorkerIdAndExistFlag(workerId,1))
+                .toList();
 
-                    // 작업자 상태와 위치 정보 초기 설정
-                    // TODO: 작업자 상태 추가 필요
-                    String status = "Stable";
-                    String currentZoneId = null;
-                    String currentZoneName = null;
+        // 상태 Map<workerId, status>
+        Map<String, Integer> statusMap = statusList.stream()
+            .collect(Collectors.toMap(AbnormalLogResponse::getTargetId, AbnormalLogResponse::getDangerLevel));
 
-                    if (currentLocation != null) {
-                        Zone currentZone = currentLocation.getZone();
-                        currentZoneId = currentZone.getZoneId();
-                        currentZoneName = currentZone.getZoneName();
+        // 위치 Map<workerId, zoneName>
+        Map<String, Map<String, String>> zoneMap = workerIds.stream()
+            .collect(Collectors.toMap(
+                workerId -> workerId,
+                workerId -> {
+                    ZoneHist zh = zoneHistoryRepository.findByWorker_WorkerIdAndExistFlag(workerId, 1);
+                    if (zh == null || zh.getZone() == null) {
+                        Map<String, String> defaultZone = new HashMap<>();
+                        defaultZone.put("zoneId", "00000000000000-000");
+                        defaultZone.put("zoneName", "대기실");
+                        return defaultZone;
                     }
-
-                    return WorkerDetailResponse.fromEntity(worker, isManager, status, currentZoneId, currentZoneName);
-                })
-                .collect(Collectors.toList());
+                    Map<String, String> zone = new HashMap<>();
+                    zone.put("zoneId", zh.getZone().getZoneId());
+                    zone.put("zoneName", zh.getZone().getZoneName());
+                    return zone;
+                }
+            ));
+        return workers.stream()
+            .map(worker -> WorkerDetailResponse.fromEntity(
+                worker,
+                workerZoneRepository.findByWorkerWorkerIdAndManageYnIsTrue(worker.getWorkerId())
+                            .isPresent(),
+                statusMap.get(worker.getWorkerId()),
+                zoneMap.get(worker.getWorkerId()).get("zoneId"),
+                zoneMap.get(worker.getWorkerId()).get("zoneName")
+            ))
+            .collect(Collectors.toList());
     }
 
     /**
@@ -131,4 +156,37 @@ public class WorkerService {
 
         log.info("작업자 생성 완료 - workerId: {}", worker.getWorkerId());
     }
+
+    /**
+     *  workerId에 해당하는 작업자 조회
+     */
+    @Transactional(readOnly = true)
+    public Worker getWorkerByWorkerId(String workerId) {
+        return workerRepository.findById(workerId).orElseThrow();
+    }
+
+    /**
+     * FCM 발송용 토큰을 추가하기 위한 메서드
+     * @param worker
+     * @return
+     */
+    @Transactional
+    public Worker saveWorker(Worker worker) {
+        return workerRepository.save(worker);
+    }
 }
+
+// TODO. 수정되어야 할 로직. 현재는 WorkerZone 테이블에서 공간id로 필터링 되는 모든 작업자를 끌고왔는데,
+// 사실 현재 그 공간에서 실제로 작업하고 있는, 즉 들어
+// public List<WorkerDto> getWorkersByZoneId(String zoneId) {
+//     log.info("공간 ID: {}의 작업자 목록 조회", zoneId);
+//     List<WorkerZone> workerZones = workerZoneRepository.findByZoneZoneId(zoneId);
+    
+//     return workerZones.stream()
+//             .map(workerZone -> {
+//                 Worker worker = workerZone.getWorker();
+//                 Boolean isManager = workerZone.getManageYn();
+//                 return WorkerDto.fromEntity(worker, isManager);
+//             })
+//             .collect(Collectors.toList());
+// }

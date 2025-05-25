@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 public class ZoneHist {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
     private Long id;  // ID
 

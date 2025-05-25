@@ -1,6 +1,6 @@
 package com.factoreal.backend.domain.zone.dto.response;
 
-import com.factoreal.backend.domain.abnormalLog.dto.LogType;
+import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -36,8 +36,8 @@ public class ZoneLogResponse {
                 .build();
     }
 
-    private static String convertLogTypeToKorean(LogType logType) {
-        return switch (logType) {
+    private static String convertLogTypeToKorean(TargetType targetType) {
+        return switch (targetType) {
             case Sensor -> "환경";
             case Worker -> "작업자";
             case Equip -> "설비";

@@ -2,12 +2,14 @@ package com.factoreal.backend.messaging.service;
 
 import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
-import com.factoreal.backend.domain.zone.dao.ZoneRepository;
+import com.factoreal.backend.domain.zone.application.ZoneService;
 import com.factoreal.backend.messaging.kafka.strategy.alarmList.NotificationStrategy;
 import com.factoreal.backend.messaging.kafka.strategy.NotificationStrategyFactory;
 import com.factoreal.backend.messaging.kafka.strategy.enums.AlarmEventDto;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
 import com.factoreal.backend.messaging.kafka.strategy.enums.SensorType;
+import com.factoreal.backend.messaging.kafka.dto.WearableKafkaDto;
+import com.factoreal.backend.messaging.kafka.strategy.enums.WearableDataType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,7 +23,7 @@ public class AlarmEventService {
 
     // 위험 레벨별 알람 전략을 가져오기 위한 팩토리 서비스
     private final NotificationStrategyFactory notificationStrategyFactory;
-    private final ZoneRepository zoneRepository;
+    private final ZoneService zoneService;
     // Todo 추후 Flink에서 SensorKafkaDto에 dangerLevel을 포함하면 제거
     public void startAlarm(SensorKafkaDto sensorData, AbnormalLog abnormalLog, int dangerLevel) {
         AlarmEventDto alarmEventDto;
@@ -42,16 +44,33 @@ public class AlarmEventService {
             log.info("alarmEvent: {}", alarmEventDto.toString());
             processAlarmEvent(alarmEventDto);
         } catch (Exception e) {
-            log.error("Error converting Kafka message: {}", e);
+            log.error("Error converting Kafka message: {}", e.getMessage());
             // TODO: 기타 처리 오류 처리
         }
+    }
+    public AlarmEventDto generateAlarmDto(WearableKafkaDto data, AbnormalLog abnormalLog, RiskLevel riskLevel) {
+        String source = "웨어러블";
+
+        // 알람 이벤트 객체 반환
+        return AlarmEventDto.builder()
+                .eventId(abnormalLog.getId())
+                .sensorId(data.getWearableDeviceId()) // 웨어러블 디바이스 Id
+                .equipId(abnormalLog.getZone().getZoneId())
+                .zoneId(abnormalLog.getZone().getZoneId())
+                .sensorType(WearableDataType.heartRate.toString())
+                .messageBody(abnormalLog.getAbnormalType()) // 이상에 대한 메세지
+                .source(source)
+                .time(data.getTime())
+                .riskLevel(riskLevel)
+                .zoneName(abnormalLog.getZone().getZoneName())
+                .build();
     }
     private AlarmEventDto generateAlarmDto(SensorKafkaDto data, AbnormalLog abnormalLog, RiskLevel riskLevel)
             throws Exception {
 
         String source = data.getZoneId().equals(data.getEquipId()) ? "공간 센서" : "설비 센서";
         SensorType sensorType = SensorType.valueOf(data.getSensorType());
-        String zoneName = zoneRepository.findByZoneId(data.getZoneId()).getZoneName();
+        String zoneName = zoneService.findByZoneId(data.getZoneId()).getZoneName();
         // 알람 이벤트 객체 반환
         return AlarmEventDto.builder()
                 .eventId(abnormalLog.getId())
