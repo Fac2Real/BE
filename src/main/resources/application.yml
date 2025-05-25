@@ -47,5 +47,8 @@ logging:
 
 # Swagger URL
 springdoc:
+  api-docs:
+    path: /v3/api-docs
+    resolve-extensions-properties: false
   swagger-ui:
-    path: /docs
+    path: /swagger-ui.html
