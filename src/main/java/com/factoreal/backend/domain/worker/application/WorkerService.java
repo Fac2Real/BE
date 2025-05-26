@@ -32,69 +32,75 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class WorkerService {
     private final WorkerRepository workerRepository;
-    private final WorkerZoneRepository workerZoneRepository;
+    private final WorkerZoneService workerZoneService;
+
+
     private final ZoneRepository zoneRepository;
     private final ZoneHistoryService zoneHistoryService;
     private final AbnormalLogService abnormalLogService;
     private final ZoneHistoryRepository zoneHistoryRepository;
+
+    /**
+     * 모든 작업자 리스트 조회
+     */
     @Transactional(readOnly = true)
     public List<WorkerDetailResponse> getAllWorkers() {
         log.info("전체 작업자 목록 조회");
-        List<Worker> workers = workerRepository.findAll();
+        List<Worker> workers = findAll();
         // workerId 목록
         List<String> workerIds = workers.stream()
-            .map(Worker::getWorkerId)
-            .toList();
+                .map(Worker::getWorkerId)
+                .toList();
 
         // AbnormalLog 에서 작업자 상태 조회
         List<AbnormalLogResponse> statusList = abnormalLogService.
-            findLatestAbnormalLogsForTargets(TargetType.Worker,workerIds);
+                findLatestAbnormalLogsForTargets(TargetType.Worker, workerIds);
         // HistZone에서 작업자 위치 조회
         List<ZoneHist> zoneHistsList = workerIds.stream()
-                .map(workerId -> zoneHistoryRepository.findByWorker_WorkerIdAndExistFlag(workerId,1))
+                .map(workerId -> zoneHistoryRepository.findByWorker_WorkerIdAndExistFlag(workerId, 1))
                 .toList();
 
         // 상태 Map<workerId, status>
         Map<String, Integer> statusMap = statusList.stream()
-            .collect(Collectors.toMap(AbnormalLogResponse::getTargetId, AbnormalLogResponse::getDangerLevel));
+                .collect(Collectors.toMap(AbnormalLogResponse::getTargetId, AbnormalLogResponse::getDangerLevel));
 
         // 위치 Map<workerId, zoneName>
         Map<String, Map<String, String>> zoneMap = workerIds.stream()
-            .collect(Collectors.toMap(
-                workerId -> workerId,
-                workerId -> {
-                    ZoneHist zh = zoneHistoryRepository.findByWorker_WorkerIdAndExistFlag(workerId, 1);
-                    if (zh == null || zh.getZone() == null) {
-                        Map<String, String> defaultZone = new HashMap<>();
-                        defaultZone.put("zoneId", "00000000000000-000");
-                        defaultZone.put("zoneName", "대기실");
-                        return defaultZone;
-                    }
-                    Map<String, String> zone = new HashMap<>();
-                    zone.put("zoneId", zh.getZone().getZoneId());
-                    zone.put("zoneName", zh.getZone().getZoneName());
-                    return zone;
-                }
-            ));
+                .collect(Collectors.toMap(
+                        workerId -> workerId,
+                        workerId -> {
+                            ZoneHist zh = zoneHistoryRepository.findByWorker_WorkerIdAndExistFlag(workerId, 1);
+                            if (zh == null || zh.getZone() == null) {
+                                Map<String, String> defaultZone = new HashMap<>();
+                                defaultZone.put("zoneId", "00000000000000-000");
+                                defaultZone.put("zoneName", "대기실");
+                                return defaultZone;
+                            }
+                            Map<String, String> zone = new HashMap<>();
+                            zone.put("zoneId", zh.getZone().getZoneId());
+                            zone.put("zoneName", zh.getZone().getZoneName());
+                            return zone;
+                        }
+                ));
         return workers.stream()
-            .map(worker -> WorkerDetailResponse.fromEntity(
-                worker,
-                workerZoneRepository.findByWorkerWorkerIdAndManageYnIsTrue(worker.getWorkerId())
-                            .isPresent(),
-                statusMap.get(worker.getWorkerId()),
-                zoneMap.get(worker.getWorkerId()).get("zoneId"),
-                zoneMap.get(worker.getWorkerId()).get("zoneName")
-            ))
-            .collect(Collectors.toList());
+                .map(worker -> WorkerDetailResponse.fromEntity(
+                        worker,
+                        workerZoneService.findByWorkerWorkerIdAndManageYnIsTrue(worker.getWorkerId())
+                                .isPresent(),
+                        statusMap.get(worker.getWorkerId()),
+                        zoneMap.get(worker.getWorkerId()).get("zoneId"),
+                        zoneMap.get(worker.getWorkerId()).get("zoneName")
+                ))
+                .collect(Collectors.toList());
     }
 
     /**
      * 특정 공간에 현재 들어가있는 작업자 목록 조회
      */
-    @Transactional(readOnly = true)
     public List<WorkerInfoResponse> getWorkersByZoneId(String zoneId) {
         log.info("공간 ID: {}의 현재 작업자 목록 조회", zoneId);
-        List<ZoneHist> currentWorkers = zoneHistoryRepository.findByZone_ZoneIdAndExistFlag(zoneId, 1);
+        // existFlag는 boolean 같은 개념 0 혹은 1이 들어감
+        List<ZoneHist> currentWorkers = findByZone_ZoneIdAndExistFlag(zoneId, 1);
         return currentWorkers.stream()
                 .map(zoneHist -> WorkerInfoResponse.from(zoneHist.getWorker(), false))
                 .collect(Collectors.toList());
@@ -103,17 +109,15 @@ public class WorkerService {
     /**
      * 특정 공간의 담당자와 현재 위치 정보 조회
      */
-    @Transactional(readOnly = true)
     public ZoneManagerResponse getZoneManagerWithLocation(String zoneId) {
         log.info("공간 ID: {}의 담당자 정보 조회", zoneId);
 
-        WorkerZone zoneManager = workerZoneRepository.findByZoneZoneIdAndManageYnIsTrue(zoneId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 공간의 담당자를 찾을 수 없습니다: " + zoneId));
+        WorkerZone zoneManager = findByZoneZoneIdAndManageYnIsTrue(zoneId);
 
         Worker manager = zoneManager.getWorker();
 
         // 2. 담당자의 현재 위치 조회 (existFlag = 1)
-        ZoneHist currentLocation = zoneHistoryRepository.findByWorker_WorkerIdAndExistFlag(manager.getWorkerId(), 1);
+        ZoneHist currentLocation = findByWorker_WorkerIdAndExistFlag(manager, 1);
 
         // 3. 현재 위치한 공간 정보 (없을 수 있음)
         Zone currentZone = currentLocation != null ? currentLocation.getZone() : null;
@@ -151,14 +155,14 @@ public class WorkerService {
                     .manageYn(false) // 담당자 권한은 없음이 default
                     .build();
 
-            workerZoneRepository.save(workerZone); // WorkerZone 저장
+            workerZoneService.save(workerZone); // WorkerZone 저장
         }
 
         log.info("작업자 생성 완료 - workerId: {}", worker.getWorkerId());
     }
 
     /**
-     *  workerId에 해당하는 작업자 조회
+     * workerId에 해당하는 작업자 조회
      */
     @Transactional(readOnly = true)
     public Worker getWorkerByWorkerId(String workerId) {
@@ -167,12 +171,49 @@ public class WorkerService {
 
     /**
      * FCM 발송용 토큰을 추가하기 위한 메서드
+     *
      * @param worker
      * @return
      */
     @Transactional
     public Worker saveWorker(Worker worker) {
         return workerRepository.save(worker);
+    }
+
+    /**
+     * 존재하는 공간이고(공간Id가 있고) 관리자가 존재하는 공간의 작업자 공간 조회
+     */
+    private WorkerZone findByZoneZoneIdAndManageYnIsTrue(String zoneId) {
+        return workerZoneService.findByZoneZoneIdAndManageYnIsTrue(zoneId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 공간의 담당자를 찾을 수 없습니다: " + zoneId));
+    }
+
+    /**
+     * 작업자가 존재하고 작업중인 공간 히스토리를 조회하는 레포 접근 메서드
+     * existFlag는 boolean 타입과 같은 개념으로 0 혹은 1이 들어옵니다.
+     */
+    private ZoneHist findByWorker_WorkerIdAndExistFlag(Worker worker, Integer existFlag) {
+        return zoneHistoryRepository.findByWorker_WorkerIdAndExistFlag(worker.getWorkerId(), existFlag);
+    }
+
+    /**
+     * 작업자가 존재하는 존재하는 공간 히스토리들을 조회
+     * existFlag는 boolean 타입과 같은 개념으로 0 혹은 1이 들어옵니다.
+     */
+    private List<ZoneHist> findByZone_ZoneIdAndExistFlag(String zoneId, Integer existFlag) {
+        return zoneHistoryRepository.findByZone_ZoneIdAndExistFlag(zoneId, existFlag);
+    }
+
+    /**
+     * 모든 작업자 리스트를 조회하는 레포 접근 메서드
+     */
+    private List<Worker> findAll() {
+        return workerRepository.findAll();
+    }
+
+    public Worker findById(String workerId) {
+        return workerRepository.findById(workerId)
+                .orElseThrow(() -> new IllegalArgumentException("작업자를 찾을 수 없습니다: " + workerId));
     }
 }
 
@@ -181,7 +222,7 @@ public class WorkerService {
 // public List<WorkerDto> getWorkersByZoneId(String zoneId) {
 //     log.info("공간 ID: {}의 작업자 목록 조회", zoneId);
 //     List<WorkerZone> workerZones = workerZoneRepository.findByZoneZoneId(zoneId);
-    
+
 //     return workerZones.stream()
 //             .map(workerZone -> {
 //                 Worker worker = workerZone.getWorker();

@@ -44,10 +44,11 @@ public class AbnormalLogService {
 
     /**
      * 센서 데이터 기반의 알람 로그 생성.
+     *
      * @param sensorKafkaDto kafka에서 EQUIPMENT 및 ENVIRONMENT 토픽으로 들어오는 DTO
-     * @param sensorType 센서 종류: current, dust, temp, humid, vibration, voc
-     * @param riskLevel 위험 레벨: 시스템 로그에 저장할 메세지를 조회하기 위해 필요(센서별 위험도에 해당되는 메세지)
-     * @param targetType 타겟 종류 : Sensor(공간), Worker(작업자), Equip(설비-머신러닝)
+     * @param sensorType     센서 종류: current, dust, temp, humid, vibration, voc
+     * @param riskLevel      위험 레벨: 시스템 로그에 저장할 메세지를 조회하기 위해 필요(센서별 위험도에 해당되는 메세지)
+     * @param targetType     타겟 종류 : Sensor(공간), Worker(작업자), Equip(설비-머신러닝)
      * @return
      * @throws Exception
      */
@@ -58,7 +59,7 @@ public class AbnormalLogService {
             SensorType sensorType,
             RiskLevel riskLevel,
             TargetType targetType
-    ) throws Exception{
+    ) throws Exception {
         Zone zone = zoneService.findByZoneId(sensorKafkaDto.getZoneId());
 
         if (zone == null) {
@@ -73,7 +74,7 @@ public class AbnormalLogService {
         AbnormalLog abnormalLog = AbnormalLog.builder()
                 .targetId(sensorKafkaDto.getSensorId())
                 .targetType(targetType)
-                .abnormalType(riskMessageProvider.getRiskMessageBySensor(sensorType,riskLevel))
+                .abnormalType(riskMessageProvider.getRiskMessageBySensor(sensorType, riskLevel))
                 .abnVal(sensorKafkaDto.getVal())
                 .dangerLevel(riskLevel.getPriority())
                 .zone(zone)
@@ -86,10 +87,11 @@ public class AbnormalLogService {
 
     /**
      * 센서 데이터 기반의 알람 로그 생성.
+     *
      * @param wearableKafkaDto kafka에서 WEARABLE 토픽으로 들어오는 DTO
      * @param wearableDataType 생체 데이터 종류: 현재는 heartRate 만 보내는 중(확장성 고려해서 해당 객체 사용)
-     * @param riskLevel 위험 레벨: 시스템 로그에 저장할 메세지를 조회하기 위해 필요(생체 데이터 별 위험도에 해당되는 메세지)
-     * @param targetType 타겟 종류 : Sensor(공간), Worker(작업자), Equip(설비-머신러닝)
+     * @param riskLevel        위험 레벨: 시스템 로그에 저장할 메세지를 조회하기 위해 필요(생체 데이터 별 위험도에 해당되는 메세지)
+     * @param targetType       타겟 종류 : Sensor(공간), Worker(작업자), Equip(설비-머신러닝)
      * @return
      */
     @Transactional(rollbackFor = Exception.class)
@@ -98,27 +100,27 @@ public class AbnormalLogService {
             WearableDataType wearableDataType,
             RiskLevel riskLevel,
             TargetType targetType
-    ){
+    ) {
         // workerId에 해당되는 사람이 제일 최근에 있던 공간 조회
         ZoneHist zonehist = zoneHistoryService.getCurrentWorkerLocation(wearableKafkaDto.getWorkerId());
         Zone zone;
-        if (zonehist == null){
+        if (zonehist == null) {
             zone = zoneService.findByZoneId("00000000000000-000");
-        }else{
+        } else {
             zone = zonehist.getZone();
         }
 
         AbnormalLog abnormalLog = AbnormalLog.builder()
                 .targetId(wearableKafkaDto.getWearableDeviceId())
                 .targetType(targetType)
-                .abnormalType(riskMessageProvider.getRiskMessageByWearble(wearableDataType,riskLevel))
+                .abnormalType(riskMessageProvider.getRiskMessageByWearble(wearableDataType, riskLevel))
                 .abnVal(Double.valueOf(wearableKafkaDto.getVal()))
                 .detectedAt(LocalDateTime.parse(wearableKafkaDto.getTime()))
                 .dangerLevel(riskLevel.getPriority())
                 .zone(zone)
                 .isRead(false)
                 .build();
-       return abnLogRepository.save(abnormalLog);
+        return abnLogRepository.save(abnormalLog);
     }
 
     public Page<AbnormalLogResponse> findAllAbnormalLogs(AbnormalPagingRequest abnormalPagingDto) {
@@ -136,24 +138,25 @@ public class AbnormalLogService {
     }
 
     public Page<AbnormalLogResponse> findAbnormalLogsByAbnormalType(AbnormalPagingRequest abnormalPagingRequest,
-            String abnormalType) {
+                                                                    String abnormalType) {
         // 한번에 DB전체를 주는 것이 아닌 구간 나눠서 전달하기 위함
         Pageable pageable = getPageable(abnormalPagingRequest);
-        Page<AbnormalLog> abnormalLogs = abnLogRepository.findAbnormalLogsByAbnormalType(abnormalType,pageable);
+        Page<AbnormalLog> abnormalLogs = abnLogRepository.findAbnormalLogsByAbnormalType(abnormalType, pageable);
         return abnormalLogs.map(AbnormalLog::fromEntity);
     }
 
     public List<AbnormalLogResponse> findLatestAbnormalLogsForTargets(TargetType targetType, List<String> targetIds) {
         return targetIds.stream()
-            .map(targetId ->
-                abnLogRepository.findFirstByTargetTypeAndTargetIdOrderByDetectedAtDesc(targetType, targetId)
-                    .map(AbnormalLog::fromEntity) // 또는 objectMapper.convertValue(...)
-                    .orElse(null) // 값이 없으면 null
-            )
-            .filter(Objects::nonNull) // null 제거
-            .toList();
+                .map(targetId ->
+                        abnLogRepository.findFirstByTargetTypeAndTargetIdOrderByDetectedAtDesc(targetType, targetId)
+                                .map(AbnormalLog::fromEntity) // 또는 objectMapper.convertValue(...)
+                                .orElse(null) // 값이 없으면 null
+                )
+                .filter(Objects::nonNull) // null 제거
+                .toList();
     }
-    public Page<AbnormalLogResponse> findAbnormalLogsByTargetId(AbnormalPagingRequest abnormalPagingRequest, TargetType targetType, String targetId){
+
+    public Page<AbnormalLogResponse> findAbnormalLogsByTargetId(AbnormalPagingRequest abnormalPagingRequest, TargetType targetType, String targetId) {
         // 한번에 DB전체를 주는 것이 아닌 구간 나눠서 전달하기 위함
         Pageable pageable = getPageable(abnormalPagingRequest);
         Page<AbnormalLog> abnormalLogs = abnLogRepository.findAbnormalLogsByTargetTypeAndTargetId(
@@ -177,6 +180,7 @@ public class AbnormalLogService {
         readRequired();
         return true;
     }
+
     @Transactional
     public AbnormalLog saveAbnormalLog(SensorKafkaDto dto, Sensor sensor, int dangerLevel) {
         RiskLevel riskLevel = RiskLevel.fromPriority(dangerLevel);
@@ -193,6 +197,7 @@ public class AbnormalLogService {
 
         return abnLogRepository.save(abnormalLog);
     }
+
     @Transactional(readOnly = true)
     // 읽지 않은 알람이 몇개인지 반환
     public Long readRequired() {
@@ -205,5 +210,9 @@ public class AbnormalLogService {
         return PageRequest.of(
                 abnormalPagingRequest.getPage(),
                 abnormalPagingRequest.getSize());
+    }
+
+    public Page<AbnormalLog> findByZone_ZoneIdOrderByDetectedAtDesc(String zoneId, Pageable pageable) {
+        return abnLogRepository.findByZone_ZoneIdOrderByDetectedAtDesc(zoneId, pageable);
     }
 }

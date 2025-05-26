@@ -1,6 +1,6 @@
 package com.factoreal.backend.messaging.grafana;
 
-import com.factoreal.backend.domain.sensor.dao.SensorRepository;
+import com.factoreal.backend.domain.sensor.application.SensorService;
 import com.factoreal.backend.domain.sensor.entity.Sensor;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +14,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class GrafanaZoneService {
-    private final SensorRepository sensorRepository;
+    private final SensorService sensorService;
     private final DashboardFactory dashboardFactory;
     private final GrafanaClient grafanaClient;
 
@@ -36,7 +36,7 @@ public class GrafanaZoneService {
      */
     public List<GrafanaSensorResponseDto> createDashboardUrls(String zoneId) throws JsonProcessingException {
         // 1) 센서 목록 조회
-        List<Sensor> sensors = sensorRepository.findByZone_ZoneId(zoneId);
+        List<Sensor> sensors = sensorService.findByZone_ZoneId(zoneId);
         if (sensors.isEmpty()) {
             throw new IllegalStateException("No sensors for zone: " + zoneId);
         }
