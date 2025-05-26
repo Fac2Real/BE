@@ -3,12 +3,14 @@ package com.factoreal.backend.domain.equip.application;
 import com.factoreal.backend.domain.equip.dto.request.EquipCreateRequest;
 import com.factoreal.backend.domain.equip.dto.request.EquipUpdateRequest;
 import com.factoreal.backend.domain.equip.dto.response.EquipInfoResponse;
+import com.factoreal.backend.domain.equip.dto.response.EquipWithSensorsResponse;
 import com.factoreal.backend.domain.equip.entity.Equip;
 import com.factoreal.backend.domain.zone.application.ZoneRepoService;
 import com.factoreal.backend.domain.zone.application.ZoneService;
 import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.domain.equip.dao.EquipRepository;
 import com.factoreal.backend.domain.zone.dao.ZoneRepository;
+import com.factoreal.backend.domain.sensor.application.SensorService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,11 +24,10 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class EquipService {
-//    private final EquipRepository equipRepo;
-//    private final ZoneService zoneService;
     private final ZoneRepoService zoneRepoService;
     private final EquipRepoService equipRepoService;
-
+    private final SensorService sensorService;
+    
     /**
      * 설비 생성 서비스
      */
@@ -72,6 +73,20 @@ public class EquipService {
      */
     public List<EquipInfoResponse> getAllEquips() {
         return equipRepoService.findAll();
+    }
+
+    // 설비 정보와 센서 정보를 함께 반환하는 메서드 (FE -> BE)
+    public List<EquipWithSensorsResponse> getEquipsByZoneId(String zoneId) {
+        Zone zone = findByZoneId(zoneId);
+        return equipRepoService.findEquipsByZone(zone).stream()
+            .map(equip -> EquipWithSensorsResponse.builder()
+                .equipId(equip.getEquipId())
+                .equipName(equip.getEquipName())
+                .zoneName(zone.getZoneName())
+                .zoneId(zone.getZoneId())
+                .sensors(sensorService.findSensorsByEquipId(equip.getEquipId()))
+                .build())
+            .collect(Collectors.toList());
     }
 
     /**

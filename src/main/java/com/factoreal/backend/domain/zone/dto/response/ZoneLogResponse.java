@@ -23,7 +23,7 @@ public class ZoneLogResponse {
     private String abnormalType;
     private String targetId;
 
-    public static ZoneLogResponse from (AbnormalLog abnormalLog) {
+    public static ZoneLogResponse fromEntity(AbnormalLog abnormalLog) {
         return ZoneLogResponse.builder()
                 .zoneId(abnormalLog.getZone().getZoneId())
                 .targetType(convertLogTypeToKorean(abnormalLog.getTargetType()))

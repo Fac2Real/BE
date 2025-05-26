@@ -70,4 +70,5 @@ public class SensorRepoService {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "존재하지 않는 센서 ID: " + sensorId));
     }
+
 }

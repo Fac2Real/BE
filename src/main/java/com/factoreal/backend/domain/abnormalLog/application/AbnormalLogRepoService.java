@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class AbnormalLogRepoService {
 
-    private AbnLogRepository abnLogRepository;
+    private final AbnLogRepository abnLogRepository;
 
     public Page<AbnormalLog> findByZone_ZoneIdOrderByDetectedAtDesc(String zoneId, Pageable pageable) {
         return abnLogRepository.findByZone_ZoneIdOrderByDetectedAtDesc(zoneId, pageable);

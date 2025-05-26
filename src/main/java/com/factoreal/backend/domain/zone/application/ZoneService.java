@@ -44,10 +44,6 @@ import lombok.RequiredArgsConstructor;
 @Slf4j
 @RequiredArgsConstructor
 public class ZoneService {
-//    private final ZoneRepository zoneRepository;
-//    private final EquipService equipService;
-//    private final AbnormalLogService abnormalLogService;
-//    private final SensorService sensorService;
 
     private final SensorRepoService sensorRepoService;
     private final ZoneRepoService zoneRepoService;
@@ -65,7 +61,7 @@ public class ZoneService {
         zoneRepoService.validateZoneName(zoneName);
 
         Zone zone = zoneRepoService.save(new Zone(zoneId, zoneName));
-        return ZoneInfoResponse.from(zone);
+        return ZoneInfoResponse.fromEntity(zone);
     }
 
     /**
@@ -83,7 +79,7 @@ public class ZoneService {
 
         zone.setZoneName(dto.getZoneName());
         Zone updatedZone = zoneRepoService.save(zone);
-        return ZoneInfoResponse.from(updatedZone);
+        return ZoneInfoResponse.fromEntity(updatedZone);
     }
 
 //    public Zone findByZoneId(String zoneId) {
@@ -100,7 +96,7 @@ public class ZoneService {
 
     public List<ZoneInfoResponse> getAllZones() {
         return zoneRepoService.findAll().stream()
-                .map(ZoneInfoResponse::from)
+                .map(ZoneInfoResponse::fromEntity)
                 .collect(Collectors.toList());
     }
 
@@ -142,7 +138,7 @@ public class ZoneService {
         List<Sensor> envSensors = sensorRepoService.findByZone(zone)
                 .stream().filter(s -> Objects.equals(s.getZone().getZoneId(), s.getEquip().getEquipId()))
                 .toList();
-        return envSensors.stream().map(SensorInfoResponse::from).toList();
+        return envSensors.stream().map(SensorInfoResponse::fromEntity).toList();
     }
 
     /**
@@ -158,7 +154,7 @@ public class ZoneService {
         Map<String, List<SensorInfoResponse>> facGroup = sensorRepoService.findByZone(zone)
                 .stream()
                 .filter(s -> !Objects.equals(s.getZone().getZoneId(), s.getEquip().getEquipId()))
-                .map(SensorInfoResponse::from)                 // ★ Sensor → SensorDto
+                .map(SensorInfoResponse::fromEntity)                 // ★ Sensor → SensorDto
                 .collect(Collectors.groupingBy(SensorInfoResponse::getEquipId));
 
         // 3) DTO 변환
@@ -180,7 +176,7 @@ public class ZoneService {
         Pageable pageable = getPageable(pagingDto);
 
         Page<AbnormalLog> logs = abnormalLogRepoService.findByZone_ZoneIdOrderByDetectedAtDesc(zoneId, pageable);
-        return logs.map(ZoneLogResponse::from);
+        return logs.map(ZoneLogResponse::fromEntity);
     }
 //
 //    /**

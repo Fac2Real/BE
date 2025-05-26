@@ -4,6 +4,7 @@ import com.factoreal.backend.domain.equip.dto.request.EquipCreateRequest;
 import com.factoreal.backend.domain.equip.application.EquipService;
 import com.factoreal.backend.domain.equip.dto.request.EquipUpdateRequest;
 import com.factoreal.backend.domain.equip.dto.response.EquipInfoResponse;
+import com.factoreal.backend.domain.equip.dto.response.EquipWithSensorsResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -39,6 +40,12 @@ public class EquipController {
     @Operation(summary = "설비 목록 조회", description = "등록된 모든 설비 정보를 조회합니다.")
     public List<EquipInfoResponse> listEquips() {
         return service.getAllEquips();
+    }
+
+    @GetMapping("/zone/{zoneId}")
+    @Operation(summary = "공간별 설비 목록 조회", description = "특정 공간에 있는 설비 목록과 각 설비에 연결된 센서 정보를 조회합니다.")
+    public List<EquipWithSensorsResponse> getEquipsByZone(@PathVariable String zoneId) {
+        return service.getEquipsByZoneId(zoneId);
     }
 
 //    // 공간별로 구분된 설비 조회

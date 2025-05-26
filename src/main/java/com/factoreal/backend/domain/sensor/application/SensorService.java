@@ -30,8 +30,6 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class SensorService {
     private final SensorRepoService sensorRepoService;
-//    private final ZoneService zoneService;
-//    private final EquipService equipService;
     private final ZoneRepoService zoneRepoService;
     private final EquipRepoService equipRepoService;
 
@@ -68,6 +66,14 @@ public class SensorService {
         sensor.setSensorThres(dto.getSensorThres());
         sensor.setAllowVal(dto.getAllowVal());
         sensorRepoService.save(sensor);
+    }
+
+    // 설비 ID를 기반으로 해당 설비에 달린 센서 정보를 조회하는 메서드
+    public List<SensorInfoResponse> findSensorsByEquipId(String equipId) {
+        return sensorRepoService.findAll().stream()
+            .filter(sensor -> sensor.getEquipId().equals(equipId) 
+                && !sensor.getEquipId().equals(sensor.getZoneId()))
+            .collect(Collectors.toList());
     }
 
 //    /**

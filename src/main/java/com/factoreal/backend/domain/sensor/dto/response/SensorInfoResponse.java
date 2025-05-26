@@ -17,7 +17,7 @@ public class SensorInfoResponse {
     private Double allowVal;     // 허용치
     private Integer isZone;
 
-    public static SensorInfoResponse from (Sensor sensor) {
+    public static SensorInfoResponse fromEntity(Sensor sensor) {
         if (sensor == null) return null;
 
         return SensorInfoResponse.builder()
