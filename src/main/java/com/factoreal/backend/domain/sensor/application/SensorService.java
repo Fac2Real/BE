@@ -71,15 +71,7 @@ public class SensorService {
         return sensorRepository.findAll().stream()
             .filter(sensor -> sensor.getEquip().getEquipId().equals(equipId) 
                 && !sensor.getEquip().getEquipId().equals(sensor.getZone().getZoneId()))
-            .map(s -> new SensorInfoResponse(
-                s.getSensorId(),
-                s.getSensorType().toString(),
-                s.getZone().getZoneId(),
-                s.getEquip().getEquipId(),
-                s.getSensorThres(),
-                s.getAllowVal(),
-                s.getIsZone()
-            ))
+            .map(SensorInfoResponse::fromEntity)
             .collect(Collectors.toList());
     }
 

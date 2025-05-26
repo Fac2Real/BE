@@ -94,7 +94,7 @@ public class ZoneService {
 
                     // 1) Sensor 엔티티 → SensorDto 변환
                     List<SensorInfoResponse> envSensorDtos = envSensors.stream()      // List<Sensor>
-                            .map(SensorInfoResponse::from)                      // Sensor → SensorDto
+                            .map(SensorInfoResponse::fromEntity)                      // Sensor → SensorDto
                             .toList();
 
 
@@ -105,7 +105,7 @@ public class ZoneService {
                     // 설비 센서 그룹핑
                     Map<String, List<SensorInfoResponse>> facGroup = sensors.stream()
                             .filter(s -> !Objects.equals(s.getZone().getZoneId(), s.getEquip().getEquipId()))
-                            .map(SensorInfoResponse::from)                 // ★ Sensor → SensorDto
+                            .map(SensorInfoResponse::fromEntity)                 // ★ Sensor → SensorDto
                             .collect(Collectors.groupingBy(SensorInfoResponse::getEquipId));
 
                     List<EquipDetailResponse> facilities = equips.stream()
