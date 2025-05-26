@@ -3,10 +3,12 @@ package com.factoreal.backend.domain.equip.application;
 import com.factoreal.backend.domain.equip.dto.request.EquipCreateRequest;
 import com.factoreal.backend.domain.equip.dto.request.EquipUpdateRequest;
 import com.factoreal.backend.domain.equip.dto.response.EquipInfoResponse;
+import com.factoreal.backend.domain.equip.dto.response.EquipWithSensorsResponse;
 import com.factoreal.backend.domain.equip.entity.Equip;
 import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.domain.equip.dao.EquipRepository;
 import com.factoreal.backend.domain.zone.dao.ZoneRepository;
+import com.factoreal.backend.domain.sensor.application.SensorService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,6 +24,7 @@ import java.util.stream.Collectors;
 public class EquipService {
     private final EquipRepository equipRepo;
     private final ZoneRepository zoneRepo;
+    private final SensorService sensorService;
 
     @Transactional
     public EquipInfoResponse createEquip(EquipCreateRequest req) {
@@ -71,6 +74,20 @@ public class EquipService {
             );
         })
         .collect(Collectors.toList());
+    }
+
+    // 설비 정보와 센서 정보를 함께 반환하는 메서드 (FE -> BE)
+    public List<EquipWithSensorsResponse> getEquipsByZoneId(String zoneId) {
+        Zone zone = findByZoneId(zoneId);
+        return equipRepo.findEquipsByZone(zone).stream()
+            .map(equip -> EquipWithSensorsResponse.builder()
+                .equipId(equip.getEquipId())
+                .equipName(equip.getEquipName())
+                .zoneName(zone.getZoneName())
+                .zoneId(zone.getZoneId())
+                .sensors(sensorService.findSensorsByEquipId(equip.getEquipId()))
+                .build())
+            .collect(Collectors.toList());
     }
 
     private Zone findByZoneName(String zoneName) {

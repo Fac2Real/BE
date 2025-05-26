@@ -66,6 +66,23 @@ public class SensorService {
         sensorRepository.save(sensor);
     }
 
+    // 설비 ID를 기반으로 해당 설비에 달린 센서 정보를 조회하는 메서드
+    public List<SensorInfoResponse> findSensorsByEquipId(String equipId) {
+        return sensorRepository.findAll().stream()
+            .filter(sensor -> sensor.getEquip().getEquipId().equals(equipId) 
+                && !sensor.getEquip().getEquipId().equals(sensor.getZone().getZoneId()))
+            .map(s -> new SensorInfoResponse(
+                s.getSensorId(),
+                s.getSensorType().toString(),
+                s.getZone().getZoneId(),
+                s.getEquip().getEquipId(),
+                s.getSensorThres(),
+                s.getAllowVal(),
+                s.getIsZone()
+            ))
+            .collect(Collectors.toList());
+    }
+
     private Zone getZoneById(String zoneId) {
         return zoneRepository.findById(zoneId)
                 .orElseThrow(() -> new ResponseStatusException(
