@@ -14,7 +14,7 @@ public class ZoneInfoResponse {
     private String zoneId;
     private String zoneName;
 
-    public static ZoneInfoResponse from(Zone zone) {
+    public static ZoneInfoResponse fromEntity(Zone zone) {
         return new ZoneInfoResponse(zone.getZoneId(), zone.getZoneName());
     }
 }

@@ -28,7 +28,7 @@ public class SensorEventProcessor {
 
     /**
      * 센서 Kafka 메시지 처리
-     * 
+     *
      * @param dto   센서 데이터
      * @param topic Kafka 토픽명 (EQUIPMENT, ENVIRONMENT)
      */
@@ -103,6 +103,8 @@ public class SensorEventProcessor {
                 return val >= 30 ? 2 : (val >= 7 ? 1 : 0);
             case "dust":
                 return val >= 150 ? 2 : (val >= 75 ? 1 : 0);
+            case "voc":
+                return val >= 1000 ? 2 : (val >= 300 ? 1 : 0);
             default:
                 return 0;
         }

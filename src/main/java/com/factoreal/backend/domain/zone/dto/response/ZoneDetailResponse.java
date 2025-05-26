@@ -13,6 +13,6 @@ import java.util.List;
 @AllArgsConstructor
 public class ZoneDetailResponse {
     private String zoneName;
-    private List<SensorInfoResponse> zoneSensorList;
+    private List<SensorInfoResponse> envList;
     private List<EquipDetailResponse> equipList;
 }
