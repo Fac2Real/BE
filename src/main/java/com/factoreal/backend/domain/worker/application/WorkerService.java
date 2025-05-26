@@ -40,6 +40,7 @@ public class WorkerService {
     private final AbnormalLogService abnormalLogService;
     private final ZoneHistoryRepository zoneHistoryRepository;
 
+
     /**
      * 모든 작업자 리스트 조회
      */
@@ -211,10 +212,10 @@ public class WorkerService {
         return workerRepository.findAll();
     }
 
-    public Worker findById(String workerId) {
-        return workerRepository.findById(workerId)
-                .orElseThrow(() -> new IllegalArgumentException("작업자를 찾을 수 없습니다: " + workerId));
-    }
+//    public Worker findById(String workerId) {
+//        return workerRepository.findById(workerId)
+//                .orElseThrow(() -> new IllegalArgumentException("작업자를 찾을 수 없습니다: " + workerId));
+//    }
 }
 
 // TODO. 수정되어야 할 로직. 현재는 WorkerZone 테이블에서 공간id로 필터링 되는 모든 작업자를 끌고왔는데,

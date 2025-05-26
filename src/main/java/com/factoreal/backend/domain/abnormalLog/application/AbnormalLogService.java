@@ -9,6 +9,7 @@ import com.factoreal.backend.domain.sensor.entity.Sensor;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
 import com.factoreal.backend.domain.zone.application.ZoneHistoryService;
+import com.factoreal.backend.domain.zone.application.ZoneRepoService;
 import com.factoreal.backend.domain.zone.application.ZoneService;
 import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.domain.zone.entity.ZoneHist;
@@ -37,10 +38,11 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class AbnormalLogService {
     private final AbnLogRepository abnLogRepository;
-    private final ZoneService zoneService;
+//    private final ZoneService zoneService;
     private final RiskMessageProvider riskMessageProvider;
     private final ObjectMapper objectMapper;
     private final ZoneHistoryService zoneHistoryService;
+    private final ZoneRepoService zoneRepoService;
 
     /**
      * 센서 데이터 기반의 알람 로그 생성.
@@ -60,7 +62,7 @@ public class AbnormalLogService {
             RiskLevel riskLevel,
             TargetType targetType
     ) throws Exception {
-        Zone zone = zoneService.findByZoneId(sensorKafkaDto.getZoneId());
+        Zone zone = zoneRepoService.findByZoneId(sensorKafkaDto.getZoneId());
 
         if (zone == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 공간 ID: " + sensorKafkaDto.getZoneId());
@@ -105,7 +107,7 @@ public class AbnormalLogService {
         ZoneHist zonehist = zoneHistoryService.getCurrentWorkerLocation(wearableKafkaDto.getWorkerId());
         Zone zone;
         if (zonehist == null) {
-            zone = zoneService.findByZoneId("00000000000000-000");
+            zone = zoneRepoService.findByZoneId("00000000000000-000");
         } else {
             zone = zonehist.getZone();
         }
@@ -212,7 +214,7 @@ public class AbnormalLogService {
                 abnormalPagingRequest.getSize());
     }
 
-    public Page<AbnormalLog> findByZone_ZoneIdOrderByDetectedAtDesc(String zoneId, Pageable pageable) {
-        return abnLogRepository.findByZone_ZoneIdOrderByDetectedAtDesc(zoneId, pageable);
-    }
+//    public Page<AbnormalLog> findByZone_ZoneIdOrderByDetectedAtDesc(String zoneId, Pageable pageable) {
+//        return abnLogRepository.findByZone_ZoneIdOrderByDetectedAtDesc(zoneId, pageable);
+//    }
 }

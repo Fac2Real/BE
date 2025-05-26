@@ -4,6 +4,7 @@ import com.factoreal.backend.domain.equip.dto.request.EquipCreateRequest;
 import com.factoreal.backend.domain.equip.dto.request.EquipUpdateRequest;
 import com.factoreal.backend.domain.equip.dto.response.EquipInfoResponse;
 import com.factoreal.backend.domain.equip.entity.Equip;
+import com.factoreal.backend.domain.zone.application.ZoneRepoService;
 import com.factoreal.backend.domain.zone.application.ZoneService;
 import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.domain.equip.dao.EquipRepository;
@@ -21,8 +22,10 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class EquipService {
-    private final EquipRepository equipRepo;
-    private final ZoneService zoneService;
+//    private final EquipRepository equipRepo;
+//    private final ZoneService zoneService;
+    private final ZoneRepoService zoneRepoService;
+    private final EquipRepoService equipRepoService;
 
     /**
      * 설비 생성 서비스
@@ -36,7 +39,7 @@ public class EquipService {
         String equipId = IdGenerator.generateId();
 
         // 3. 설비 정보 저장
-        save(new Equip(equipId, req.getEquipName(), zone));
+        equipRepoService.save(new Equip(equipId, req.getEquipName(), zone));
 
         return new EquipInfoResponse(equipId, req.getEquipName(), zone.getZoneName(), zone.getZoneId());
     }
@@ -47,11 +50,11 @@ public class EquipService {
     @Transactional
     public EquipInfoResponse updateEquip(String equipId, EquipUpdateRequest dto) {
         // 1. 수정할 설비가 존재하는지 확인
-        Equip equip = findById(equipId);
+        Equip equip = equipRepoService.findById(equipId);
 
         // 2. 설비명 업데이트
         equip.setEquipName(dto.getEquipName());
-        Equip updated = save(equip);
+        Equip updated = equipRepoService.save(equip);
 
         Zone zone = findByZoneId(updated.getZone().getZoneId());
 
@@ -68,55 +71,45 @@ public class EquipService {
      * 모든 설비리스트 조회
      */
     public List<EquipInfoResponse> getAllEquips() {
-        return equipRepo.findAll().stream()
-                .map(equip -> {
-                    Zone zone = findByZoneId(equip.getZone().getZoneId());
-                    return new EquipInfoResponse(
-                            equip.getEquipId(),
-                            equip.getEquipName(),
-                            zone.getZoneName(),
-                            equip.getZone().getZoneId()
-                    );
-                })
-                .collect(Collectors.toList());
+        return equipRepoService.findAll();
     }
 
     /**
      * 이름으로 공간 탐색
      */
     private Zone findByZoneName(String zoneName) {
-        return zoneService.findByZoneName(zoneName);
+        return zoneRepoService.findByZoneName(zoneName);
     }
 
     /**
      * 공간 ID로 공간 탐색
      */
     private Zone findByZoneId(String zoneId) {
-        return zoneService.findById(zoneId);
+        return zoneRepoService.findById(zoneId);
     }
 
-    /**
-     * Id로 설비를 찾는 장비 레포지토리 접근 메서드
-     */
-    public Equip findById(String equipId) {
-        return equipRepo.findById(equipId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "존재하지 않는 설비 ID: " + equipId));
-    }
+//    /**
+//     * Id로 설비를 찾는 장비 레포지토리 접근 메서드
+//     */
+//    public Equip findById(String equipId) {
+//        return equipRepo.findById(equipId)
+//                .orElseThrow(() -> new ResponseStatusException(
+//                        HttpStatus.NOT_FOUND, "존재하지 않는 설비 ID: " + equipId));
+//    }
 
-    /**
-     * 설비 정보 저장 레포지토리 접근 메서드
-     */
-    @Transactional
-    protected Equip save(Equip equip) {
-        return equipRepo.save(equip);
-    }
+//    /**
+//     * 설비 정보 저장 레포지토리 접근 메서드
+//     */
+//    @Transactional
+//    protected Equip save(Equip equip) {
+//        return equipRepo.save(equip);
+//    }
 
-    public List<Equip> findEquipsByZone(Zone zone) {
-        return equipRepo.findEquipsByZone(zone);
-    }
-
-    public String findEquipNameByEquipId(String equipId) {
-        return equipRepo.findEquipNameByEquipId(equipId);
-    }
+//    public List<Equip> findEquipsByZone(Zone zone) {
+//        return equipRepo.findEquipsByZone(zone);
+//    }
+//
+//    public String findEquipNameByEquipId(String equipId) {
+//        return equipRepo.findEquipNameByEquipId(equipId);
+//    }
 }

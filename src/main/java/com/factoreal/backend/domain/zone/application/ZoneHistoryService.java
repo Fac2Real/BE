@@ -1,5 +1,6 @@
 package com.factoreal.backend.domain.zone.application;
 
+import com.factoreal.backend.domain.worker.application.WorkerRepoService;
 import com.factoreal.backend.domain.worker.application.WorkerService;
 import com.factoreal.backend.domain.worker.entity.Worker;
 import com.factoreal.backend.domain.zone.dao.ZoneHistoryRepository;
@@ -19,17 +20,19 @@ import java.util.List;
 public class ZoneHistoryService {
 
     private final ZoneHistoryRepository zoneHistRepository;
-    private final WorkerService workerService;
-    private final ZoneService zoneService;
+//    private final WorkerService workerService;
+//    private final ZoneService zoneService;
+    private final ZoneRepoService zoneRepoService;
+    private final WorkerRepoService workerRepoService;
 
     /**
      * 작업자의 위치 변경을 처리
      */
     @Transactional
     public void updateWorkerLocation(String workerId, String zoneId, LocalDateTime timestamp) {
-        Worker worker = workerService.findById(workerId);
+        Worker worker = workerRepoService.findById(workerId);
 
-        Zone zone = zoneService.findById(zoneId);
+        Zone zone = zoneRepoService.findById(zoneId);
 
         // 1. workerId 기반 작업자의 이전 위치가 있으면, 새로운 기록 생성 전 해당 작업자 위치 기록에 endTime 찍어주기
         ZoneHist currentLocation = findByWorker_WorkerIdAndExistFlag(workerId, 1);

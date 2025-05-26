@@ -1,5 +1,6 @@
 package com.factoreal.backend.messaging.service;
 
+import com.factoreal.backend.domain.sensor.application.SensorRepoService;
 import com.factoreal.backend.domain.sensor.application.SensorService;
 import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
 import com.factoreal.backend.domain.sensor.entity.Sensor;
@@ -22,9 +23,10 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class AutoControlService {
 
-    private final SensorService sensorService;
+//    private final SensorService sensorService;
     private final ControlLogService controlLogService;
     private final AbnormalLogService abnormalLogService;
+    private final SensorRepoService sensorRepoService;
 
     /**
      * 센서 값이 허용 범위를 벗어났을 경우 제어 메시지를 생성하거나 처리하도록 로깅
@@ -34,7 +36,7 @@ public class AutoControlService {
         if (dangerLevel == 0)
             return; // 정상 범위면 아무 처리 안 함
 
-        Sensor sensor = sensorService.findById(dto.getSensorId())
+        Sensor sensor = sensorRepoService.findById(dto.getSensorId())
                 .orElse(null);
 
         if (sensor == null) {
