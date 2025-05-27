@@ -51,7 +51,7 @@ public class EquipService {
     }
 
     /**
-     * 설비명 수정 서비스
+     * 설비명 업데이트 서비스
      */
     @Transactional
     public EquipInfoResponse updateEquip(String equipId, EquipUpdateRequest dto) {
@@ -73,7 +73,7 @@ public class EquipService {
     }
 
     /**
-     * 설비 교체일자 수정 서비스
+     * 설비 교체일자 업데이트 서비스
      */
     @Transactional
     public EquipInfoResponse updateDateEquip(String equipId, EquipUpdateDateRequest dto) {
@@ -118,14 +118,12 @@ public class EquipService {
                     .map(EquipHistory::getDate)
                     .orElse(null);
 
-                return EquipWithSensorsResponse.builder()
-                    .equipId(equip.getEquipId())
-                    .equipName(equip.getEquipName())
-                    .zoneName(zone.getZoneName())
-                    .zoneId(zone.getZoneId())
-                    .lastUpdateDate(lastUpdateDate)
-                    .sensors(sensorService.findSensorsByEquipId(equip.getEquipId()))
-                    .build();
+                return EquipWithSensorsResponse.fromEntity(
+                    equip,
+                    zone,
+                    lastUpdateDate,
+                    sensorService.findSensorsByEquipId(equip.getEquipId())
+                );
             })
             .collect(Collectors.toList());
     }

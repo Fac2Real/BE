@@ -1,6 +1,8 @@
 package com.factoreal.backend.domain.equip.dto.response;
 
 import com.factoreal.backend.domain.sensor.dto.response.SensorInfoResponse;
+import com.factoreal.backend.domain.equip.entity.Equip;
+import com.factoreal.backend.domain.zone.entity.Zone;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -19,4 +21,15 @@ public class EquipWithSensorsResponse {
     private String zoneId;
     private LocalDate lastUpdateDate;  // 최근 교체일자
     private List<SensorInfoResponse> sensors;
+
+    public static EquipWithSensorsResponse fromEntity(Equip equip, Zone zone, LocalDate lastUpdateDate, List<SensorInfoResponse> sensors) {
+        return EquipWithSensorsResponse.builder()
+                .equipId(equip.getEquipId())
+                .equipName(equip.getEquipName())
+                .zoneName(zone.getZoneName())
+                .zoneId(zone.getZoneId())
+                .lastUpdateDate(lastUpdateDate)
+                .sensors(sensors)
+                .build();
+    }
 } 
