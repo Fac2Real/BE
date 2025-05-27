@@ -82,10 +82,9 @@ EOF
 '''
         }
       }
+      env.GIT_URL = env.GIT_URL.replaceAll(/\.git$/, '')
       /* Slack 알림 */
       post {
-        env.GIT_URL = env.GIT_URL.replaceAll(/\.git$/, '')
-
         success {
           slackSend channel: env.SLACK_CHANNEL,
                     tokenCredentialId: env.SLACK_CRED_ID,
@@ -99,7 +98,10 @@ EOF
           slackSend channel: env.SLACK_CHANNEL,
                     tokenCredentialId: env.SLACK_CRED_ID,
                     color: '#ff0000',
-                    message: "<!here> :x: *BE CI/CD 실패* <${env.BUILD_URL}console|로그 확인> `Commit ${env.GIT_COMMIT}` – ${env.COMMIT_MSG} (<${env.GIT_URL}/commit/${env.GIT_COMMIT}|보기>)"
+                    message: "<!here> :x: *BE CI/CD 실패*\\n" +
+                    "파이프라인:  <${env.BUILD_URL}console|로그 확인>\\n" +
+                    "커밋: `${env.GIT_COMMIT}` – `${env.COMMIT_MSG}`\\n" +
+                    "(<${env.GIT_URL}/commit/${env.GIT_COMMIT}|커밋 보기>)"
         }
       }
     }
