@@ -18,11 +18,6 @@ pipeline {
   }
 
   stages {
-    script {
-      def rawUrl = env.GIT_URL
-      env.GIT_URL = rawUrl.replaceAll(/\.git$/, '')
-    }
-
     /* 1) 공통 테스트 */
     stage('Test') {
       steps {
@@ -85,6 +80,10 @@ docker-compose -f docker-compose-service.yml down -v
 docker-compose -f docker-compose-service.yml up -d --pull always --build
 EOF
 '''
+        }
+
+        script {
+          env.GIT_URL = env.GIT_URL.replaceAll(/\.git$/, '')
         }
       }
       /* Slack 알림 */
