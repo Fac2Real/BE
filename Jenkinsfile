@@ -87,7 +87,9 @@ EOF
 '''
         }
         script {
-          env.GIT_URL = env.GIT_URL.replaceAll(/\.git/, '')
+          def raw = sh(script: "git config --get remote.origin.url",
+                       returnStdout: true).trim()
+          env.GIT_URL = raw.replaceAll(/\.git$/, '')
           env.COMMIT_MSG = sh(script: "git log -1 --pretty=format:'%s'",returnStdout: true).trim()
         }
       }
