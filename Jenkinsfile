@@ -18,6 +18,10 @@ pipeline {
   }
 
   stages {
+    script {
+        env.GIT_URL = env.GIT_URL.replaceAll(/\.git$/, '')
+    }
+    
     /* 1) 공통 테스트 */
     stage('Test') {
       steps {
@@ -48,10 +52,6 @@ set +o allexport
                         detailsURL: "${env.BUILD_URL}console"
         }
       }
-    }
-    
-    script {
-        env.GIT_URL = env.GIT_URL.replaceAll(/\.git$/, '')
     }
 
     /* 2) develop 전용 ─ Docker 이미지 빌드 & ECR Push & Deploy (EC2) */
