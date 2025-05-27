@@ -49,6 +49,10 @@ set +o allexport
         }
       }
     }
+    
+    script {
+        env.GIT_URL = env.GIT_URL.replaceAll(/\.git$/, '')
+    }
 
     /* 2) develop 전용 ─ Docker 이미지 빌드 & ECR Push & Deploy (EC2) */
     stage('Docker Build & Push (develop only)') {
@@ -81,9 +85,6 @@ docker-compose -f docker-compose-service.yml up -d --pull always --build
 EOF
 '''
         }
-      }
-      script {
-        env.GIT_URL = env.GIT_URL.replaceAll(/\.git$/, '')
       }
       /* Slack 알림 */
       post {
