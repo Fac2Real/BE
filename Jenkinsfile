@@ -11,6 +11,10 @@ pipeline {
 
     /* GitHub Checks */
     GH_CHECK_NAME      = 'BE Build Test'
+
+    /* Slack */
+    SLACK_CHANNEL      = '#ci-cd'
+    SLACK_CRED_ID      = 'slack-factoreal-token'   // Slack App OAuth Token
   }
 
   stages {
@@ -91,5 +95,20 @@ EOF
       }
     }
   }
-  /* TODO. Slack */
+
+  /* 4) 전체 파이프라인 후처리 ─ Slack 알림 */
+  post {
+    success {
+      slackSend channel: env.SLACK_CHANNEL,
+                tokenCredentialId: env.SLACK_CRED_ID,
+                color: '#36a64f',
+                message: ":white_check_mark: *BE 파이프라인 성공* (#${env.BUILD_NUMBER}) <${env.BUILD_URL}|열기>"
+    }
+    failure {
+      slackSend channel: env.SLACK_CHANNEL,
+                tokenCredentialId: env.SLACK_CRED_ID,
+                color: '#ff0000',
+                message: ":x: *BE 파이프라인 실패* (#${env.BUILD_NUMBER}) <${env.BUILD_URL}console|로그 확인>"
+    }
+  }
 }
