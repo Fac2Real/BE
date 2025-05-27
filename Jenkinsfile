@@ -82,7 +82,9 @@ EOF
 '''
         }
       }
-      env.GIT_URL = env.GIT_URL.replaceAll(/\.git$/, '')
+      script {
+        env.GIT_URL = env.GIT_URL.replaceAll(/\.git$/, '')
+      }
       /* Slack 알림 */
       post {
         success {
