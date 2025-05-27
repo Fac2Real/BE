@@ -1,12 +1,16 @@
 package com.factoreal.backend.domain.equip.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
+import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Getter
+@Setter
 @Entity
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Table(name = "equip_hist")
 public class EquipHistory {
     @Id
@@ -15,14 +19,12 @@ public class EquipHistory {
 
     @JoinColumn(name = "equip_id", referencedColumnName = "equip_id", nullable = false)
     @ManyToOne(fetch = FetchType.LAZY)
-    private Equip equip;
+    private Equip equip; // 기록되는 설비의 id
 
-    @Column(name = "date", length = 255, nullable = false)
-    private LocalDateTime date;
+    @Column(name = "date", nullable = false)
+    private LocalDate date; // 교체일자 (YYYY-MM-DD)
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false)
-    private EquipHistoryType type;
-
-
+    private EquipHistoryType type; // 기록의 종류 (UPDATE, ACCIDENT)
 }
