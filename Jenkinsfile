@@ -84,7 +84,7 @@ EOF
       }
       /* Slack 알림 */
       post {
-        env.GIT_URL = env.GIT_URL.replaceAll('/\.git$/', '')
+        env.GIT_URL = env.GIT_URL.replaceAll(/\.git$/, '')
 
         success {
           slackSend channel: env.SLACK_CHANNEL,
