@@ -2,9 +2,12 @@ package com.factoreal.backend.domain.equip.application;
 
 import com.factoreal.backend.domain.equip.dto.request.EquipCreateRequest;
 import com.factoreal.backend.domain.equip.dto.request.EquipUpdateRequest;
+import com.factoreal.backend.domain.equip.dto.request.EquipUpdateDateRequest;
 import com.factoreal.backend.domain.equip.dto.response.EquipInfoResponse;
 import com.factoreal.backend.domain.equip.dto.response.EquipWithSensorsResponse;
 import com.factoreal.backend.domain.equip.entity.Equip;
+import com.factoreal.backend.domain.equip.entity.EquipHistory;
+import com.factoreal.backend.domain.equip.entity.EquipHistoryType;
 import com.factoreal.backend.domain.zone.application.ZoneRepoService;
 import com.factoreal.backend.domain.zone.application.ZoneService;
 import com.factoreal.backend.domain.zone.entity.Zone;
@@ -18,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import com.factoreal.backend.global.util.IdGenerator;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -26,6 +30,7 @@ import java.util.stream.Collectors;
 public class EquipService {
     private final ZoneRepoService zoneRepoService;
     private final EquipRepoService equipRepoService;
+    private final EquipHistoryRepoService equipHistoryRepoService;
     private final SensorService sensorService;
     
     /**
@@ -46,7 +51,7 @@ public class EquipService {
     }
 
     /**
-     * 설비 정보 수정 서비스
+     * 설비명 업데이트 서비스
      */
     @Transactional
     public EquipInfoResponse updateEquip(String equipId, EquipUpdateRequest dto) {
@@ -65,11 +70,38 @@ public class EquipService {
                 zone.getZoneName(),
                 zone.getZoneId()
         );
-
     }
 
     /**
-     * 모든 설비리스트 조회
+     * 설비 교체일자 업데이트 서비스
+     */
+    @Transactional
+    public EquipInfoResponse updateDateEquip(String equipId, EquipUpdateDateRequest dto) {
+        // 1. 수정할 설비가 존재하는지 확인
+        Equip equip = equipRepoService.findById(equipId);
+
+        // 2. 교체일자가 있다면 이력 저장
+        if (dto.getUpdateDate() != null) {
+            EquipHistory history = EquipHistory.builder()
+                    .equip(equip)
+                    .date(dto.getUpdateDate())
+                    .type(EquipHistoryType.UPDATE)
+                    .build();
+            equipHistoryRepoService.save(history);
+        }
+
+        Zone zone = findByZoneId(equip.getZone().getZoneId());
+
+        return new EquipInfoResponse(
+                equip.getEquipId(),
+                equip.getEquipName(),
+                zone.getZoneName(),
+                zone.getZoneId()
+        );
+    }
+
+    /**
+     * 모든 설비 리스트 조회
      */
     public List<EquipInfoResponse> getAllEquips() {
         return equipRepoService.findAll();
@@ -79,13 +111,20 @@ public class EquipService {
     public List<EquipWithSensorsResponse> getEquipsByZoneId(String zoneId) {
         Zone zone = findByZoneId(zoneId);
         return equipRepoService.findEquipsByZone(zone).stream()
-            .map(equip -> EquipWithSensorsResponse.builder()
-                .equipId(equip.getEquipId())
-                .equipName(equip.getEquipName())
-                .zoneName(zone.getZoneName())
-                .zoneId(zone.getZoneId())
-                .sensors(sensorService.findSensorsByEquipId(equip.getEquipId()))
-                .build())
+            .map(equip -> {
+                // 최근 교체일자 조회
+                LocalDate lastUpdateDate = equipHistoryRepoService
+                    .findFirstByEquip_EquipIdAndTypeOrderByDateDesc(equip.getEquipId(), EquipHistoryType.UPDATE)
+                    .map(EquipHistory::getDate)
+                    .orElse(null);
+
+                return EquipWithSensorsResponse.fromEntity(
+                    equip,
+                    zone,
+                    lastUpdateDate,
+                    sensorService.findSensorsByEquipId(equip.getEquipId())
+                );
+            })
             .collect(Collectors.toList());
     }
 

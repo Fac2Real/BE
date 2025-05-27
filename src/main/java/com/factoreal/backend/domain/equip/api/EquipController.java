@@ -3,14 +3,13 @@ package com.factoreal.backend.domain.equip.api;
 import com.factoreal.backend.domain.equip.dto.request.EquipCreateRequest;
 import com.factoreal.backend.domain.equip.application.EquipService;
 import com.factoreal.backend.domain.equip.dto.request.EquipUpdateRequest;
+import com.factoreal.backend.domain.equip.dto.request.EquipUpdateDateRequest;
 import com.factoreal.backend.domain.equip.dto.response.EquipInfoResponse;
 import com.factoreal.backend.domain.equip.dto.response.EquipWithSensorsResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,11 +28,19 @@ public class EquipController {
     }
 
     @PostMapping("/{equipId}")
-    @Operation(summary = "설비 정보 수정", description = "기존 설비의 이름을 수정합니다.")
+    @Operation(summary = "설비명 업데이트", description = "기존 설비의 이름을 수정합니다.")
     public EquipInfoResponse updateEquip(
             @PathVariable String equipId,
             @RequestBody EquipUpdateRequest dto) {
         return service.updateEquip(equipId, dto);
+    }
+
+    @PostMapping("/{equipId}/update-date")
+    @Operation(summary = "설비 교체일자 업데이트", description = "설비의 교체일자를 수정합니다.")
+    public EquipInfoResponse updateDateEquip(
+            @PathVariable String equipId,
+            @RequestBody EquipUpdateDateRequest dto) {
+        return service.updateDateEquip(equipId, dto);
     }
 
     @GetMapping
@@ -43,7 +50,7 @@ public class EquipController {
     }
 
     @GetMapping("/zone/{zoneId}")
-    @Operation(summary = "공간별 설비 목록 조회", description = "특정 공간에 있는 설비 목록과 각 설비에 연결된 센서 정보를 조회합니다.")
+    @Operation(summary = "공간별 설비 목록 조회", description = "특정 공간에 있는 설비 목록과 각 설비의 최신 교체일자 및 설비에 연결된 센서 정보를 조회합니다.")
     public List<EquipWithSensorsResponse> getEquipsByZone(@PathVariable String zoneId) {
         return service.getEquipsByZoneId(zoneId);
     }

@@ -1,14 +1,13 @@
 package com.factoreal.backend.domain.equip.dto.request;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
+// 설비명 수정 요청 DTO (FE -> BE)
 public class EquipUpdateRequest {
-    private String equipName; // 수정할 설비명
+    private String equipName;      // 수정할 설비명
 }
