@@ -13,8 +13,8 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 public class WorkerDetailResponse extends WorkerInfoResponse{
   private String status; // 작업자 상태
-  private String currentZoneId; // 현재 위치한 공간 ID
-  private String currentZoneName; // 현재 위치한 공간 이름
+  private String zoneId; // 현재 위치한 공간 ID
+  private String zone; // 현재 위치한 공간 이름
 
   // Entity -> DTO 변환
   public static WorkerDetailResponse fromEntity(Worker worker, Boolean isManager, Integer status, String currentZoneId,
@@ -26,8 +26,8 @@ public class WorkerDetailResponse extends WorkerInfoResponse{
         .email(worker.getEmail())
         .isManager(isManager)
         .status(status != null ? status.toString() : null)
-        .currentZoneId(currentZoneId)
-        .currentZoneName(currentZoneName)
+        .zoneId(currentZoneId)
+        .zone(currentZoneName)
         .build();
   }
 }
