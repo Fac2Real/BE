@@ -19,9 +19,10 @@ pipeline {
 
   stages {
     script {
-        env.GIT_URL = env.GIT_URL.replaceAll(/\.git$/, '')
+      def rawUrl = env.GIT_URL
+      env.GIT_URL = rawUrl.replaceAll(/\.git$/, '')
     }
-    
+
     /* 1) 공통 테스트 */
     stage('Test') {
       steps {
