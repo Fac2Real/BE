@@ -20,6 +20,12 @@ pipeline {
   stages {
     /* 1) 공통 테스트 */
     stage('Test') {
+      when {
+        anyOf {
+          not { branch 'develop' }
+          changeRequest()
+        }
+      }
       steps {
         publishChecks name: GH_CHECK_NAME,
                       status: 'IN_PROGRESS',
@@ -70,7 +76,6 @@ docker build -t ${ECR_REGISTRY}/${IMAGE_REPO_NAME}:${LATEST_TAG} .
 docker push ${ECR_REGISTRY}/${IMAGE_REPO_NAME}:${LATEST_TAG}
           """
         }
-
         sshagent(credentials: ['monitory-temp']) {
           sh '''
 ssh -o StrictHostKeyChecking=no ec2-user@43.200.39.139 <<'EOF'
@@ -81,9 +86,9 @@ docker-compose -f docker-compose-service.yml up -d --pull always --build
 EOF
 '''
         }
-
         script {
           env.GIT_URL = env.GIT_URL.replaceAll(/\.git$/, '')
+          env.COMMIT_MSG = sh(script: "git log -1 --pretty=format:'%s'",returnStdout: true).trim()
         }
       }
       /* Slack 알림 */
@@ -92,19 +97,21 @@ EOF
           slackSend channel: env.SLACK_CHANNEL,
                     tokenCredentialId: env.SLACK_CRED_ID,
                     color: '#36a64f',
-                    message: "<!here> :white_check_mark: *BE CI/CD 성공*\\n" +
-                    "파이프라인:  <${env.BUILD_URL}|열기>\\n" + 
-                    "커밋: `${env.GIT_COMMIT}` – `${env.COMMIT_MSG}`\\n" +
-                    "(<${env.GIT_URL}/commit/${env.GIT_COMMIT}|커밋 보기>)"
+                    message: """<!here> :white_check_mark: *BE CI/CD 성공*
+파이프라인: <${env.BUILD_URL}|열기>
+커밋: `${env.GIT_COMMIT}` – `${env.COMMIT_MSG}`
+(<${env.GIT_URL}/commit/${env.GIT_COMMIT}|커밋 보기>)
+"""
         }
         failure {
           slackSend channel: env.SLACK_CHANNEL,
                     tokenCredentialId: env.SLACK_CRED_ID,
                     color: '#ff0000',
-                    message: "<!here> :x: *BE CI/CD 실패*\\n" +
-                    "파이프라인:  <${env.BUILD_URL}console|로그 확인>\\n" +
-                    "커밋: `${env.GIT_COMMIT}` – `${env.COMMIT_MSG}`\\n" +
-                    "(<${env.GIT_URL}/commit/${env.GIT_COMMIT}|커밋 보기>)"
+                    message: """<!here> :x: *BE CI/CD 실패*
+파이프라인: <${env.BUILD_URL}|열기>
+커밋: `${env.GIT_COMMIT}` – `${env.COMMIT_MSG}`
+(<${env.GIT_URL}/commit/${env.GIT_COMMIT}|커밋 보기>)
+"""
         }
       }
     }
