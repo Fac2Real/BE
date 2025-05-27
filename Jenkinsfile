@@ -11,16 +11,26 @@ pipeline {
 
     /* GitHub Checks */
     GH_CHECK_NAME      = 'BE Build Test'
+
+    /* Slack */
+    SLACK_CHANNEL      = '#ci-cd'
+    SLACK_CRED_ID      = 'slack-factoreal-token'   // Slack App OAuth Token
   }
 
   stages {
     /* 1) 공통 테스트 */
     stage('Test') {
+      when {
+        anyOf {
+          not { branch 'develop' }
+          changeRequest()
+        }
+      }
       steps {
         publishChecks name: GH_CHECK_NAME,
                       status: 'IN_PROGRESS',
                       detailsURL: env.BUILD_URL
-        
+
         // Gradle 빌드 환경 변수 설정
         withCredentials([ file(credentialsId: 'backend-env', variable: 'ENV_FILE') ]) {
         sh '''
@@ -46,7 +56,7 @@ set +o allexport
       }
     }
 
-    /* 2) develop 전용 ─ Docker 이미지 빌드 & ECR Push */
+    /* 2) develop 전용 ─ Docker 이미지 빌드 & ECR Push & Deploy (EC2) */
     stage('Docker Build & Push (develop only)') {
       when {
         allOf {
@@ -66,18 +76,6 @@ docker build -t ${ECR_REGISTRY}/${IMAGE_REPO_NAME}:${LATEST_TAG} .
 docker push ${ECR_REGISTRY}/${IMAGE_REPO_NAME}:${LATEST_TAG}
           """
         }
-      }
-    }
-
-    /* 3) develop 전용 ─ EC2 배포 */
-    stage('Deploy to EC2 (develop only)') {
-      when {
-        allOf {
-          branch 'develop'
-          not { changeRequest() } // PR 빌드는 건너뜀
-        }
-      }
-      steps {
         sshagent(credentials: ['monitory-temp']) {
           sh '''
 ssh -o StrictHostKeyChecking=no ec2-user@43.200.39.139 <<'EOF'
@@ -88,8 +86,36 @@ docker-compose -f docker-compose-service.yml up -d --pull always --build
 EOF
 '''
         }
+        script {
+          def raw = sh(script: "git config --get remote.origin.url",
+                       returnStdout: true).trim()
+          env.REPO_URL = raw.replaceAll(/\.git$/, '')
+          env.COMMIT_MSG = sh(script: "git log -1 --pretty=format:'%s'",returnStdout: true).trim()
+        }
+      }
+      /* Slack 알림 */
+      post {
+        success {
+          slackSend channel: env.SLACK_CHANNEL,
+                    tokenCredentialId: env.SLACK_CRED_ID,
+                    color: '#36a64f',
+                    message: """<!here> :white_check_mark: *BE CI/CD 성공*
+파이프라인: <${env.BUILD_URL}|열기>
+커밋: `${env.GIT_COMMIT}` – `${env.COMMIT_MSG}`
+(<${env.REPO_URL}/commit/${env.GIT_COMMIT}|커밋 보기>)
+"""
+        }
+        failure {
+          slackSend channel: env.SLACK_CHANNEL,
+                    tokenCredentialId: env.SLACK_CRED_ID,
+                    color: '#ff0000',
+                    message: """<!here> :x: *BE CI/CD 실패*
+파이프라인: <${env.BUILD_URL}|열기>
+커밋: `${env.GIT_COMMIT}` – `${env.COMMIT_MSG}`
+(<${env.REPO_URL}/commit/${env.GIT_COMMIT}|커밋 보기>)
+"""
+        }
       }
     }
   }
-  /* TODO. Slack */
 }
