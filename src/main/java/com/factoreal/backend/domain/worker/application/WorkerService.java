@@ -57,9 +57,9 @@ public class WorkerService {
         List<AbnormalLogResponse> statusList = abnormalLogService.
                 findLatestAbnormalLogsForTargets(TargetType.Worker, workerIds);
         // HistZone에서 작업자 위치 조회
-        List<ZoneHist> zoneHistsList = workerIds.stream()
-                .map(workerId -> zoneHistoryRepository.findByWorker_WorkerIdAndExistFlag(workerId, 1))
-                .toList();
+//        List<ZoneHist> zoneHistsList = workerIds.stream()
+//                .map(workerId -> zoneHistoryRepository.findByWorker_WorkerIdAndExistFlag(workerId, 1))
+//                .toList();
 
         // 상태 Map<workerId, status>
         Map<String, Integer> statusMap = statusList.stream()
@@ -72,10 +72,7 @@ public class WorkerService {
                         workerId -> {
                             ZoneHist zh = zoneHistoryRepository.findByWorker_WorkerIdAndExistFlag(workerId, 1);
                             if (zh == null || zh.getZone() == null) {
-                                Map<String, String> defaultZone = new HashMap<>();
-                                defaultZone.put("zoneId", "00000000000000-000");
-                                defaultZone.put("zoneName", "대기실");
-                                return defaultZone;
+                                return new HashMap<>();
                             }
                             Map<String, String> zone = new HashMap<>();
                             zone.put("zoneId", zh.getZone().getZoneId());
@@ -88,9 +85,9 @@ public class WorkerService {
                         worker,
                         workerZoneService.findByWorkerWorkerIdAndManageYnIsTrue(worker.getWorkerId())
                                 .isPresent(),
-                        statusMap.get(worker.getWorkerId()),
-                        zoneMap.get(worker.getWorkerId()).get("zoneId"),
-                        zoneMap.get(worker.getWorkerId()).get("zoneName")
+                        statusMap.getOrDefault(worker.getWorkerId(),0),
+                        zoneMap.get(worker.getWorkerId()).getOrDefault("zoneId","00000000000000-000"),
+                        zoneMap.get(worker.getWorkerId()).getOrDefault("zoneName","대기실")
                 ))
                 .collect(Collectors.toList());
     }
