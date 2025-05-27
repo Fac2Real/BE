@@ -90,7 +90,6 @@ EOF
           def raw = sh(script: "git config --get remote.origin.url",
                        returnStdout: true).trim()
           env.REPO_URL = raw.replaceAll(/\.git$/, '')
-          echo "▶ Clean Repo URL: ${env.REPO_URL}"
           env.COMMIT_MSG = sh(script: "git log -1 --pretty=format:'%s'",returnStdout: true).trim()
         }
       }
