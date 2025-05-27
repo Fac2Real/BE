@@ -18,12 +18,24 @@ pipeline {
   }
 
   stages {
+    /* 0) 환경 변수 설정 */
+    stage('Environment Setup') {
+      steps {
+        script {
+          def rawUrl = sh(script: "git config --get remote.origin.url",
+                        returnStdout: true).trim()
+          env.REPO_URL = rawUrl.replaceAll(/\.git$/, '')
+          env.COMMIT_MSG = sh(script: "git log -1 --pretty=format:'%s'",returnStdout: true).trim()
+        }
+      }
+    }
+
     /* 1) 공통 테스트 */
     stage('Test') {
       when {
-        anyOf {
+        allOf {
           not { branch 'develop' }
-          changeRequest()
+          not { changeRequest() }
         }
       }
       steps {
@@ -52,9 +64,19 @@ set +o allexport
           publishChecks name: GH_CHECK_NAME,
                         conclusion: 'FAILURE',
                         detailsURL: "${env.BUILD_URL}console"
+          slackSend channel: env.SLACK_CHANNEL,
+                              tokenCredentialId: env.SLACK_CRED_ID,
+                              color: '#ff0000',
+                              message: """<!here> :x: *BE CI/CD 실패*
+          파이프라인: <${env.BUILD_URL}|열기>
+          커밋: `${env.GIT_COMMIT}` – `${env.COMMIT_MSG}`
+          (<${env.REPO_URL}/commit/${env.GIT_COMMIT}|커밋 보기>)
+          """
         }
       }
     }
+
+
 
     /* 2) develop 전용 ─ Docker 이미지 빌드 & ECR Push & Deploy (EC2) */
     stage('Docker Build & Push (develop only)') {
@@ -85,12 +107,6 @@ docker-compose -f docker-compose-service.yml down -v
 docker-compose -f docker-compose-service.yml up -d --pull always --build
 EOF
 '''
-        }
-        script {
-          def raw = sh(script: "git config --get remote.origin.url",
-                       returnStdout: true).trim()
-          env.REPO_URL = raw.replaceAll(/\.git$/, '')
-          env.COMMIT_MSG = sh(script: "git log -1 --pretty=format:'%s'",returnStdout: true).trim()
         }
       }
       /* Slack 알림 */
