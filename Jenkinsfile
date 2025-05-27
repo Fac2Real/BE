@@ -89,7 +89,8 @@ EOF
         script {
           def raw = sh(script: "git config --get remote.origin.url",
                        returnStdout: true).trim()
-          env.GIT_URL = raw.replaceAll(/\.git$/, '')
+          env.REPO_URL = raw.replaceAll(/\.git$/, '')
+          echo "▶ Clean Repo URL: ${env.REPO_URL}"
           env.COMMIT_MSG = sh(script: "git log -1 --pretty=format:'%s'",returnStdout: true).trim()
         }
       }
@@ -102,7 +103,7 @@ EOF
                     message: """<!here> :white_check_mark: *BE CI/CD 성공*
 파이프라인: <${env.BUILD_URL}|열기>
 커밋: `${env.GIT_COMMIT}` – `${env.COMMIT_MSG}`
-(<${env.GIT_URL}/commit/${env.GIT_COMMIT}|커밋 보기>)
+(<${env.REPO_URL}/commit/${env.GIT_COMMIT}|커밋 보기>)
 """
         }
         failure {
@@ -112,7 +113,7 @@ EOF
                     message: """<!here> :x: *BE CI/CD 실패*
 파이프라인: <${env.BUILD_URL}|열기>
 커밋: `${env.GIT_COMMIT}` – `${env.COMMIT_MSG}`
-(<${env.GIT_URL}/commit/${env.GIT_COMMIT}|커밋 보기>)
+(<${env.REPO_URL}/commit/${env.GIT_COMMIT}|커밋 보기>)
 """
         }
       }
