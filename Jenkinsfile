@@ -50,7 +50,7 @@ set +o allexport
       }
     }
 
-    /* 2) develop 전용 ─ Docker 이미지 빌드 & ECR Push */
+    /* 2) develop 전용 ─ Docker 이미지 빌드 & ECR Push & Deploy (EC2) */
     stage('Docker Build & Push (develop only)') {
       when {
         allOf {
@@ -70,18 +70,7 @@ docker build -t ${ECR_REGISTRY}/${IMAGE_REPO_NAME}:${LATEST_TAG} .
 docker push ${ECR_REGISTRY}/${IMAGE_REPO_NAME}:${LATEST_TAG}
           """
         }
-      }
-    }
 
-    /* 3) develop 전용 ─ EC2 배포 */
-    stage('Deploy to EC2 (develop only)') {
-      when {
-        allOf {
-          branch 'develop'
-          not { changeRequest() } // PR 빌드는 건너뜀
-        }
-      }
-      steps {
         sshagent(credentials: ['monitory-temp']) {
           sh '''
 ssh -o StrictHostKeyChecking=no ec2-user@43.200.39.139 <<'EOF'
@@ -95,17 +84,22 @@ EOF
       }
       /* Slack 알림 */
       post {
+        env.GIT_URL = env.GIT_URL.replaceAll('/\.git$/', '')
+
         success {
           slackSend channel: env.SLACK_CHANNEL,
                     tokenCredentialId: env.SLACK_CRED_ID,
                     color: '#36a64f',
-                    message: "<!here> :white_check_mark: *BE CI/CD 성공* <${env.BUILD_URL}|열기> `Commit ${env.GIT_COMMIT}` – ${env.COMMIT_MSG} (<${env.GIT_URL}/commit/${env.GIT_COMMIT}|보기>)"
+                    message: "<!here> :white_check_mark: *BE CI/CD 성공*\\n" +
+                    "파이프라인:  <${env.BUILD_URL}|열기>\\n" + 
+                    "커밋: `${env.GIT_COMMIT}` – `${env.COMMIT_MSG}`\\n" +
+                    "(<${env.GIT_URL}/commit/${env.GIT_COMMIT}|커밋 보기>)"
         }
         failure {
           slackSend channel: env.SLACK_CHANNEL,
                     tokenCredentialId: env.SLACK_CRED_ID,
                     color: '#ff0000',
-                    message: ":x: *BE 파이프라인 실패* (#${env.BUILD_NUMBER}) <${env.BUILD_URL}console|로그 확인>"
+                    message: "<!here> :x: *BE CI/CD 실패* <${env.BUILD_URL}console|로그 확인> `Commit ${env.GIT_COMMIT}` – ${env.COMMIT_MSG} (<${env.GIT_URL}/commit/${env.GIT_COMMIT}|보기>)"
         }
       }
     }
