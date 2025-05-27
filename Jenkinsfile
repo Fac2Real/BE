@@ -87,7 +87,7 @@ EOF
 '''
         }
         script {
-          env.GIT_URL = env.GIT_URL.replaceAll(/\.git$/, '')
+          env.GIT_URL = env.GIT_URL.replaceAll(/\.git/, '')
           env.COMMIT_MSG = sh(script: "git log -1 --pretty=format:'%s'",returnStdout: true).trim()
         }
       }
