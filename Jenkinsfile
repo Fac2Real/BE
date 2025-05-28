@@ -139,7 +139,7 @@ EOF
 
 
     /* 3) main 전용 ─ Docker 이미지 빌드 & ECR Push & Deploy (EC2) */
-    stage('Docker Build & Push (develop only)') {
+    stage('Docker Build & Push (main only)') {
       when {
         allOf {
           branch 'main'
@@ -183,5 +183,6 @@ docker push ${ECR_REGISTRY}/${IMAGE_REPO_NAME}:${PROD_TAG}
         }
       }
     }
+
   }
 }
