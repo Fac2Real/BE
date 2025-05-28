@@ -8,6 +8,7 @@ pipeline {
     IMAGE_REPO_NAME    = 'springboot'
     IMAGE_TAG          = "${env.GIT_COMMIT}"
     LATEST_TAG         = 'backend-latest'
+    PROD_TAG           = 'backend-prod-latest'
 
     /* GitHub Checks */
     GH_CHECK_NAME      = 'BE Build Test'
@@ -35,6 +36,7 @@ pipeline {
       when {
         allOf {
           not { branch 'develop' }
+          not { branch 'main' }
           not { changeRequest() }
         }
       }
@@ -67,7 +69,7 @@ set +o allexport
           slackSend channel: env.SLACK_CHANNEL,
                               tokenCredentialId: env.SLACK_CRED_ID,
                               color: '#ff0000',
-                              message: """<!here> :x: *BE CI/CD 실패*
+                              message: """:x: *BE Test 실패*
           파이프라인: <${env.BUILD_URL}|열기>
           커밋: `${env.GIT_COMMIT}` – `${env.COMMIT_MSG}`
           (<${env.REPO_URL}/commit/${env.GIT_COMMIT}|커밋 보기>)
@@ -99,14 +101,15 @@ docker push ${ECR_REGISTRY}/${IMAGE_REPO_NAME}:${LATEST_TAG}
           """
         }
         sshagent(credentials: ['monitory-temp']) {
-          sh '''
+          sh """
 ssh -o StrictHostKeyChecking=no ec2-user@43.200.39.139 <<'EOF'
 set -e
 cd datastream
+aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
 docker-compose -f docker-compose-service.yml down -v
 docker-compose -f docker-compose-service.yml up -d --pull always --build
 EOF
-'''
+"""
         }
       }
       /* Slack 알림 */
@@ -115,7 +118,7 @@ EOF
           slackSend channel: env.SLACK_CHANNEL,
                     tokenCredentialId: env.SLACK_CRED_ID,
                     color: '#36a64f',
-                    message: """<!here> :white_check_mark: *BE CI/CD 성공*
+                    message: """:white_check_mark: *BE develop branch CI/CD 성공*
 파이프라인: <${env.BUILD_URL}|열기>
 커밋: `${env.GIT_COMMIT}` – `${env.COMMIT_MSG}`
 (<${env.REPO_URL}/commit/${env.GIT_COMMIT}|커밋 보기>)
@@ -125,7 +128,7 @@ EOF
           slackSend channel: env.SLACK_CHANNEL,
                     tokenCredentialId: env.SLACK_CRED_ID,
                     color: '#ff0000',
-                    message: """<!here> :x: *BE CI/CD 실패*
+                    message: """:x: *BE develop branch CI/CD 실패*
 파이프라인: <${env.BUILD_URL}|열기>
 커밋: `${env.GIT_COMMIT}` – `${env.COMMIT_MSG}`
 (<${env.REPO_URL}/commit/${env.GIT_COMMIT}|커밋 보기>)
@@ -133,5 +136,53 @@ EOF
         }
       }
     }
+
+
+    /* 3) main 전용 ─ Docker 이미지 빌드 & ECR Push & Deploy (EC2) */
+    stage('Docker Build & Push (main only)') {
+      when {
+        allOf {
+          branch 'main'
+          not { changeRequest() }
+        }
+      }
+      steps {
+        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding',
+                          credentialsId: 'jenkins-access']]) {
+          sh """
+aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
+  | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+
+docker build -t ${ECR_REGISTRY}/${IMAGE_REPO_NAME}:${PROD_TAG} .
+
+docker push ${ECR_REGISTRY}/${IMAGE_REPO_NAME}:${PROD_TAG}
+          """
+        }
+      }
+      /* Slack 알림 */
+      post {
+        success {
+          slackSend channel: env.SLACK_CHANNEL,
+                    tokenCredentialId: env.SLACK_CRED_ID,
+                    color: '#36a64f',
+                    message: """:white_check_mark: *BE main branch CI 성공*
+파이프라인: <${env.BUILD_URL}|열기>
+커밋: `${env.GIT_COMMIT}` – `${env.COMMIT_MSG}`
+(<${env.REPO_URL}/commit/${env.GIT_COMMIT}|커밋 보기>)
+"""
+        }
+        failure {
+          slackSend channel: env.SLACK_CHANNEL,
+                    tokenCredentialId: env.SLACK_CRED_ID,
+                    color: '#ff0000',
+                    message: """:x: *BE main branch CI 실패*
+파이프라인: <${env.BUILD_URL}|열기>
+커밋: `${env.GIT_COMMIT}` – `${env.COMMIT_MSG}`
+(<${env.REPO_URL}/commit/${env.GIT_COMMIT}|커밋 보기>)
+"""
+        }
+      }
+    }
+
   }
 }
