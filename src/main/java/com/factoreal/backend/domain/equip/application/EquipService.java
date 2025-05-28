@@ -3,6 +3,7 @@ package com.factoreal.backend.domain.equip.application;
 import com.factoreal.backend.domain.equip.dto.request.EquipCreateRequest;
 import com.factoreal.backend.domain.equip.dto.request.EquipUpdateRequest;
 import com.factoreal.backend.domain.equip.dto.request.EquipUpdateDateRequest;
+import com.factoreal.backend.domain.equip.dto.request.EquipCheckDateRequest;
 import com.factoreal.backend.domain.equip.dto.response.EquipInfoResponse;
 import com.factoreal.backend.domain.equip.dto.response.EquipWithSensorsResponse;
 import com.factoreal.backend.domain.equip.entity.Equip;
@@ -86,6 +87,34 @@ public class EquipService {
                     .equip(equip)
                     .date(dto.getUpdateDate())
                     .type(EquipHistoryType.UPDATE)
+                    .build();
+            equipHistoryRepoService.save(history);
+        }
+
+        Zone zone = findByZoneId(equip.getZone().getZoneId());
+
+        return new EquipInfoResponse(
+                equip.getEquipId(),
+                equip.getEquipName(),
+                zone.getZoneName(),
+                zone.getZoneId()
+        );
+    }
+
+    /**
+     * 설비 점검일자 업데이트 서비스
+     */
+    @Transactional
+    public EquipInfoResponse updateCheckDateEquip(String equipId, EquipCheckDateRequest dto) {
+        // 1. 수정할 설비가 존재하는지 확인
+        Equip equip = equipRepoService.findById(equipId);
+
+        // 2. 점검일자가 있다면 이력 저장
+        if (dto.getCheckDate() != null) {
+            EquipHistory history = EquipHistory.builder()
+                    .equip(equip)
+                    .date(dto.getCheckDate())
+                    .type(EquipHistoryType.CHECK)
                     .build();
             equipHistoryRepoService.save(history);
         }
