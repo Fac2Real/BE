@@ -69,7 +69,7 @@ set +o allexport
           slackSend channel: env.SLACK_CHANNEL,
                               tokenCredentialId: env.SLACK_CRED_ID,
                               color: '#ff0000',
-                              message: """<!here> :x: *BE Test 실패*
+                              message: """:x: *BE Test 실패*
           파이프라인: <${env.BUILD_URL}|열기>
           커밋: `${env.GIT_COMMIT}` – `${env.COMMIT_MSG}`
           (<${env.REPO_URL}/commit/${env.GIT_COMMIT}|커밋 보기>)
