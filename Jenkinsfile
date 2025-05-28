@@ -35,6 +35,7 @@ pipeline {
       when {
         allOf {
           not { branch 'develop' }
+          not { branch 'main' }
           not { changeRequest() }
         }
       }
@@ -67,7 +68,7 @@ set +o allexport
           slackSend channel: env.SLACK_CHANNEL,
                               tokenCredentialId: env.SLACK_CRED_ID,
                               color: '#ff0000',
-                              message: """<!here> :x: *BE CI/CD 실패*
+                              message: """<!here> :x: *BE Test 실패*
           파이프라인: <${env.BUILD_URL}|열기>
           커밋: `${env.GIT_COMMIT}` – `${env.COMMIT_MSG}`
           (<${env.REPO_URL}/commit/${env.GIT_COMMIT}|커밋 보기>)
@@ -82,7 +83,10 @@ set +o allexport
     stage('Docker Build & Push (develop only)') {
       when {
         allOf {
-          branch 'develop'
+          anyOf {
+            branch 'develop'
+            branch 'main'
+          }
           not { changeRequest() }
         }
       }
@@ -99,14 +103,15 @@ docker push ${ECR_REGISTRY}/${IMAGE_REPO_NAME}:${LATEST_TAG}
           """
         }
         sshagent(credentials: ['monitory-temp']) {
-          sh '''
+          sh """
 ssh -o StrictHostKeyChecking=no ec2-user@43.200.39.139 <<'EOF'
 set -e
 cd datastream
+aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
 docker-compose -f docker-compose-service.yml down -v
 docker-compose -f docker-compose-service.yml up -d --pull always --build
 EOF
-'''
+"""
         }
       }
       /* Slack 알림 */
@@ -115,7 +120,7 @@ EOF
           slackSend channel: env.SLACK_CHANNEL,
                     tokenCredentialId: env.SLACK_CRED_ID,
                     color: '#36a64f',
-                    message: """<!here> :white_check_mark: *BE CI/CD 성공*
+                    message: """:white_check_mark: *BE CI/CD 성공*
 파이프라인: <${env.BUILD_URL}|열기>
 커밋: `${env.GIT_COMMIT}` – `${env.COMMIT_MSG}`
 (<${env.REPO_URL}/commit/${env.GIT_COMMIT}|커밋 보기>)
@@ -125,7 +130,7 @@ EOF
           slackSend channel: env.SLACK_CHANNEL,
                     tokenCredentialId: env.SLACK_CRED_ID,
                     color: '#ff0000',
-                    message: """<!here> :x: *BE CI/CD 실패*
+                    message: """:x: *BE CI/CD 실패*
 파이프라인: <${env.BUILD_URL}|열기>
 커밋: `${env.GIT_COMMIT}` – `${env.COMMIT_MSG}`
 (<${env.REPO_URL}/commit/${env.GIT_COMMIT}|커밋 보기>)
