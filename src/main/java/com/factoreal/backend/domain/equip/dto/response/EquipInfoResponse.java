@@ -1,5 +1,7 @@
 package com.factoreal.backend.domain.equip.dto.response;
 
+import com.factoreal.backend.domain.equip.entity.Equip;
+import com.factoreal.backend.domain.zone.entity.Zone;
 import lombok.*;
 
 @Getter
@@ -12,4 +14,13 @@ public class EquipInfoResponse {
     private String equipName;
     private String zoneName;
     private String zoneId;
+
+    public static EquipInfoResponse fromEntity(Equip equip, Zone zone) {
+        return EquipInfoResponse.builder()
+                .equipId(equip.getEquipId())
+                .equipName(equip.getEquipName())
+                .zoneName(zone.getZoneName())
+                .zoneId(zone.getZoneId())
+                .build();
+    }
 }

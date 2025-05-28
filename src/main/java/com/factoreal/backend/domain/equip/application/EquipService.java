@@ -48,7 +48,10 @@ public class EquipService {
         // 3. 설비 정보 저장
         equipRepoService.save(new Equip(equipId, req.getEquipName(), zone));
 
-        return new EquipInfoResponse(equipId, req.getEquipName(), zone.getZoneName(), zone.getZoneId());
+        return EquipInfoResponse.fromEntity(
+            new Equip(equipId, req.getEquipName(), zone),
+            zone
+        );
     }
 
     /**
@@ -65,12 +68,7 @@ public class EquipService {
 
         Zone zone = findByZoneId(updated.getZone().getZoneId());
 
-        return new EquipInfoResponse(
-                updated.getEquipId(),
-                updated.getEquipName(),
-                zone.getZoneName(),
-                zone.getZoneId()
-        );
+        return EquipInfoResponse.fromEntity(updated, zone);
     }
 
     /**
@@ -93,12 +91,7 @@ public class EquipService {
 
         Zone zone = findByZoneId(equip.getZone().getZoneId());
 
-        return new EquipInfoResponse(
-                equip.getEquipId(),
-                equip.getEquipName(),
-                zone.getZoneName(),
-                zone.getZoneId()
-        );
+        return EquipInfoResponse.fromEntity(equip, zone);
     }
 
     /**
@@ -121,12 +114,7 @@ public class EquipService {
 
         Zone zone = findByZoneId(equip.getZone().getZoneId());
 
-        return new EquipInfoResponse(
-                equip.getEquipId(),
-                equip.getEquipName(),
-                zone.getZoneName(),
-                zone.getZoneId()
-        );
+        return EquipInfoResponse.fromEntity(equip, zone);
     }
 
     /**
