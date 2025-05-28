@@ -20,15 +20,17 @@ public class EquipWithSensorsResponse {
     private String zoneName;
     private String zoneId;
     private LocalDate lastUpdateDate;  // 최근 교체일자
+    private LocalDate lastCheckDate;   // 최근 점검일자
     private List<SensorInfoResponse> sensors;
 
-    public static EquipWithSensorsResponse fromEntity(Equip equip, Zone zone, LocalDate lastUpdateDate, List<SensorInfoResponse> sensors) {
+    public static EquipWithSensorsResponse fromEntity(Equip equip, Zone zone, LocalDate lastUpdateDate, LocalDate lastCheckDate, List<SensorInfoResponse> sensors) {
         return EquipWithSensorsResponse.builder()
                 .equipId(equip.getEquipId())
                 .equipName(equip.getEquipName())
                 .zoneName(zone.getZoneName())
                 .zoneId(zone.getZoneId())
                 .lastUpdateDate(lastUpdateDate)
+                .lastCheckDate(lastCheckDate)
                 .sensors(sensors)
                 .build();
     }

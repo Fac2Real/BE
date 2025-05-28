@@ -10,16 +10,11 @@ import com.factoreal.backend.domain.equip.entity.Equip;
 import com.factoreal.backend.domain.equip.entity.EquipHistory;
 import com.factoreal.backend.domain.equip.entity.EquipHistoryType;
 import com.factoreal.backend.domain.zone.application.ZoneRepoService;
-import com.factoreal.backend.domain.zone.application.ZoneService;
 import com.factoreal.backend.domain.zone.entity.Zone;
-import com.factoreal.backend.domain.equip.dao.EquipRepository;
-import com.factoreal.backend.domain.zone.dao.ZoneRepository;
 import com.factoreal.backend.domain.sensor.application.SensorService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 import com.factoreal.backend.global.util.IdGenerator;
 
 import java.time.LocalDate;
@@ -135,10 +130,17 @@ public class EquipService {
                     .map(EquipHistory::getDate)
                     .orElse(null);
 
+                // 최근 점검일자 조회
+                LocalDate lastCheckDate = equipHistoryRepoService
+                    .findFirstByEquip_EquipIdAndTypeOrderByDateDesc(equip.getEquipId(), EquipHistoryType.CHECK)
+                    .map(EquipHistory::getDate)
+                    .orElse(null);
+
                 return EquipWithSensorsResponse.fromEntity(
                     equip,
                     zone,
                     lastUpdateDate,
+                    lastCheckDate,
                     sensorService.findSensorsByEquipId(equip.getEquipId())
                 );
             })
