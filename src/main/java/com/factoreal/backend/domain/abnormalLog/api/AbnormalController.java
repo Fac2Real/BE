@@ -4,6 +4,7 @@ import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
 import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.dto.request.AbnormalPagingRequest;
 import com.factoreal.backend.domain.abnormalLog.dto.response.AbnormalLogResponse;
+import com.factoreal.backend.messaging.sender.WebSocketSender;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "상태 로그 조회 API", description = "작업자/환경/설비 이상의 로그를 조회하는 API")
 public class AbnormalController {
     private final AbnormalLogService abnormalLogService;
+    private final WebSocketSender webSocketSender;
 
     // 전체 로그 조회
     @GetMapping
@@ -55,6 +57,8 @@ public class AbnormalController {
     @Operation(summary = "로그 읽음 처리", description = "abnormalId와 일치하는 로그를 읽음 처리합니다.")
     public ResponseEntity<Void> markAlarmAsRead(@PathVariable Long abnormalId) {
         boolean success = abnormalLogService.readCheck(abnormalId);
+        Long count = abnormalLogService.readRequired();
+        webSocketSender.sendUnreadCount(count);
         return success ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
     }
     // 웹 페이지 첫 렌더링 시 호출되는 api
@@ -63,6 +67,7 @@ public class AbnormalController {
     @Operation(summary = "미확인 로그 개수 조회", description = "미확인 로그 개수를 반환합니다. 페이지이 첫 렌더링 시(웹소켓으로 정보를 받기전) 호출합니다.")
     public ResponseEntity<Long> getUnreadAlarmCount() {
         Long count = abnormalLogService.readRequired();
+        webSocketSender.sendUnreadCount(count);
         return ResponseEntity.ok(count);
     }
 }
