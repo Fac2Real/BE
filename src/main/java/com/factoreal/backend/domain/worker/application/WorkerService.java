@@ -110,7 +110,7 @@ public class WorkerService {
 
         Optional<WorkerZone> zoneManager = workerZoneRepoService.findByZoneZoneIdAndManageYnIsTrue(zoneId);
         if (zoneManager.isEmpty()) {
-            return new ZoneManagerResponse();
+            return null;
         }
 
         Worker manager = zoneManager.get().getWorker();
