@@ -10,9 +10,9 @@ import com.factoreal.backend.domain.worker.dto.response.ZoneManagerResponse;
 import com.factoreal.backend.domain.worker.entity.Worker;
 import com.factoreal.backend.domain.worker.entity.WorkerZone;
 import com.factoreal.backend.domain.worker.entity.WorkerZoneId;
+import com.factoreal.backend.domain.zone.application.ZoneHistoryRepoService;
 import com.factoreal.backend.domain.zone.application.ZoneHistoryService;
-import com.factoreal.backend.domain.zone.dao.ZoneHistoryRepository;
-import com.factoreal.backend.domain.zone.dao.ZoneRepository;
+import com.factoreal.backend.domain.zone.application.ZoneRepoService;
 import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.domain.zone.entity.ZoneHist;
 import lombok.RequiredArgsConstructor;
@@ -33,10 +33,10 @@ public class WorkerService {
     private final WorkerZoneRepoService workerZoneRepoService;
     private final WorkerRepoService workerRepoService;
 
-    private final ZoneRepository zoneRepository;
+    private final ZoneRepoService zoneRepoService;
     private final ZoneHistoryService zoneHistoryService;
     private final AbnormalLogService abnormalLogService;
-    private final ZoneHistoryRepository zoneHistoryRepository;
+    private final ZoneHistoryRepoService zoneHistoryRepoService;
 
 
     /**
@@ -68,7 +68,7 @@ public class WorkerService {
                 .collect(Collectors.toMap(
                         workerId -> workerId,
                         workerId -> {
-                            ZoneHist zh = zoneHistoryRepository.findByWorker_WorkerIdAndExistFlag(workerId, 1);
+                            ZoneHist zh = zoneHistoryRepoService.findByWorker_WorkerIdAndExistFlag(workerId, 1);
                             if (zh == null || zh.getZone() == null) {
                                 return new HashMap<>();
                             }
@@ -96,7 +96,7 @@ public class WorkerService {
     public List<WorkerInfoResponse> getWorkersByZoneId(String zoneId) {
         log.info("공간 ID: {}의 현재 작업자 목록 조회", zoneId);
         // existFlag는 boolean 같은 개념 0 혹은 1이 들어감
-        List<ZoneHist> currentWorkers = findByZone_ZoneIdAndExistFlag(zoneId, 1);
+        List<ZoneHist> currentWorkers = zoneHistoryRepoService.findByZone_ZoneIdAndExistFlag(zoneId, 1);
         return currentWorkers.stream()
                 .map(zoneHist -> WorkerInfoResponse.from(zoneHist.getWorker(), false))
                 .collect(Collectors.toList());
@@ -116,7 +116,7 @@ public class WorkerService {
         Worker manager = zoneManager.get().getWorker();
 
         // 2. 담당자의 현재 위치 조회 (existFlag = 1)
-        ZoneHist currentLocation = findByWorker_WorkerIdAndExistFlag(manager, 1);
+        ZoneHist currentLocation = zoneHistoryRepoService.findByWorker_WorkerIdAndExistFlag(manager, 1);
 
         // 3. 현재 위치한 공간 정보 (없을 수 있음)
         Zone currentZone = currentLocation != null ? currentLocation.getZone() : null;
@@ -143,8 +143,7 @@ public class WorkerService {
 
         // 2. 각 공간명으로 Zone 조회 및 WorkerZone 생성
         for (String zoneName : request.getZoneNames()) {
-            Zone zone = zoneRepository.findByZoneName(zoneName)
-                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 공간명입니다: " + zoneName));
+            Zone zone = zoneRepoService.findByZoneName(zoneName);
 
             // WorkerZone 생성 (기본적으로 관리자 권한은 없음)
             WorkerZone workerZone = WorkerZone.builder()
@@ -160,21 +159,7 @@ public class WorkerService {
         log.info("작업자 생성 완료 - workerId: {}", worker.getWorkerId());
     }
 
-    /**
-     * 작업자가 존재하고 작업중인 공간 히스토리를 조회하는 레포 접근 메서드
-     * existFlag는 boolean 타입과 같은 개념으로 0 혹은 1이 들어옵니다.
-     */
-    private ZoneHist findByWorker_WorkerIdAndExistFlag(Worker worker, Integer existFlag) {
-        return zoneHistoryRepository.findByWorker_WorkerIdAndExistFlag(worker.getWorkerId(), existFlag);
-    }
 
-    /**
-     * 작업자가 존재하는 존재하는 공간 히스토리들을 조회
-     * existFlag는 boolean 타입과 같은 개념으로 0 혹은 1이 들어옵니다.
-     */
-    private List<ZoneHist> findByZone_ZoneIdAndExistFlag(String zoneId, Integer existFlag) {
-        return zoneHistoryRepository.findByZone_ZoneIdAndExistFlag(zoneId, existFlag);
-    }
 
 
 

@@ -1,13 +1,12 @@
 package com.factoreal.backend.domain.abnormalLog.application;
 
-import com.factoreal.backend.domain.abnormalLog.dao.AbnLogRepository;
 import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.dto.request.AbnormalPagingRequest;
 import com.factoreal.backend.domain.abnormalLog.dto.response.AbnormalLogResponse;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
 import com.factoreal.backend.domain.sensor.entity.Sensor;
-import com.factoreal.backend.domain.zone.application.ZoneHistoryService;
+import com.factoreal.backend.domain.zone.application.ZoneHistoryRepoService;
 import com.factoreal.backend.domain.zone.application.ZoneRepoService;
 import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.domain.zone.entity.ZoneHist;
@@ -38,8 +37,8 @@ public class AbnormalLogService{
     private final AbnormalLogRepoService abnormalLogRepoService;
     private final RiskMessageProvider riskMessageProvider;
     private final ObjectMapper objectMapper;
-    private final ZoneHistoryService zoneHistoryService;
     private final ZoneRepoService zoneRepoService;
+    private final ZoneHistoryRepoService zoneHistoryRepoService;
 
     /**
      * 센서 데이터 기반의 알람 로그 생성.
@@ -101,7 +100,7 @@ public class AbnormalLogService{
             TargetType targetType
     ) {
         // workerId에 해당되는 사람이 제일 최근에 있던 공간 조회
-        ZoneHist zonehist = zoneHistoryService.getCurrentWorkerLocation(wearableKafkaDto.getWorkerId());
+        ZoneHist zonehist = zoneHistoryRepoService.getCurrentWorkerLocation(wearableKafkaDto.getWorkerId());
         Zone zone;
         if (zonehist == null) {
             zone = zoneRepoService.findByZoneId("00000000000000-000");
