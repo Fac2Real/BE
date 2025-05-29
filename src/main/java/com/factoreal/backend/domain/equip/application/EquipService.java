@@ -73,14 +73,26 @@ public class EquipService {
         // 1. 수정할 설비가 존재하는지 확인
         Equip equip = equipRepoService.findById(equipId);
 
-        // 2. 점검일자가 있다면 이력 저장
+        // 2. 점검일자가 있다면 이력 저장 (중복 체크 후)
         if (dto.getCheckDate() != null) {
-            EquipHistory history = EquipHistory.builder()
-                    .equip(equip)
-                    .date(dto.getCheckDate())
-                    .type(EquipHistoryType.CHECK)
-                    .build();
-            equipHistoryRepoService.save(history);
+            // 2-1. 같은 날짜의 점검 이력이 있는지 확인
+            boolean isDuplicate = equipHistoryRepoService
+                .findFirstByEquip_EquipIdAndTypeAndDate(
+                    equip.getEquipId(), 
+                    EquipHistoryType.CHECK,
+                    dto.getCheckDate()
+                )
+                .isPresent();
+
+            // 2-2. 중복되지 않은 경우에만 저장
+            if (!isDuplicate) {
+                EquipHistory history = EquipHistory.builder()
+                        .equip(equip)
+                        .date(dto.getCheckDate())
+                        .type(EquipHistoryType.CHECK)
+                        .build();
+                equipHistoryRepoService.save(history);
+            }
         }
 
         Zone zone = findByZoneId(equip.getZone().getZoneId());
