@@ -36,3 +36,7 @@ grafana:
 
 firebase:
   json-base64: ${FIREBASE_JSON_BASE64}
+
+webhook:
+  slack:
+    url: ${SLACK_WEBHOOK_URL}

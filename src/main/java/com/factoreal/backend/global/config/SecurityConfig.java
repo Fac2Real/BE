@@ -29,7 +29,10 @@ public class SecurityConfig {
         "/ws/**",
         "/v3/api-docs/**",
         "/swagger-ui/**",
-        "/swagger-ui.html"
+        "/swagger-ui.html",
+        "/api/zones", // 모바일에서 사용하는 api
+        "/api/zone-history/update", // 모바일에서 사용하는 api
+        "/api/fcm" // 모바일에서 사용하는 api
     };
 
     @Bean
