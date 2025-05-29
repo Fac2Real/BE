@@ -1,5 +1,6 @@
 package com.factoreal.backend.messaging.kafka.processor;
 
+import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogRepoService;
 import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
 import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
@@ -23,6 +24,7 @@ public class SensorEventProcessor {
 
     private final AutoControlService autoControlService;
     private final AbnormalLogService abnormalLogService;
+    private final AbnormalLogRepoService abnormalLogRepoService;
     private final AlarmEventService alarmEventService;
     private final WebSocketSender webSocketSender;
 
@@ -68,7 +70,7 @@ public class SensorEventProcessor {
                 );
 
                 // 읽지 않은 알림 수 조회
-                Long count = abnormalLogService.readRequired();
+                Long count = abnormalLogRepoService.countByIsReadFalse();
 
                 // WebSocket 알림 전송
                 // 1. 히트맵 전송
