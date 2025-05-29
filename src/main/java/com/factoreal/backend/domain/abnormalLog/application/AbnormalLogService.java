@@ -4,13 +4,11 @@ import com.factoreal.backend.domain.abnormalLog.dao.AbnLogRepository;
 import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.dto.request.AbnormalPagingRequest;
 import com.factoreal.backend.domain.abnormalLog.dto.response.AbnormalLogResponse;
-import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
-import com.factoreal.backend.domain.sensor.entity.Sensor;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
+import com.factoreal.backend.domain.sensor.entity.Sensor;
 import com.factoreal.backend.domain.zone.application.ZoneHistoryService;
 import com.factoreal.backend.domain.zone.application.ZoneRepoService;
-import com.factoreal.backend.domain.zone.application.ZoneService;
 import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.domain.zone.entity.ZoneHist;
 import com.factoreal.backend.messaging.kafka.dto.WearableKafkaDto;
@@ -36,9 +34,8 @@ import java.util.Objects;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class AbnormalLogService {
-    private final AbnLogRepository abnLogRepository;
-//    private final ZoneService zoneService;
+public class AbnormalLogService{
+    private final AbnormalLogRepoService abnormalLogRepoService;
     private final RiskMessageProvider riskMessageProvider;
     private final ObjectMapper objectMapper;
     private final ZoneHistoryService zoneHistoryService;
@@ -84,7 +81,7 @@ public class AbnormalLogService {
                 .isRead(false)
                 .build();
 
-        return abnLogRepository.save(abnormalLog);
+        return abnormalLogRepoService.save(abnormalLog);
     }
 
     /**
@@ -122,20 +119,20 @@ public class AbnormalLogService {
                 .zone(zone)
                 .isRead(false)
                 .build();
-        return abnLogRepository.save(abnormalLog);
+        return abnormalLogRepoService.save(abnormalLog);
     }
 
     public Page<AbnormalLogResponse> findAllAbnormalLogs(AbnormalPagingRequest abnormalPagingDto) {
         // 한번에 DB전체를 주는 것이 아닌 구간 나눠서 전달하기 위함
         Pageable pageable = getPageable(abnormalPagingDto);
-        Page<AbnormalLog> abnormalLogs = abnLogRepository.findAll(pageable);
+        Page<AbnormalLog> abnormalLogs = abnormalLogRepoService.findAll(pageable);
         return abnormalLogs.map(AbnormalLog::fromEntity);
     }
 
     public Page<AbnormalLogResponse> findAllAbnormalLogsUnRead(AbnormalPagingRequest abnormalPagingRequest) {
         // 한번에 DB전체를 주는 것이 아닌 구간 나눠서 전달하기 위함
         Pageable pageable = getPageable(abnormalPagingRequest);
-        Page<AbnormalLog> abnormalLogs = abnLogRepository.findAllByIsReadIsFalseOrderByDetectedAtDesc(pageable);
+        Page<AbnormalLog> abnormalLogs = abnormalLogRepoService.findAllByIsReadIsFalseOrderByDetectedAtDesc(pageable);
         return abnormalLogs.map(AbnormalLog::fromEntity);
     }
 
@@ -143,14 +140,14 @@ public class AbnormalLogService {
                                                                     String abnormalType) {
         // 한번에 DB전체를 주는 것이 아닌 구간 나눠서 전달하기 위함
         Pageable pageable = getPageable(abnormalPagingRequest);
-        Page<AbnormalLog> abnormalLogs = abnLogRepository.findAbnormalLogsByAbnormalType(abnormalType, pageable);
+        Page<AbnormalLog> abnormalLogs = abnormalLogRepoService.findAbnormalLogsByAbnormalType(pageable, abnormalType);
         return abnormalLogs.map(AbnormalLog::fromEntity);
     }
 
     public List<AbnormalLogResponse> findLatestAbnormalLogsForTargets(TargetType targetType, List<String> targetIds) {
         return targetIds.stream()
                 .map(targetId ->
-                        abnLogRepository.findFirstByTargetTypeAndTargetIdOrderByDetectedAtDesc(targetType, targetId)
+                        abnormalLogRepoService.findFirstByTargetTypeAndTargetIdOrderByDetectedAtDesc(targetType, targetId)
                                 .map(AbnormalLog::fromEntity) // 또는 objectMapper.convertValue(...)
                                 .orElse(null) // 값이 없으면 null
                 )
@@ -161,10 +158,10 @@ public class AbnormalLogService {
     public Page<AbnormalLogResponse> findAbnormalLogsByTargetId(AbnormalPagingRequest abnormalPagingRequest, TargetType targetType, String targetId) {
         // 한번에 DB전체를 주는 것이 아닌 구간 나눠서 전달하기 위함
         Pageable pageable = getPageable(abnormalPagingRequest);
-        Page<AbnormalLog> abnormalLogs = abnLogRepository.findAbnormalLogsByTargetTypeAndTargetId(
+        Page<AbnormalLog> abnormalLogs = abnormalLogRepoService.findAbnormalLogsByTargetTypeAndTargetId(
+                pageable,
                 targetType,
-                targetId,
-                pageable);
+                targetId);
         return abnormalLogs.map(
                 abn_log -> objectMapper.convertValue(abn_log, AbnormalLogResponse.class));
     }
@@ -172,14 +169,13 @@ public class AbnormalLogService {
     // FE에서 알람을 클릭한 경우 읽음으로 수정
     @Transactional
     public boolean readCheck(Long abnormalLogId) {
-        AbnormalLog abnormalLog = abnLogRepository.findById(abnormalLogId).orElse(null);
+        AbnormalLog abnormalLog = abnormalLogRepoService.findById(abnormalLogId).orElse(null);
         if (abnormalLog == null) {
             return false;
         }
 
         abnormalLog.setIsRead(true);
-        abnLogRepository.save(abnormalLog);
-        readRequired();
+        abnormalLogRepoService.save(abnormalLog);
         return true;
     }
 
@@ -197,15 +193,7 @@ public class AbnormalLogService {
                 .isRead(false)
                 .build();
 
-        return abnLogRepository.save(abnormalLog);
-    }
-
-    @Transactional(readOnly = true)
-    // 읽지 않은 알람이 몇개인지 반환
-    public Long readRequired() {
-        Long count = abnLogRepository.countByIsReadFalse();
-        // webSocketSender.sendUnreadCount(count);
-        return count;
+        return abnormalLogRepoService.save(abnormalLog);
     }
 
     private Pageable getPageable(AbnormalPagingRequest abnormalPagingRequest) {
