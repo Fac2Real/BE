@@ -6,6 +6,8 @@ public enum SensorType {
     temp,
     humid,
     vibration,
+    power,
+    pressure,
     voc;
     public static SensorType getSensorType(String sensorType){
         return SensorType.valueOf(sensorType);

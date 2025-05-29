@@ -8,7 +8,7 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-// 설비 교체일자 수정 요청 DTO (FE -> BE)
-public class EquipUpdateDateRequest {
-    private LocalDate updateDate;  // 설비 교체일자 (YYYY-MM-DD)
+// 설비 점검일자 수정 요청 DTO (FE -> BE)
+public class EquipCheckDateRequest {
+    private LocalDate checkDate;  // 설비 점검일자 (YYYY-MM-DD)
 } 

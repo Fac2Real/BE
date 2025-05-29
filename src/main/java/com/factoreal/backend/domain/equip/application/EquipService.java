@@ -2,23 +2,18 @@ package com.factoreal.backend.domain.equip.application;
 
 import com.factoreal.backend.domain.equip.dto.request.EquipCreateRequest;
 import com.factoreal.backend.domain.equip.dto.request.EquipUpdateRequest;
-import com.factoreal.backend.domain.equip.dto.request.EquipUpdateDateRequest;
+import com.factoreal.backend.domain.equip.dto.request.EquipCheckDateRequest;
 import com.factoreal.backend.domain.equip.dto.response.EquipInfoResponse;
 import com.factoreal.backend.domain.equip.dto.response.EquipWithSensorsResponse;
 import com.factoreal.backend.domain.equip.entity.Equip;
 import com.factoreal.backend.domain.equip.entity.EquipHistory;
 import com.factoreal.backend.domain.equip.entity.EquipHistoryType;
 import com.factoreal.backend.domain.zone.application.ZoneRepoService;
-import com.factoreal.backend.domain.zone.application.ZoneService;
 import com.factoreal.backend.domain.zone.entity.Zone;
-import com.factoreal.backend.domain.equip.dao.EquipRepository;
-import com.factoreal.backend.domain.zone.dao.ZoneRepository;
 import com.factoreal.backend.domain.sensor.application.SensorService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 import com.factoreal.backend.global.util.IdGenerator;
 
 import java.time.LocalDate;
@@ -47,7 +42,10 @@ public class EquipService {
         // 3. 설비 정보 저장
         equipRepoService.save(new Equip(equipId, req.getEquipName(), zone));
 
-        return new EquipInfoResponse(equipId, req.getEquipName(), zone.getZoneName(), zone.getZoneId());
+        return EquipInfoResponse.fromEntity(
+            new Equip(equipId, req.getEquipName(), zone),
+            zone
+        );
     }
 
     /**
@@ -64,40 +62,42 @@ public class EquipService {
 
         Zone zone = findByZoneId(updated.getZone().getZoneId());
 
-        return new EquipInfoResponse(
-                updated.getEquipId(),
-                updated.getEquipName(),
-                zone.getZoneName(),
-                zone.getZoneId()
-        );
+        return EquipInfoResponse.fromEntity(updated, zone);
     }
 
     /**
-     * 설비 교체일자 업데이트 서비스
+     * 설비 점검일자 업데이트 서비스
      */
     @Transactional
-    public EquipInfoResponse updateDateEquip(String equipId, EquipUpdateDateRequest dto) {
+    public EquipInfoResponse updateCheckDateEquip(String equipId, EquipCheckDateRequest dto) {
         // 1. 수정할 설비가 존재하는지 확인
         Equip equip = equipRepoService.findById(equipId);
 
-        // 2. 교체일자가 있다면 이력 저장
-        if (dto.getUpdateDate() != null) {
-            EquipHistory history = EquipHistory.builder()
-                    .equip(equip)
-                    .date(dto.getUpdateDate())
-                    .type(EquipHistoryType.UPDATE)
-                    .build();
-            equipHistoryRepoService.save(history);
+        // 2. 점검일자가 있다면 이력 저장 (중복 체크 후)
+        if (dto.getCheckDate() != null) {
+            // 2-1. 같은 날짜의 점검 이력이 있는지 확인
+            boolean isDuplicate = equipHistoryRepoService
+                .findFirstByEquip_EquipIdAndTypeAndDate(
+                    equip.getEquipId(), 
+                    EquipHistoryType.CHECK,
+                    dto.getCheckDate()
+                )
+                .isPresent();
+
+            // 2-2. 중복되지 않은 경우에만 저장
+            if (!isDuplicate) {
+                EquipHistory history = EquipHistory.builder()
+                        .equip(equip)
+                        .date(dto.getCheckDate())
+                        .type(EquipHistoryType.CHECK)
+                        .build();
+                equipHistoryRepoService.save(history);
+            }
         }
 
         Zone zone = findByZoneId(equip.getZone().getZoneId());
 
-        return new EquipInfoResponse(
-                equip.getEquipId(),
-                equip.getEquipName(),
-                zone.getZoneName(),
-                zone.getZoneId()
-        );
+        return EquipInfoResponse.fromEntity(equip, zone);
     }
 
     /**
@@ -112,16 +112,16 @@ public class EquipService {
         Zone zone = findByZoneId(zoneId);
         return equipRepoService.findEquipsByZone(zone).stream()
             .map(equip -> {
-                // 최근 교체일자 조회
-                LocalDate lastUpdateDate = equipHistoryRepoService
-                    .findFirstByEquip_EquipIdAndTypeOrderByDateDesc(equip.getEquipId(), EquipHistoryType.UPDATE)
+                // 최근 점검일자 조회
+                LocalDate lastCheckDate = equipHistoryRepoService
+                    .findFirstByEquip_EquipIdAndTypeOrderByDateDesc(equip.getEquipId(), EquipHistoryType.CHECK)
                     .map(EquipHistory::getDate)
                     .orElse(null);
 
                 return EquipWithSensorsResponse.fromEntity(
                     equip,
                     zone,
-                    lastUpdateDate,
+                    lastCheckDate,
                     sensorService.findSensorsByEquipId(equip.getEquipId())
                 );
             })
