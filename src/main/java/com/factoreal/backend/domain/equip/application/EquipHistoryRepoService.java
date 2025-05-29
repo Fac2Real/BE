@@ -27,4 +27,10 @@ public class EquipHistoryRepoService {
     public Optional<EquipHistory> findFirstByEquip_EquipIdAndTypeOrderByDateDesc(String equipId, EquipHistoryType type) {
         return equipHistoryRepository.findFirstByEquip_EquipIdAndTypeOrderByDateDesc(equipId, type);
     }
+
+    // 특정 날짜의 이력 존재 여부 확인
+    @Transactional(readOnly = true)
+    public Optional<EquipHistory> findFirstByEquip_EquipIdAndTypeAndDate(String equipId, EquipHistoryType type, LocalDate date) {
+        return equipHistoryRepository.findFirstByEquip_EquipIdAndTypeAndDate(equipId, type, date);
+    }
 } 
