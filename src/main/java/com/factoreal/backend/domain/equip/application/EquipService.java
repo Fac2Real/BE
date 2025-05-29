@@ -2,7 +2,6 @@ package com.factoreal.backend.domain.equip.application;
 
 import com.factoreal.backend.domain.equip.dto.request.EquipCreateRequest;
 import com.factoreal.backend.domain.equip.dto.request.EquipUpdateRequest;
-import com.factoreal.backend.domain.equip.dto.request.EquipUpdateDateRequest;
 import com.factoreal.backend.domain.equip.dto.request.EquipCheckDateRequest;
 import com.factoreal.backend.domain.equip.dto.response.EquipInfoResponse;
 import com.factoreal.backend.domain.equip.dto.response.EquipWithSensorsResponse;
@@ -67,29 +66,6 @@ public class EquipService {
     }
 
     /**
-     * 설비 교체일자 업데이트 서비스
-     */
-    @Transactional
-    public EquipInfoResponse updateDateEquip(String equipId, EquipUpdateDateRequest dto) {
-        // 1. 수정할 설비가 존재하는지 확인
-        Equip equip = equipRepoService.findById(equipId);
-
-        // 2. 교체일자가 있다면 이력 저장
-        if (dto.getUpdateDate() != null) {
-            EquipHistory history = EquipHistory.builder()
-                    .equip(equip)
-                    .date(dto.getUpdateDate())
-                    .type(EquipHistoryType.UPDATE)
-                    .build();
-            equipHistoryRepoService.save(history);
-        }
-
-        Zone zone = findByZoneId(equip.getZone().getZoneId());
-
-        return EquipInfoResponse.fromEntity(equip, zone);
-    }
-
-    /**
      * 설비 점검일자 업데이트 서비스
      */
     @Transactional
@@ -124,12 +100,6 @@ public class EquipService {
         Zone zone = findByZoneId(zoneId);
         return equipRepoService.findEquipsByZone(zone).stream()
             .map(equip -> {
-                // 최근 교체일자 조회
-                LocalDate lastUpdateDate = equipHistoryRepoService
-                    .findFirstByEquip_EquipIdAndTypeOrderByDateDesc(equip.getEquipId(), EquipHistoryType.UPDATE)
-                    .map(EquipHistory::getDate)
-                    .orElse(null);
-
                 // 최근 점검일자 조회
                 LocalDate lastCheckDate = equipHistoryRepoService
                     .findFirstByEquip_EquipIdAndTypeOrderByDateDesc(equip.getEquipId(), EquipHistoryType.CHECK)
@@ -139,7 +109,6 @@ public class EquipService {
                 return EquipWithSensorsResponse.fromEntity(
                     equip,
                     zone,
-                    lastUpdateDate,
                     lastCheckDate,
                     sensorService.findSensorsByEquipId(equip.getEquipId())
                 );
