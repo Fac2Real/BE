@@ -38,7 +38,7 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class AbnormalLogService {
     private final AbnLogRepository abnLogRepository;
-//    private final ZoneService zoneService;
+    private final AbnormalLogRepoService abnLogRepoService;
     private final RiskMessageProvider riskMessageProvider;
     private final ObjectMapper objectMapper;
     private final ZoneHistoryService zoneHistoryService;
