@@ -40,6 +40,17 @@ public class DefaultRiskMessageProvider implements RiskMessageProvider {
                 case WARNING -> "과전류 주의! 5A 초과 감지.";
                 case CRITICAL -> "위험! 과전류가 7A를 초과했습니다.";
             };
+            case power -> switch (riskLevel){
+                case INFO -> "유/무효 전류 정상.";
+                case WARNING -> "유/무효 전류 주의!";
+                case CRITICAL -> "유/무효 전류 위험!";
+            };
+            case pressure -> switch (riskLevel){
+                case INFO -> "압력 정상.";
+                case WARNING -> "압력 주의!";
+                case CRITICAL -> "압력 위험!";
+            };
+            default -> "등록되지 않은 센서 추가를 요청하세요";
         };
     }
 

@@ -7,6 +7,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EqualsAndHashCode
 public class DangerStatResponse {
     private String type;   // Worker | Sensor | Equip
     private long warnCnt;  // dangerLevel == 1
