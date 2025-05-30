@@ -4,6 +4,7 @@ import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogRepoServi
 import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
 import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
+import com.factoreal.backend.domain.stateStore.InMemoryZoneSensorStateStore;
 import com.factoreal.backend.messaging.sender.WebSocketSender;
 import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
 import com.factoreal.backend.messaging.service.AlarmEventService;
@@ -27,6 +28,7 @@ public class SensorEventProcessor {
     private final AbnormalLogRepoService abnormalLogRepoService;
     private final AlarmEventService alarmEventService;
     private final WebSocketSender webSocketSender;
+    private final InMemoryZoneSensorStateStore zoneSensorStateStore;
 
     /**
      * 센서 Kafka 메시지 처리
@@ -34,7 +36,7 @@ public class SensorEventProcessor {
      * @param dto   센서 데이터
      * @param topic Kafka 토픽명 (EQUIPMENT, ENVIRONMENT)
      */
-    public void process(SensorKafkaDto dto, String topic)  {
+    public void process(SensorKafkaDto dto, String topic) {
         try {
 
             // 유효성 검사: zoneId와 sensorId는 필수
@@ -67,22 +69,29 @@ public class SensorEventProcessor {
                 }catch(Exception e){
                     log.info("자동 제어 기능은 제작중인 기능입니다. Todo 입니다.");
                 }
-                // 이상 로그 저장
-                AbnormalLog abnLog = abnormalLogService.saveAbnormalLogFromSensorKafkaDto(
-                        dto, sensorType, riskLevel, targetType
-                );
-
-                // 읽지 않은 알림 수 조회
-                Long count = abnormalLogRepoService.countByIsReadFalse();
 
                 // WebSocket 알림 전송
                 // 1. 히트맵 전송
                 webSocketSender.sendDangerLevel(dto.getZoneId(), dto.getSensorType(), dangerLevel);
-                // 2. 위험 알림 전송 -> 위험도별 Websocket + wearable + Slack(SMS 대체)
-                // Todo : (As-is) 전략 기반 startAlarm() 메서드 담당자 확인 필요
-                // webSocketSender.sendDangerAlarm(abnLog.toAlarmEventDto());
-                alarmEventService.startAlarm(dto, abnLog, dangerLevel);
+
+                RiskLevel prevSensorRiskLevel = zoneSensorStateStore.getSensorRiskLevel(dto.getZoneId(), dto.getSensorId());
+                if (prevSensorRiskLevel.getPriority() != riskLevel.getPriority()) {
+                    // 2-1. state 업데이트
+                    zoneSensorStateStore.setSensorRiskLevel(dto.getZoneId(), dto.getSensorId(), riskLevel);
+
+                    // 2-2. 이상 로그 저장
+                    AbnormalLog abnLog = abnormalLogService.saveAbnormalLogFromSensorKafkaDto(
+                            dto, sensorType, riskLevel, targetType
+                    );
+
+                    // 2-3. 위험 알림 전송 -> 위험도별 Websocket + wearable + Slack(SMS 대체)
+                    // Todo : (As-is) 전략 기반 startAlarm() 메서드 담당자 확인 필요
+                    // webSocketSender.sendDangerAlarm(abnLog.toAlarmEventDto());
+                    alarmEventService.startAlarm(dto, abnLog, dangerLevel);
+                }
+
                 // 3. 읽지 않은 수 전송
+                Long count = abnormalLogRepoService.countByIsReadFalse();
                 webSocketSender.sendUnreadCount(count);
 
                 log.info("✅ 센서 이벤트 처리 완료: sensorId={}, zoneId={}, level={} ({} topic)",
