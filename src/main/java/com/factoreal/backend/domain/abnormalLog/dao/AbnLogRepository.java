@@ -6,6 +6,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 public interface AbnLogRepository extends JpaRepository<AbnormalLog,Long> {
@@ -22,4 +24,7 @@ public interface AbnLogRepository extends JpaRepository<AbnormalLog,Long> {
 
     // zoneId로 페이징 처리된 로그 조회
     Page<AbnormalLog> findByZone_ZoneIdOrderByDetectedAtDesc(String zoneId, Pageable pageable);
+
+    /** 일정 기간의 Abn 로그를 조회하는 기능 */
+    List<AbnormalLog> findByDetectedAtBetween(LocalDateTime from, LocalDateTime to);
 }
