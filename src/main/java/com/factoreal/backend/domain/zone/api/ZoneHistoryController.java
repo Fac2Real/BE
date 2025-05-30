@@ -1,7 +1,10 @@
 package com.factoreal.backend.domain.zone.api;
 
+import com.factoreal.backend.domain.stateStore.InMemoryZoneWorkerStateStore;
 import com.factoreal.backend.domain.zone.application.ZoneHistoryService;
+import com.factoreal.backend.domain.zone.application.ZoneRepoService;
 import com.factoreal.backend.domain.zone.dto.request.ZoneHistoryRequest;
+import com.factoreal.backend.domain.zone.entity.Zone;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +22,8 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ZoneHistoryController {
     private final ZoneHistoryService zoneHistoryService;
+    private final InMemoryZoneWorkerStateStore zoneWorkerStateStore;
+    private final ZoneRepoService zoneRepoService;
 
     @Operation(summary = "작업자 위치 업데이트", description = "웨어러블 디바이스로부터 받은 작업자의 위치 정보를 업데이트합니다.")
     @PostMapping("/update")

@@ -60,12 +60,12 @@ public class InMemoryZoneWorkerStateStore implements ZoneWorkerStateStore {
     }
 
     @Override
-    public void moveWorkerRiskLevel(String zoneId, String prevWorkerId, String nextWorkerId, RiskLevel riskLevel) {
-        if (prevWorkerId != null && zoneWorkerStates.containsKey(zoneId) && zoneWorkerStates.get(zoneId).containsKey(prevWorkerId)) {
-            RiskLevel prevWorkerState = zoneWorkerStates.get(zoneId).get(prevWorkerId);
-            zoneStateCounts.get(zoneId).decrementAndGet(prevWorkerState.ordinal());
-            zoneWorkerStates.get(zoneId).remove(prevWorkerId);
+    public void moveWorkerRiskLevel(String prevZoneId, String nextZoneId, String workerId, RiskLevel riskLevel) {
+        if (prevZoneId != null && zoneWorkerStates.containsKey(prevZoneId) && zoneWorkerStates.get(prevZoneId).containsKey(workerId)) {
+            RiskLevel prevWorkerState = zoneWorkerStates.get(prevZoneId).get(workerId);
+            zoneStateCounts.get(prevZoneId).decrementAndGet(prevWorkerState.ordinal());
+            zoneWorkerStates.get(prevZoneId).remove(workerId);
         }
-        setWorkerRiskLevel(zoneId, nextWorkerId, riskLevel);
+        setWorkerRiskLevel(nextZoneId, workerId, riskLevel);
     }
 }

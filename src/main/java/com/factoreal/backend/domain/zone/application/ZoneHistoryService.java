@@ -1,6 +1,8 @@
 package com.factoreal.backend.domain.zone.application;
 
+import com.factoreal.backend.domain.stateStore.InMemoryZoneWorkerStateStore;
 import com.factoreal.backend.domain.worker.application.WorkerRepoService;
+import com.factoreal.backend.domain.worker.application.WorkerZoneRepoService;
 import com.factoreal.backend.domain.worker.entity.Worker;
 import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.domain.zone.entity.ZoneHist;
@@ -19,14 +21,24 @@ public class ZoneHistoryService {
     private final ZoneHistoryRepoService zoneHistoryRepoService;
     private final ZoneRepoService zoneRepoService;
     private final WorkerRepoService workerRepoService;
+    private final WorkerZoneRepoService workerZoneRepoService;
+    private final InMemoryZoneWorkerStateStore zoneWorkerStateStore;
 
     /**
      * 작업자의 위치 변경을 처리
      */
     @Transactional
     public void updateWorkerLocation(String workerId, String zoneId, LocalDateTime timestamp) {
-        Worker worker = workerRepoService.findById(workerId);
+        String prevZoneId = workerZoneRepoService
+                .findByWorker_WorkerId(workerId)
+                .stream()
+                .findFirst()
+                .map(workerZone -> workerZone.getZone().getZoneId())
+                .orElse(null);
+        log.info("작업자 이전 Zone ID : {}", prevZoneId);
+        zoneWorkerStateStore.moveWorkerRiskLevel(prevZoneId, zoneId, workerId, zoneWorkerStateStore.getWorkerRiskLevel(prevZoneId, workerId));
 
+        Worker worker = workerRepoService.findById(workerId);
         Zone zone = zoneRepoService.findById(zoneId);
 
         // 1. workerId 기반 작업자의 이전 위치가 있으면, 새로운 기록 생성 전 해당 작업자 위치 기록에 endTime 찍어주기
