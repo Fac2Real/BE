@@ -4,6 +4,7 @@ import com.factoreal.backend.domain.worker.dto.response.WorkerManagerResponse;
 import com.factoreal.backend.domain.worker.entity.Worker;
 import com.factoreal.backend.domain.worker.entity.WorkerZone;
 import com.factoreal.backend.domain.worker.entity.WorkerZoneId;
+import com.factoreal.backend.global.exception.dto.BadRequestException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -71,7 +72,7 @@ public class WorkerManagerService {
         // 1. 작업자-공간 관계 확인
         WorkerZoneId workerZoneId = new WorkerZoneId(workerId, zoneId);
         WorkerZone workerZone = workerZoneRepoService.findById(workerZoneId)
-                .orElseThrow(() -> new IllegalArgumentException(
+                .orElseThrow(() -> new BadRequestException(
                         String.format("작업자 ID: %s는 공간 ID: %s에 대한 접근 권한이 없습니다.", workerId, zoneId)));
 
         // 2. 기존 담당자가 있다면 담당자 해제
