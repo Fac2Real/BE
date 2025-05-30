@@ -41,7 +41,7 @@ public class ReportService {
                     long warn   = list.stream().filter(l -> l.getDangerLevel() == 1).count();
                     long danger = list.stream().filter(l -> l.getDangerLevel() == 2).count();
                     return DangerStatResponse.builder()
-                            .type(t.name()).warnCnt(warn).dangerCnt(danger).build();
+                            .type(koreanName(t)).warnCnt(warn).dangerCnt(danger).build();
                 })
                 .toList();
 
@@ -50,6 +50,13 @@ public class ReportService {
         return MonthlyDetailResponse.builder().month(month).stats(stats).build();
     }
 
+    private String koreanName(TargetType t) {
+        return switch (t) {
+            case Worker  -> "작업자";
+            case Sensor  -> "환경";
+            case Equip   -> "설비";
+        };
+    }
     /**
      * 이전달 리포트의 요약 내용을 보여줍니다.
      * 이전달의 각 파트별 등급을 반환합니다.
@@ -77,5 +84,6 @@ public class ReportService {
         if (effective <= 5)  return "B";
         return "C";
     }
+
 
 }

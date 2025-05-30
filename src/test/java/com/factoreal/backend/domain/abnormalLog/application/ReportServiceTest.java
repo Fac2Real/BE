@@ -50,19 +50,19 @@ class ReportServiceTest {
                 .builder()
                 .dangerCnt(1)
                 .warnCnt(2)
-                .type("Worker")
+                .type("작업자")
                 .build();
         DangerStatResponse sensorStatResponse = DangerStatResponse
                 .builder()
                 .dangerCnt(2)
                 .warnCnt(0)
-                .type("Sensor")
+                .type("환경")
                 .build();
         DangerStatResponse EquipStatResponse = DangerStatResponse
                 .builder()
                 .dangerCnt(0)
                 .warnCnt(1)
-                .type("Equip")
+                .type("설비")
                 .build();
 
         List<DangerStatResponse> resAnswer = List.of(sensorStatResponse,workerStatResponse, EquipStatResponse);
@@ -77,7 +77,7 @@ class ReportServiceTest {
                             long warn   = list.stream().filter(l -> l.getDangerLevel() == 1).count();
                             long danger = list.stream().filter(l -> l.getDangerLevel() == 2).count();
                             return DangerStatResponse.builder()
-                                    .type(t.name()).warnCnt(warn).dangerCnt(danger).build();
+                                    .type(koreanName(t)).warnCnt(warn).dangerCnt(danger).build();
                         })
                 .toList();
 
@@ -89,6 +89,13 @@ class ReportServiceTest {
         assertThat(res.getStats()).isEqualTo(resAnswer);
 
         System.out.println(res);
+    }
+    private String koreanName(TargetType t) {
+        return switch (t) {
+            case Worker  -> "작업자";
+            case Sensor  -> "환경";
+            case Equip   -> "설비";
+        };
     }
 
     /** 전달 한 달치 등급 요약 */
@@ -110,15 +117,15 @@ class ReportServiceTest {
 
         // then
         GradeSummaryResponse worker = grades.stream()
-                .filter(g -> g.getType().equals("Worker")).findFirst().orElseThrow();
+                .filter(g -> g.getType().equals("작업자")).findFirst().orElseThrow();
         assertThat(worker.getGrade()).isEqualTo("B");
 
         GradeSummaryResponse sensor = grades.stream()
-                .filter(g -> g.getType().equals("Sensor")).findFirst().orElseThrow();
+                .filter(g -> g.getType().equals("환경")).findFirst().orElseThrow();
         assertThat(sensor.getGrade()).isEqualTo("A");
 
         GradeSummaryResponse equip = grades.stream()
-                .filter(g -> g.getType().equals("Equip")).findFirst().orElseThrow();
+                .filter(g -> g.getType().equals("tjfㅛㅛㅛ")).findFirst().orElseThrow();
         assertThat(equip.getGrade()).isEqualTo("A");
     }
 
