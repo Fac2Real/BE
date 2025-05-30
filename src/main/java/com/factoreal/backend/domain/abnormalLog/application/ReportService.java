@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.lang.annotation.Target;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -25,12 +26,12 @@ public class ReportService {
 
 
     /**
-     * 이전 달의 리포트의 상세 정보를 열람하기 위한 서비스입니다.
+     * 오늘로부터 한달 이전의 리포트의 상세 정보를 열람하기 위한 서비스입니다.
      * 각 타입별 경고 횟수, 위험 횟수를 반환합니다.
      */
     public MonthlyDetailResponse getPrevMonthDetail(){
 
-        List<AbnormalLog> logs = abnLogRepoService.findPreviewMonthLog();
+        List<AbnormalLog> logs = abnLogRepoService.findPreview30daysLog();
 
         Map<TargetType, List<AbnormalLog>> byType =
                 logs.stream().collect(Collectors.groupingBy(AbnormalLog::getTargetType));
@@ -45,9 +46,15 @@ public class ReportService {
                 })
                 .toList();
 
-        String month = YearMonth.from(LocalDate.now().minusMonths(1)).toString(); // ex "2025-04"
+        LocalDate end   = LocalDate.now();          // 오늘
+        LocalDate start = end.minusDays(30);        // 30일 전
 
-        return MonthlyDetailResponse.builder().month(month).stats(stats).build();
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy.MM.dd");
+
+        // 2️⃣ 문자열 생성  →  2025.04.30 ~ 2025.05.30
+        String monthPeriod = fmt.format(start) + " ~ " + fmt.format(end);
+
+        return MonthlyDetailResponse.builder().month(monthPeriod).stats(stats).build();
     }
 
     private String koreanName(TargetType t) {
@@ -63,13 +70,18 @@ public class ReportService {
      */
     /* 2) 전달 한 달치 A/B/C 등급 요약 */
     public List<GradeSummaryResponse> getPrevMonthGrade() {
-        YearMonth ym = YearMonth.from(LocalDate.now().minusMonths(1)); // ex 2025-04
-        String monthStr = ym.toString();        // "2025-04"
+        LocalDate end   = LocalDate.now();          // 오늘
+        LocalDate start = end.minusDays(30);        // 30일 전
+
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy.MM.dd");
+
+        // 2️⃣ 문자열 생성  →  2025.04.30 ~ 2025.05.30
+        String monthPeriod = fmt.format(start) + " ~ " + fmt.format(end);
 
         List<DangerStatResponse> stats = getPrevMonthDetail().getStats();
         return stats.stream()
                 .map(s -> GradeSummaryResponse.builder()
-                        .month(monthStr)
+                        .month(monthPeriod)
                         .type(s.getType())
                         .warnCnt(s.getWarnCnt())
                         .dangerCnt(s.getDangerCnt())

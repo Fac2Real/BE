@@ -66,8 +66,8 @@ class ReportServiceTest {
                 .build();
 
         List<DangerStatResponse> resAnswer = List.of(sensorStatResponse,workerStatResponse, EquipStatResponse);
-        when(abnLogRepoService.findPreviewMonthLog()).thenReturn(fakeLogs);
-        List<AbnormalLog> logs = abnLogRepoService.findPreviewMonthLog();
+        when(abnLogRepoService.findPreview30daysLog()).thenReturn(fakeLogs);
+        List<AbnormalLog> logs = abnLogRepoService.findPreview30daysLog();
         Map<TargetType, List<AbnormalLog>> byType =
                 logs.stream().collect(Collectors.groupingBy(AbnormalLog::getTargetType));
 
@@ -110,7 +110,7 @@ class ReportServiceTest {
                 createLog(TargetType.Sensor, 1),  // Sensor 경고 1 → effective 0 (A)
                 createLog(TargetType.Equip, 1)    // Equip 경고 1 → effective 0 (A)
         );
-        when(abnLogRepoService.findPreviewMonthLog()).thenReturn(fakeLogs);
+        when(abnLogRepoService.findPreview30daysLog()).thenReturn(fakeLogs);
 
         // when
         List<GradeSummaryResponse> grades = reportService.getPrevMonthGrade();
