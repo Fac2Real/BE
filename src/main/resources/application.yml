@@ -52,3 +52,7 @@ springdoc:
     resolve-extensions-properties: false
   swagger-ui:
     path: /swagger-ui.html
+
+webhook:
+  slack:
+    equip_url: ${SLACK_WEBHOOK_EQUIP_URL}
