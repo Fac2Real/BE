@@ -34,7 +34,7 @@ public class SensorEventProcessor {
      * @param dto   센서 데이터
      * @param topic Kafka 토픽명 (EQUIPMENT, ENVIRONMENT)
      */
-    public void process(SensorKafkaDto dto, String topic) {
+    public void process(SensorKafkaDto dto, String topic)  {
         try {
 
             // 유효성 검사: zoneId와 sensorId는 필수
@@ -61,9 +61,12 @@ public class SensorEventProcessor {
                 RiskLevel riskLevel = RiskLevel.fromPriority(dangerLevel);
                 TargetType targetType = topicToLogType(topic);
 
-                // 자동 제어 메시지 판단 (Todo - 진행중)
-                autoControlService.evaluate(dto, dangerLevel);
-
+                try {
+                    // 자동 제어 메시지 판단 (Todo - 진행중)
+                    autoControlService.evaluate(dto, dangerLevel);
+                }catch(Exception e){
+                    log.info("자동 제어 기능은 제작중인 기능입니다. Todo 입니다.");
+                }
                 // 이상 로그 저장
                 AbnormalLog abnLog = abnormalLogService.saveAbnormalLogFromSensorKafkaDto(
                         dto, sensorType, riskLevel, targetType

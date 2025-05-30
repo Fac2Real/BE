@@ -43,7 +43,6 @@ public class AutoControlService {
             log.warn("❌ 센서 정보 조회 실패: sensorId={}", dto.getSensorId());
             return;
         }
-
         double threshold = sensor.getSensorThres();
         double tolerance = sensor.getAllowVal() != null ? sensor.getAllowVal() : 0.0;
         double value = dto.getVal();
