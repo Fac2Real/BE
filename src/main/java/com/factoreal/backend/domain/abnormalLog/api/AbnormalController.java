@@ -2,25 +2,34 @@ package com.factoreal.backend.domain.abnormalLog.api;
 
 import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogRepoService;
 import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
+import com.factoreal.backend.domain.abnormalLog.application.ReportService;
 import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.dto.request.AbnormalPagingRequest;
 import com.factoreal.backend.domain.abnormalLog.dto.response.AbnormalLogResponse;
+import com.factoreal.backend.domain.abnormalLog.dto.response.GradeSummaryResponse;
+import com.factoreal.backend.domain.abnormalLog.dto.response.MonthlyDetailResponse;
+import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.messaging.sender.WebSocketSender;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
+@Slf4j
 @RestController
 @RequestMapping("/api/abnormal")
 @RequiredArgsConstructor
 @Tag(name = "상태 로그 조회 API", description = "작업자/환경/설비 이상의 로그를 조회하는 API")
 public class AbnormalController {
     private final AbnormalLogService abnormalLogService;
-    private final AbnormalLogRepoService abnormalLogRepoService;
     private final WebSocketSender webSocketSender;
+    private final AbnormalLogRepoService abnormalLogRepoService;
+    private final ReportService reportService;
 
     // 전체 로그 조회
     @GetMapping
@@ -72,4 +81,30 @@ public class AbnormalController {
         webSocketSender.sendUnreadCount(count);
         return ResponseEntity.ok(count);
     }
+
+//    @Operation(summary = "이전 한달치에 대한 리포트 조회", description = "이전 한달 모니터링 레포트를 조회합니다.")
+//    @GetMapping("/report")
+//    public ResponseEntity<MonthlyDetailResponse> getPrevReport() {
+//        return ResponseEntity.ok(reportService.getPrevMonthDetail());
+//    }
+
+    @GetMapping("/report")
+    @Operation(summary = "이전 한달치에 대한 리포트 조회", description = "이전 한달 모니터링 레포트를 조회합니다.")
+    public ResponseEntity<List<GradeSummaryResponse>> getPrevReport() {
+        log.info("리포트 조회 작동");
+        return ResponseEntity.ok(reportService.getPrevMonthGrade());
+    }
+
+    @GetMapping("/preview-month")
+    @Operation(summary = "이전 한달치 상세 로그 데이터 조회", description = "이전 한달치 데이터의 로그를 조회합니다.")
+    public ResponseEntity<List<AbnormalLogResponse>> getPrevMonthLogs() {
+        return ResponseEntity.ok(
+                abnormalLogRepoService.findPreviewMonthLog()
+                        .stream()
+                        .map(AbnormalLogResponse::from)
+                        .toList()
+        );
+    }
+
+
 }
