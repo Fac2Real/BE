@@ -125,7 +125,7 @@ class ReportServiceTest {
         assertThat(sensor.getGrade()).isEqualTo("A");
 
         GradeSummaryResponse equip = grades.stream()
-                .filter(g -> g.getType().equals("tjfㅛㅛㅛ")).findFirst().orElseThrow();
+                .filter(g -> g.getType().equals("설비")).findFirst().orElseThrow();
         assertThat(equip.getGrade()).isEqualTo("A");
     }
 
