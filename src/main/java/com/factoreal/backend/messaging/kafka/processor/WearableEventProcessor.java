@@ -1,5 +1,6 @@
 package com.factoreal.backend.messaging.kafka.processor;
 
+import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogRepoService;
 import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.messaging.kafka.dto.WearableKafkaDto;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class WearableEventProcessor {
     private final AbnormalLogService abnormalLogService;
+    private final AbnormalLogRepoService abnormalLogRepoService;
     private final WebSocketSender webSocketSender;
     private final AlarmEventService alarmEventService;
 
@@ -47,7 +49,7 @@ public class WearableEventProcessor {
             );
 
             // 읽지 않은 알림 수 조회
-            Long count = abnormalLogService.readRequired();
+            Long count = abnormalLogRepoService.countByIsReadFalse();
 
             // WebSocket 알림 전송
             // 1. 히트맵 전송
