@@ -1,44 +1,33 @@
 package com.factoreal.backend.domain.zone.application;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
-
 import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogRepoService;
-import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
-import com.factoreal.backend.domain.abnormalLog.dao.AbnLogRepository;
 import com.factoreal.backend.domain.abnormalLog.dto.request.AbnormalPagingRequest;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.domain.equip.application.EquipRepoService;
-import com.factoreal.backend.domain.equip.application.EquipService;
 import com.factoreal.backend.domain.equip.dto.response.EquipDetailResponse;
-import com.factoreal.backend.domain.sensor.application.SensorRepoService;
-import com.factoreal.backend.domain.sensor.application.SensorService;
-import com.factoreal.backend.domain.sensor.dto.response.SensorInfoResponse;
 import com.factoreal.backend.domain.equip.entity.Equip;
+import com.factoreal.backend.domain.sensor.application.SensorRepoService;
+import com.factoreal.backend.domain.sensor.dto.response.SensorInfoResponse;
 import com.factoreal.backend.domain.sensor.entity.Sensor;
-import com.factoreal.backend.domain.equip.dao.EquipRepository;
-import com.factoreal.backend.domain.sensor.dao.SensorRepository;
 import com.factoreal.backend.domain.zone.dto.request.ZoneCreateRequest;
 import com.factoreal.backend.domain.zone.dto.request.ZoneUpdateRequest;
 import com.factoreal.backend.domain.zone.dto.response.ZoneDetailResponse;
 import com.factoreal.backend.domain.zone.dto.response.ZoneInfoResponse;
 import com.factoreal.backend.domain.zone.dto.response.ZoneLogResponse;
+import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.global.util.IdGenerator;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
-import com.factoreal.backend.domain.zone.entity.Zone;
-import com.factoreal.backend.domain.zone.dao.ZoneRepository;
-
-import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j

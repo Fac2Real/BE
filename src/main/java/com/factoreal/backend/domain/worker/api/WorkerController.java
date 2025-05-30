@@ -43,13 +43,16 @@ public class WorkerController {
     @GetMapping("/zone/{zoneId}")
     public List<WorkerInfoResponse> getWorkersByZoneId(@PathVariable String zoneId) {
         log.info("공간 ID: {}의 작업자 목록 조회 요청", zoneId);
-        return workerService.getWorkersByZoneId(zoneId);
+        List<WorkerInfoResponse> response =  workerService.getWorkersByZoneId(zoneId);
+        return response;
     }
 
     @Operation(summary = "공간 담당자와 담당자의 현재 위치정보 조회", description = "공간 ID를 기반으로 해당 공간의 담당자와 현재 위치 정보를 조회합니다.")
     @GetMapping("/zone/{zoneId}/manager")
     public ZoneManagerResponse getZoneManager(@PathVariable String zoneId) {
         log.info("공간 ID: {}의 담당자 정보 조회 요청", zoneId);
-        return workerService.getZoneManagerWithLocation(zoneId);
+
+        ZoneManagerResponse response = workerService.getZoneManagerWithLocation(zoneId);
+        return response;
     }
 }
