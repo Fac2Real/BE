@@ -13,34 +13,37 @@ import java.util.Optional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class WorkerZoneService {
+public class WorkerZoneRepoService {
     private final WorkerZoneRepository workerZoneRepository;
 
     // 특정 zone_id에 속한 작업자 목록 조회
-    List<WorkerZone> findByZoneZoneId(String zoneId) {
+    public List<WorkerZone> findByZoneZoneId(String zoneId) {
         return workerZoneRepository.findByZoneZoneId(zoneId);
     }
 
+    /**
+     * 존재하는 공간이고(공간Id가 있고) 관리자가 존재하는 공간의 작업자 공간 조회
+     */
     // 특정 zone_id의 담당자 조회 (manageYn = true)
-    Optional<WorkerZone> findByZoneZoneIdAndManageYnIsTrue(String zoneId) {
+    public Optional<WorkerZone> findByZoneZoneIdAndManageYnIsTrue(String zoneId) {
         return workerZoneRepository.findByZoneZoneIdAndManageYnIsTrue(zoneId);
     }
 
     // 특정 공간을 제외한 다른 공간의 담당자 목록 조회
-    List<WorkerZone> findByZoneZoneIdNotAndManageYnIsTrue(String zoneId) {
+    public List<WorkerZone> findByZoneZoneIdNotAndManageYnIsTrue(String zoneId) {
         return workerZoneRepository.findByZoneZoneIdNotAndManageYnIsTrue(zoneId);
     }
 
     // 특정 작업자가 담당자로 있는 공간 조회
-    Optional<WorkerZone> findByWorkerWorkerIdAndManageYnIsTrue(String workerId) {
+    public Optional<WorkerZone> findByWorkerWorkerIdAndManageYnIsTrue(String workerId) {
         return workerZoneRepository.findByWorkerWorkerIdAndManageYnIsTrue(workerId);
     }
 
-    Optional<WorkerZone> findById(WorkerZoneId workerZoneId) {
+    public Optional<WorkerZone> findById(WorkerZoneId workerZoneId) {
         return workerZoneRepository.findById(workerZoneId);
     }
 
-    WorkerZone save(WorkerZone workerZone) {
+    public WorkerZone save(WorkerZone workerZone) {
         return workerZoneRepository.save(workerZone);
     }
 }

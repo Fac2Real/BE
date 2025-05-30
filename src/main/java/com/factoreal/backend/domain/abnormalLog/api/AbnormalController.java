@@ -68,7 +68,7 @@ public class AbnormalController {
     @Operation(summary = "로그 읽음 처리", description = "abnormalId와 일치하는 로그를 읽음 처리합니다.")
     public ResponseEntity<Void> markAlarmAsRead(@PathVariable Long abnormalId) {
         boolean success = abnormalLogService.readCheck(abnormalId);
-        Long count = abnormalLogService.readRequired();
+        Long count = abnormalLogRepoService.countByIsReadFalse();
         webSocketSender.sendUnreadCount(count);
         return success ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
     }
@@ -77,7 +77,7 @@ public class AbnormalController {
     @GetMapping("/unread-count")
     @Operation(summary = "미확인 로그 개수 조회", description = "미확인 로그 개수를 반환합니다. 페이지이 첫 렌더링 시(웹소켓으로 정보를 받기전) 호출합니다.")
     public ResponseEntity<Long> getUnreadAlarmCount() {
-        Long count = abnormalLogService.readRequired();
+        Long count = abnormalLogRepoService.countByIsReadFalse();
         webSocketSender.sendUnreadCount(count);
         return ResponseEntity.ok(count);
     }

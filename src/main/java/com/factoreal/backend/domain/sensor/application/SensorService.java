@@ -1,29 +1,21 @@
 package com.factoreal.backend.domain.sensor.application;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
 import com.factoreal.backend.domain.equip.application.EquipRepoService;
-import com.factoreal.backend.domain.equip.application.EquipService;
-import com.factoreal.backend.domain.sensor.dto.request.SensorCreateRequest;
-import com.factoreal.backend.domain.sensor.dto.response.SensorInfoResponse;
-import com.factoreal.backend.domain.sensor.dto.request.SensorUpdateRequest;
-import com.factoreal.backend.domain.zone.application.ZoneRepoService;
-import com.factoreal.backend.domain.zone.application.ZoneService;
-import com.factoreal.backend.messaging.kafka.strategy.enums.SensorType;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
-
 import com.factoreal.backend.domain.equip.entity.Equip;
+import com.factoreal.backend.domain.sensor.dto.request.SensorCreateRequest;
+import com.factoreal.backend.domain.sensor.dto.request.SensorUpdateRequest;
+import com.factoreal.backend.domain.sensor.dto.response.SensorInfoResponse;
 import com.factoreal.backend.domain.sensor.entity.Sensor;
+import com.factoreal.backend.domain.zone.application.ZoneRepoService;
 import com.factoreal.backend.domain.zone.entity.Zone;
-import com.factoreal.backend.domain.sensor.dao.SensorRepository;
-
+import com.factoreal.backend.messaging.kafka.strategy.enums.SensorType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service

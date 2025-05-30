@@ -1,5 +1,6 @@
 package com.factoreal.backend.messaging.fcm.service;
 
+import com.factoreal.backend.domain.worker.application.WorkerRepoService;
 import com.factoreal.backend.domain.worker.application.WorkerService;
 import com.factoreal.backend.domain.worker.entity.Worker;
 import com.google.firebase.messaging.FirebaseMessaging;
@@ -15,16 +16,16 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class FCMService {
     private final FirebaseMessaging firebaseMessaging;
-    private final WorkerService workerService;
+    private final WorkerRepoService workerRepoService;
 
     @Transactional
     public String saveToken(String workerId, String token) throws Exception {
-        Worker worker = workerService.getWorkerByWorkerId(workerId);
+        Worker worker = workerRepoService.getWorkerByWorkerId(workerId);
         if (worker == null) {
             throw new Exception("Worker not found");
         }
         worker.setFcmToken(token);
-        return workerService.saveWorker(worker).getFcmToken();
+        return workerRepoService.save(worker).getFcmToken();
     }
 
     public void sendMessage(String token, String title, String body) throws Exception {
