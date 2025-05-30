@@ -77,6 +77,7 @@ public class WorkerManagerService {
         // 2. 기존 담당자가 있다면 담당자 해제
         Optional<WorkerZone> currentManager = workerZoneRepoService.findByZoneZoneIdAndManageYnIsTrue(zoneId);
         currentManager.ifPresent(manager -> {
+            manager.setManageYn(false);
             workerZoneRepoService.save(manager);
         });
 
