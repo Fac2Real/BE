@@ -12,6 +12,7 @@ class InMemoryZoneWorkerStateStoreTest {
 
     private InMemoryZoneWorkerStateStore store;
     private static final String ZONE_A = "zone-A";
+    private static final String ZONE_B = "zone-B";
     private static final String W1 = "worker-1";
     private static final String W2 = "worker-2";
 
@@ -74,11 +75,11 @@ class InMemoryZoneWorkerStateStoreTest {
             store.setWorkerRiskLevel(ZONE_A, W1, RiskLevel.CRITICAL);
 
             // W1 → W2로 이동
-            store.moveWorkerRiskLevel(ZONE_A, W1, W2, RiskLevel.CRITICAL);
+            store.moveWorkerRiskLevel(ZONE_A, ZONE_B, W1, RiskLevel.CRITICAL);
 
             assertThat(store.getWorkerRiskLevel(ZONE_A, W1)).isEqualTo(RiskLevel.INFO);
-            assertThat(store.getWorkerRiskLevel(ZONE_A, W2)).isEqualTo(RiskLevel.CRITICAL);
-            assertThat(store.getZoneRiskLevel(ZONE_A)).isEqualTo(RiskLevel.CRITICAL);
+            assertThat(store.getWorkerRiskLevel(ZONE_B, W1)).isEqualTo(RiskLevel.CRITICAL);
+            assertThat(store.getZoneRiskLevel(ZONE_B)).isEqualTo(RiskLevel.CRITICAL);
         }
     }
 }
