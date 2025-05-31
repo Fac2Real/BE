@@ -28,7 +28,7 @@ public class AbnormalLogRepoService{
 
     public List<AbnormalLog> findPreview30daysLog(){
         // ① 오늘 날짜와 30일 전 시각 계산
-        LocalDateTime now        = LocalDateTime.now();          // 현재 시각
+        LocalDateTime now        = LocalDateTime.now().minusDays(1);          // 현재 시각
         LocalDateTime thirtyDays = now.minusDays(30);            // 30일 전
 
         // ② DB 조회 + dangerLevel 1,2 필터

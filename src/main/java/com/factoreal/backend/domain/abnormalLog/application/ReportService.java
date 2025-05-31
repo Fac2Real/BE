@@ -4,13 +4,19 @@ import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.dto.response.DangerStatResponse;
 import com.factoreal.backend.domain.abnormalLog.dto.response.GradeSummaryResponse;
 import com.factoreal.backend.domain.abnormalLog.dto.response.MonthlyDetailResponse;
+import com.factoreal.backend.domain.abnormalLog.dto.response.MonthlyGradeSummaryResponse;
+import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.PeriodDetailReport;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
+import com.factoreal.backend.domain.zone.application.ZoneService;
+import com.factoreal.backend.domain.zone.dto.response.ZoneDetailResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.lang.annotation.Target;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.Month;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
@@ -23,6 +29,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ReportService {
     private final AbnormalLogRepoService abnLogRepoService;
+    private final ZoneService zoneService;
+    private final AbnormalLogRepoService abnormalLogRepoService;
 
 
     /**
@@ -46,7 +54,7 @@ public class ReportService {
                 })
                 .toList();
 
-        LocalDate end   = LocalDate.now();          // 오늘
+        LocalDate end   = LocalDate.now().minusDays(1);;          // 오늘
         LocalDate start = end.minusDays(30);        // 30일 전
 
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy.MM.dd");
@@ -54,7 +62,7 @@ public class ReportService {
         // 2️⃣ 문자열 생성  →  2025.04.30 ~ 2025.05.30
         String monthPeriod = fmt.format(start) + " ~ " + fmt.format(end);
 
-        return MonthlyDetailResponse.builder().month(monthPeriod).stats(stats).build();
+        return MonthlyDetailResponse.builder().period(monthPeriod).stats(stats).build();
     }
 
     private String koreanName(TargetType t) {
@@ -69,8 +77,8 @@ public class ReportService {
      * 이전달의 각 파트별 등급을 반환합니다.
      */
     /* 2) 전달 한 달치 A/B/C 등급 요약 */
-    public List<GradeSummaryResponse> getPrevMonthGrade() {
-        LocalDate end   = LocalDate.now();          // 오늘
+    public MonthlyGradeSummaryResponse getPrevMonthGrade() {
+        LocalDate end   = LocalDate.now().minusDays(1);          // 오늘
         LocalDate start = end.minusDays(30);        // 30일 전
 
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy.MM.dd");
@@ -79,15 +87,20 @@ public class ReportService {
         String monthPeriod = fmt.format(start) + " ~ " + fmt.format(end);
 
         List<DangerStatResponse> stats = getPrevMonthDetail().getStats();
-        return stats.stream()
+        List<GradeSummaryResponse> summaryList = stats.stream()
                 .map(s -> GradeSummaryResponse.builder()
-                        .month(monthPeriod)
+//                        .latest30days(monthPeriod)
                         .type(s.getType())
                         .warnCnt(s.getWarnCnt())
                         .dangerCnt(s.getDangerCnt())
                         .grade(calcGrade(s.getWarnCnt(), s.getDangerCnt()))
                         .build())
                 .toList();
+
+        return MonthlyGradeSummaryResponse.builder()
+                .period(monthPeriod)
+                .abnormalInfos(summaryList)
+                .build();
     }
 
     private String calcGrade(long warn, long danger) {
@@ -96,6 +109,5 @@ public class ReportService {
         if (effective <= 5)  return "B";
         return "C";
     }
-
 
 }
