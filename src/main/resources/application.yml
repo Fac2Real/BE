@@ -53,6 +53,11 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
 
+# FastAPI URL
+fastapi:
+  base-url: ${FASTAPI_URL:http://localhost:8000}
+  predict-endpoint: /predict-from-s3  # 슬래시(/) 포함
+
 webhook:
   slack:
     equip_url: ${SLACK_WEBHOOK_EQUIP_URL}

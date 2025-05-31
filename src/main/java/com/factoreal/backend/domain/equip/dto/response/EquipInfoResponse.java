@@ -9,6 +9,7 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+// 설비 정보 응답 DTO
 public class EquipInfoResponse {
     private String equipId;
     private String equipName;
