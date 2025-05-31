@@ -46,8 +46,4 @@ public class WorkerZoneRepoService {
     public WorkerZone save(WorkerZone workerZone) {
         return workerZoneRepository.save(workerZone);
     }
-
-    public List<WorkerZone> findByWorker_WorkerId(String workerId) {
-        return workerZoneRepository.findByWorker_WorkerId(workerId);
-    }
 }
