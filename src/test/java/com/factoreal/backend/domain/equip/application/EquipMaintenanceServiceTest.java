@@ -12,6 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -45,7 +46,6 @@ class EquipMaintenanceServiceTest {
 
     @BeforeEach
     void setUp() {
-        // @Value 어노테이션으로 주입되는 값을 테스트 환경에서 직접 설정
         ReflectionTestUtils.setField(equipMaintenanceService, "fastApiBaseUrl", fastApiBaseUrl);
         ReflectionTestUtils.setField(equipMaintenanceService, "predictEndpoint", predictEndpoint);
     }
@@ -55,19 +55,31 @@ class EquipMaintenanceServiceTest {
         // given
         String equipId = "equip_001";
         String equipName = "설비1";
+        String zoneId = "zone_001";
+        String zoneName = "조립라인1";
         LocalDate expectedDate = LocalDate.now().plusDays(5);  // D-5 상황 설정
         
         // 설비 목록 Mock
         EquipInfoResponse equipInfo = new EquipInfoResponse();
         equipInfo.setEquipId(equipId);
         equipInfo.setEquipName(equipName);
+        equipInfo.setZoneId(zoneId);
+        equipInfo.setZoneName(zoneName);
         given(equipRepoService.findAll()).willReturn(List.of(equipInfo));
 
         // FastAPI 응답 Mock
         MaintenancePredictionResponse predictionResponse = new MaintenancePredictionResponse();
         predictionResponse.setExpectedMaintenanceDate(expectedDate);
+        
+        String expectedUrl = UriComponentsBuilder
+            .fromUriString(fastApiBaseUrl)
+            .path(predictEndpoint)
+            .queryParam("equipId", equipId)
+            .queryParam("zoneId", zoneId)
+            .toUriString();
+        
         given(restTemplate.getForEntity(
-            eq(fastApiBaseUrl + predictEndpoint + "/" + equipId),
+            eq(expectedUrl),
             eq(MaintenancePredictionResponse.class)))
             .willReturn(ResponseEntity.ok(predictionResponse));
 
@@ -80,7 +92,7 @@ class EquipMaintenanceServiceTest {
 
         // then
         verify(slackEquipAlarmService, times(1))
-            .sendEquipmentMaintenanceAlert(equipName, expectedDate, 5L);
+            .sendEquipmentMaintenanceAlert(equipName, zoneName, expectedDate, 5L);
     }
 
     @Test
@@ -88,19 +100,31 @@ class EquipMaintenanceServiceTest {
         // given
         String equipId = "equip_001";
         String equipName = "설비1";
+        String zoneId = "zone_001";
+        String zoneName = "조립라인1";
         LocalDate expectedDate = LocalDate.now().plusDays(3);  // D-3 상황 설정
         
         // 설비 목록 Mock
         EquipInfoResponse equipInfo = new EquipInfoResponse();
         equipInfo.setEquipId(equipId);
         equipInfo.setEquipName(equipName);
+        equipInfo.setZoneId(zoneId);
+        equipInfo.setZoneName(zoneName);
         given(equipRepoService.findAll()).willReturn(List.of(equipInfo));
 
         // FastAPI 응답 Mock
         MaintenancePredictionResponse predictionResponse = new MaintenancePredictionResponse();
         predictionResponse.setExpectedMaintenanceDate(expectedDate);
+        
+        String expectedUrl = UriComponentsBuilder
+            .fromUriString(fastApiBaseUrl)
+            .path(predictEndpoint)
+            .queryParam("equipId", equipId)
+            .queryParam("zoneId", zoneId)
+            .toUriString();
+            
         given(restTemplate.getForEntity(
-            eq(fastApiBaseUrl + predictEndpoint + "/" + equipId),
+            eq(expectedUrl),
             eq(MaintenancePredictionResponse.class)))
             .willReturn(ResponseEntity.ok(predictionResponse));
 
@@ -113,7 +137,7 @@ class EquipMaintenanceServiceTest {
 
         // then
         verify(slackEquipAlarmService, times(1))
-            .sendEquipmentMaintenanceAlert(equipName, expectedDate, 3L);
+            .sendEquipmentMaintenanceAlert(equipName, zoneName, expectedDate, 3L);
     }
 
     @Test
@@ -121,19 +145,31 @@ class EquipMaintenanceServiceTest {
         // given
         String equipId = "equip_001";
         String equipName = "설비1";
+        String zoneId = "zone_001";
+        String zoneName = "조립라인1";
         LocalDate expectedDate = LocalDate.now().plusDays(4);  // D-4 상황 설정
         
         // 설비 목록 Mock
         EquipInfoResponse equipInfo = new EquipInfoResponse();
         equipInfo.setEquipId(equipId);
         equipInfo.setEquipName(equipName);
+        equipInfo.setZoneId(zoneId);
+        equipInfo.setZoneName(zoneName);
         given(equipRepoService.findAll()).willReturn(List.of(equipInfo));
 
         // FastAPI 응답 Mock
         MaintenancePredictionResponse predictionResponse = new MaintenancePredictionResponse();
         predictionResponse.setExpectedMaintenanceDate(expectedDate);
+        
+        String expectedUrl = UriComponentsBuilder
+            .fromUriString(fastApiBaseUrl)
+            .path(predictEndpoint)
+            .queryParam("equipId", equipId)
+            .queryParam("zoneId", zoneId)
+            .toUriString();
+            
         given(restTemplate.getForEntity(
-            eq(fastApiBaseUrl + predictEndpoint + "/" + equipId),
+            eq(expectedUrl),
             eq(MaintenancePredictionResponse.class)))
             .willReturn(ResponseEntity.ok(predictionResponse));
 
@@ -145,6 +181,7 @@ class EquipMaintenanceServiceTest {
         equipMaintenanceService.checkMaintenanceDates();
 
         // then
-        verify(slackEquipAlarmService, never()).sendEquipmentMaintenanceAlert(anyString(), any(LocalDate.class), eq(4L));
+        verify(slackEquipAlarmService, never())
+            .sendEquipmentMaintenanceAlert(anyString(), anyString(), any(LocalDate.class), eq(4L));
     }
 } 
