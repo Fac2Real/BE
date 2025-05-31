@@ -1,5 +1,6 @@
 package com.factoreal.backend.domain.zone.application;
 
+import com.factoreal.backend.domain.stateStore.InMemoryZoneWorkerStateStore;
 import com.factoreal.backend.domain.worker.application.WorkerRepoService;
 import com.factoreal.backend.domain.worker.entity.Worker;
 import com.factoreal.backend.domain.zone.entity.Zone;
@@ -16,6 +17,7 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class ZoneHistoryService {
 
+    private final InMemoryZoneWorkerStateStore zoneWorkerStateStore;
     private final ZoneHistoryRepoService zoneHistoryRepoService;
     private final ZoneRepoService zoneRepoService;
     private final WorkerRepoService workerRepoService;
@@ -25,9 +27,8 @@ public class ZoneHistoryService {
      */
     @Transactional
     public void updateWorkerLocation(String workerId, String zoneId, LocalDateTime timestamp) {
-        Worker worker = workerRepoService.findById(workerId);
-
-        Zone zone = zoneRepoService.findById(zoneId);
+        // 0. State 변경
+        zoneWorkerStateStore.setWorkerRiskLevel(zoneId, workerId, zoneWorkerStateStore.getWorkerRiskLevel(workerId));
 
         // 1. workerId 기반 작업자의 이전 위치가 있으면, 새로운 기록 생성 전 해당 작업자 위치 기록에 endTime 찍어주기
         ZoneHist currentLocation = zoneHistoryRepoService.getCurrentWorkerLocation(workerId);
@@ -38,6 +39,8 @@ public class ZoneHistoryService {
         }
 
         // 2. 새로운 위치 기록 생성
+        Worker worker = workerRepoService.findById(workerId);
+        Zone zone = zoneRepoService.findById(zoneId);
         ZoneHist newLocation = ZoneHist.builder()
                 .worker(worker)
                 .zone(zone)
