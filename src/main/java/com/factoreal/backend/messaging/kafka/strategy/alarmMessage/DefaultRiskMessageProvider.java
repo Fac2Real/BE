@@ -40,12 +40,12 @@ public class DefaultRiskMessageProvider implements RiskMessageProvider {
                 case WARNING -> "과전류 주의! 5A 초과 감지.";
                 case CRITICAL -> "위험! 과전류가 7A를 초과했습니다.";
             };
-            case power -> switch (riskLevel) {
+            case power -> switch (riskLevel){
                 case INFO -> "유/무효 전류 정상.";
                 case WARNING -> "유/무효 전류 주의!";
                 case CRITICAL -> "유/무효 전류 위험!";
             };
-            case pressure -> switch (riskLevel) {
+            case pressure -> switch (riskLevel){
                 case INFO -> "압력 정상.";
                 case WARNING -> "압력 주의!";
                 case CRITICAL -> "압력 위험!";
@@ -59,8 +59,8 @@ public class DefaultRiskMessageProvider implements RiskMessageProvider {
         return switch (wearableDataType) {
             case heartRate -> switch (riskLevel) {
                 case INFO -> "작업자 심박수 정상.";
-                case WARNING -> "작업자 심박수 경고.";
-                case CRITICAL -> "작업자 심박수 위험. 140 초과!";
+                case WARNING -> "작업자 심박수 140 초과.";
+                case CRITICAL -> null;
             };
         };
     }
