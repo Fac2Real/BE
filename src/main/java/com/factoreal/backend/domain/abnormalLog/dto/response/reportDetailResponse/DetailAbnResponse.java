@@ -1,4 +1,6 @@
-package com.factoreal.backend.domain.abnormalLog.dto.response;
+package com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse;
+
+import com.factoreal.backend.domain.abnormalLog.dto.response.AbnormalLogResponse;
 
 import java.util.List;
 

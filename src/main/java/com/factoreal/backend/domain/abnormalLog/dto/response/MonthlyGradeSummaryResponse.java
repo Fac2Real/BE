@@ -6,10 +6,10 @@ import java.util.List;
 
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class MonthlyDetailResponse {
+public class MonthlyGradeSummaryResponse {
     private String period;                       // "2025-04"
-    private List<DangerStatResponse> stats;     // 타입별 경고/위험 건수
+    private List<GradeSummaryResponse> abnormalInfos;  // 타입별 A/B/C
 }
