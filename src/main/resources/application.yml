@@ -2,8 +2,7 @@ spring:
   application:
     name: backend
   config:
-    activate:
-      on-profile: default
+    import: optional:file:.env[.properties]
 
 
   # ===============================
@@ -30,6 +29,14 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
+  flyway:
+    enabled: true
+    url: ${spring.datasource.url}
+    user: ${spring.datasource.username}
+    password: ${spring.datasource.password}
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+
 # ===============================
 # Server Port
 # ===============================
@@ -52,3 +59,28 @@ springdoc:
     resolve-extensions-properties: false
   swagger-ui:
     path: /swagger-ui.html
+
+
+
+aws:
+  access-key: ${AWS_IAM_ACCESS_KEY}
+  secret-key: ${AWS_IAM_SECRET_KEY}
+  region: ap-northeast-2
+
+firebase:
+  json-base64: ${FIREBASE_JSON_BASE64}
+
+grafana:
+  url: ${GRAFANA_URL}
+  api-key: ${GRAFANA_API_KEY}
+  org-id: 1
+  datasource-uid: ${GRAFANA_DATASOURCE_UID}
+
+# FastAPI URL
+fastapi:
+  base-url: ${FASTAPI_URL:http://localhost:8000}
+  predict-endpoint: /predict-from-s3  # 슬래시(/) 포함
+
+webhook:
+  slack:
+    equip_url: ${SLACK_WEBHOOK_EQUIP_URL}
