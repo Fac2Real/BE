@@ -1,16 +1,19 @@
 package com.factoreal.backend.domain.stateStore;
 
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 
+@Slf4j
 @Component
 public class InMemoryZoneWorkerStateStore implements ZoneWorkerStateStore {
+    private final ConcurrentMap<String, RiskLevel> workerRiskLevels = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, AtomicIntegerArray> zoneStateCounts = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String, ConcurrentMap<String, RiskLevel>> zoneWorkerStates = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, String> workerZoneStates = new ConcurrentHashMap<>();
     private static final RiskLevel[] PRIORITY_TO_LEVEL = RiskLevel.values();
 
     @Override
@@ -31,41 +34,45 @@ public class InMemoryZoneWorkerStateStore implements ZoneWorkerStateStore {
     }
 
     @Override
-    public RiskLevel getWorkerRiskLevel(String zoneId, String workerId) {
-        ConcurrentMap<String, RiskLevel> workerStates = zoneWorkerStates.get(zoneId);
-        if (workerStates == null) {
+    public RiskLevel getWorkerRiskLevel(String workerId) {
+        RiskLevel workerRiskLevel = workerRiskLevels.get(workerId);
+        if (workerRiskLevel == null) {
             return RiskLevel.INFO;
         }
 
-        return workerStates.getOrDefault(workerId, RiskLevel.INFO);
+        return workerRiskLevel;
+    }
+
+    @Override
+    public String getZoneId(String workerId) {
+        return workerZoneStates.get(workerId);
     }
 
     @Override
     public void setWorkerRiskLevel(String zoneId, String workerId, RiskLevel riskLevel) {
-        // 1) zoneStateCounts, zoneWorkerStates에 zoneId 없으면 생성
+        // 1) zoneStateCounts에 zoneId 없으면 생성
         if (!zoneStateCounts.containsKey(zoneId)) {
             zoneStateCounts.put(zoneId, new AtomicIntegerArray(PRIORITY_TO_LEVEL.length));
         }
-        if (!zoneWorkerStates.containsKey(zoneId)) {
-            zoneWorkerStates.put(zoneId, new ConcurrentHashMap<>());
+
+        // 2) workerZoneStates에 workerId 없으면 생성, zoneId 불일치시 이동
+        if (!workerZoneStates.containsKey(workerId)) {
+            workerZoneStates.put(workerId, zoneId);
+        } else if (!workerZoneStates.get(workerId).equals(zoneId)) {
+            log.info("Zone 이동 {} -> {}", workerZoneStates.get(workerId), zoneId);
+            String prevZoneId = workerZoneStates.get(workerId);
+            if (prevZoneId != null) {
+                zoneStateCounts.get(prevZoneId).decrementAndGet(workerRiskLevels.get(workerId).ordinal());
+            }
+            workerZoneStates.put(workerId, zoneId);
         }
 
-        // 2) zoneWorkerStates -> zoneId에 workerId 없으면 생성
-        if (zoneWorkerStates.get(zoneId).containsKey(workerId)) {
-            RiskLevel prevState = zoneWorkerStates.get(zoneId).get(workerId);
-            zoneStateCounts.get(zoneId).decrementAndGet(prevState.ordinal());
+        // 3) workerRiskLevels 설정, zoneStateCounts value 증감
+        if (workerRiskLevels.containsKey(workerId)) {
+            RiskLevel prevRiskLevel = workerRiskLevels.get(workerId);
+            zoneStateCounts.get(zoneId).decrementAndGet(prevRiskLevel.ordinal());
         }
+        workerRiskLevels.put(workerId, riskLevel);
         zoneStateCounts.get(zoneId).incrementAndGet(riskLevel.ordinal());
-        zoneWorkerStates.get(zoneId).put(workerId, riskLevel);
-    }
-
-    @Override
-    public void moveWorkerRiskLevel(String zoneId, String prevWorkerId, String nextWorkerId, RiskLevel riskLevel) {
-        if (prevWorkerId != null && zoneWorkerStates.containsKey(zoneId) && zoneWorkerStates.get(zoneId).containsKey(prevWorkerId)) {
-            RiskLevel prevWorkerState = zoneWorkerStates.get(zoneId).get(prevWorkerId);
-            zoneStateCounts.get(zoneId).decrementAndGet(prevWorkerState.ordinal());
-            zoneWorkerStates.get(zoneId).remove(prevWorkerId);
-        }
-        setWorkerRiskLevel(zoneId, nextWorkerId, riskLevel);
     }
 }

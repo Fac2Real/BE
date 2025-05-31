@@ -12,6 +12,7 @@ class InMemoryZoneWorkerStateStoreTest {
 
     private InMemoryZoneWorkerStateStore store;
     private static final String ZONE_A = "zone-A";
+    private static final String ZONE_B = "zone-B";
     private static final String W1 = "worker-1";
     private static final String W2 = "worker-2";
 
@@ -35,7 +36,7 @@ class InMemoryZoneWorkerStateStoreTest {
         void singleWorkerSetsZoneRisk() {
             store.setWorkerRiskLevel(ZONE_A, W1, RiskLevel.WARNING);
 
-            assertThat(store.getWorkerRiskLevel(ZONE_A, W1)).isEqualTo(RiskLevel.WARNING);
+            assertThat(store.getWorkerRiskLevel(W1)).isEqualTo(RiskLevel.WARNING);
             assertThat(store.getZoneRiskLevel(ZONE_A)).isEqualTo(RiskLevel.WARNING);
         }
 
@@ -59,7 +60,7 @@ class InMemoryZoneWorkerStateStoreTest {
             // W2를 INFO로 다운그레이드 → 남아있는 최고 등급은 WARNING
             store.setWorkerRiskLevel(ZONE_A, W2, RiskLevel.INFO);
 
-            assertThat(store.getWorkerRiskLevel(ZONE_A, W2)).isEqualTo(RiskLevel.INFO);
+            assertThat(store.getWorkerRiskLevel(W2)).isEqualTo(RiskLevel.INFO);
             assertThat(store.getZoneRiskLevel(ZONE_A)).isEqualTo(RiskLevel.WARNING);
         }
     }
@@ -72,13 +73,13 @@ class InMemoryZoneWorkerStateStoreTest {
         @DisplayName("워커를 이동시키면 이전 워커 카운트 감소, 새 워커 카운트 증가")
         void moveRiskLevelBetweenWorkers() {
             store.setWorkerRiskLevel(ZONE_A, W1, RiskLevel.CRITICAL);
-
-            // W1 → W2로 이동
-            store.moveWorkerRiskLevel(ZONE_A, W1, W2, RiskLevel.CRITICAL);
-
-            assertThat(store.getWorkerRiskLevel(ZONE_A, W1)).isEqualTo(RiskLevel.INFO);
-            assertThat(store.getWorkerRiskLevel(ZONE_A, W2)).isEqualTo(RiskLevel.CRITICAL);
+            assertThat(store.getWorkerRiskLevel(W1)).isEqualTo(RiskLevel.CRITICAL);
             assertThat(store.getZoneRiskLevel(ZONE_A)).isEqualTo(RiskLevel.CRITICAL);
+
+            // ZONE_A → ZONE_B 이동
+            store.setWorkerRiskLevel(ZONE_B, W1, RiskLevel.WARNING);
+            assertThat(store.getZoneRiskLevel(ZONE_A)).isEqualTo(RiskLevel.INFO);
+            assertThat(store.getZoneRiskLevel(ZONE_B)).isEqualTo(RiskLevel.WARNING);
         }
     }
 }
