@@ -63,10 +63,14 @@ public class EquipMaintenanceService {
                     if (slackEquipAlarmService.shouldSendAlert(expectedMaintenanceDate)) {
                         slackEquipAlarmService.sendEquipmentMaintenanceAlert(
                             equipment.getEquipName(),
+                            equipment.getZoneName(),
                             expectedMaintenanceDate,
                             daysUntilMaintenance
                         );
-                        log.info("설비 [{}] 점검 알림 발송 완료 (D-{})", equipment.getEquipName(), daysUntilMaintenance);
+                        log.info("설비 [{}] (공간: {}) 점검 알림 발송 완료 (D-{})", 
+                            equipment.getEquipName(), 
+                            equipment.getZoneName(), 
+                            daysUntilMaintenance);
                     }
                 }
             } catch (IOException e) {
