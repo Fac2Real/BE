@@ -23,7 +23,7 @@ import static com.slack.api.model.block.composition.BlockCompositions.plainText;
 public class SlackService {
     private static final String NEW_LINE = "\n";
     @Value("${webhook.slack.url}")
-    private String SLACK_WEBHOOK_URL;
+    private String SLACK_WEBHOOK_URL; // 채널마다 or 사용자마다 하나씩 발급받아야함
 
     private final Slack slackClient = Slack.getInstance();
 
