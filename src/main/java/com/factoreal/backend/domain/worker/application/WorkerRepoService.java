@@ -2,6 +2,7 @@ package com.factoreal.backend.domain.worker.application;
 
 import com.factoreal.backend.domain.worker.dao.WorkerRepository;
 import com.factoreal.backend.domain.worker.entity.Worker;
+import com.factoreal.backend.global.exception.dto.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,7 +18,7 @@ public class WorkerRepoService {
 
     public Worker findById(String workerId) {
         return workerRepository.findById(workerId)
-                .orElseThrow(() -> new IllegalArgumentException("작업자를 찾을 수 없습니다: " + workerId));
+                .orElseThrow(() -> new NotFoundException("작업자를 찾을 수 없습니다: " + workerId));
     }
 
     @Transactional

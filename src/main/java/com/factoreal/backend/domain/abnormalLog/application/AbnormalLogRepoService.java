@@ -26,17 +26,18 @@ public class AbnormalLogRepoService{
         return abnLogRepository.findByZone_ZoneIdOrderByDetectedAtDesc(zoneId, pageable);
     }
 
-    public List<AbnormalLog> findPreviewMonthLog(){
-        // 오늘을 기준으로 전달 결정 -> 오늘이 2025-05-?? 일 경우
-        LocalDateTime startOfThisMonth = LocalDate.now()
-                .withDayOfMonth(1)
-                .atStartOfDay();           // 2025-05-01 00:00:00 이 로그의 종점이 됨 (이번 달)
-        LocalDateTime startOfPrevMonth = startOfThisMonth.minusMonths(1);    // 2025-04-01 00:00:00이 시작점이 됨 (이전 달)
+    public List<AbnormalLog> findPreview30daysLog(){
+        // ① 오늘 날짜와 30일 전 시각 계산
+        LocalDateTime now        = LocalDateTime.now();          // 현재 시각
+        LocalDateTime thirtyDays = now.minusDays(30);            // 30일 전
 
-        // 예시 기준 4/1일부터 5월 1일까지의 로그가 리스트로 반환됨
-        return abnLogRepository.findByDetectedAtBetween(startOfPrevMonth, startOfThisMonth)
+        // ② DB 조회 + dangerLevel 1,2 필터
+        return abnLogRepository.findByDetectedAtBetween(thirtyDays, now)
                 .stream()
-                .filter(l -> l.getDangerLevel() == 1 || l.getDangerLevel() == 2)
+                .filter(l -> {
+                    Integer dl = l.getDangerLevel();
+                    return dl != null && (dl == 1 || dl == 2);
+                })
                 .toList();
     }
 

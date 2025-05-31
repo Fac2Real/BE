@@ -3,6 +3,7 @@ package com.factoreal.backend.messaging.grafana;
 import com.factoreal.backend.domain.sensor.application.SensorRepoService;
 import com.factoreal.backend.domain.sensor.application.SensorService;
 import com.factoreal.backend.domain.sensor.entity.Sensor;
+import com.factoreal.backend.global.exception.dto.NotFoundException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,7 +41,7 @@ public class GrafanaZoneService {
         // 1) 센서 목록 조회
         List<Sensor> sensors = sensorRepoService.findByZone_ZoneId(zoneId);
         if (sensors.isEmpty()) {
-            throw new IllegalStateException("No sensors for zone: " + zoneId);
+            throw new NotFoundException("No sensors for zone: " + zoneId);
         }
 
         // 2) 기존 대시보드 검색 : TODO

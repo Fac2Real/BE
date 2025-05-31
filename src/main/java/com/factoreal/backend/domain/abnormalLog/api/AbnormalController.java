@@ -99,7 +99,7 @@ public class AbnormalController {
     @Operation(summary = "이전 한달치 상세 로그 데이터 조회", description = "이전 한달치 데이터의 로그를 조회합니다.")
     public ResponseEntity<List<AbnormalLogResponse>> getPrevMonthLogs() {
         return ResponseEntity.ok(
-                abnormalLogRepoService.findPreviewMonthLog()
+                abnormalLogRepoService.findPreview30daysLog()
                         .stream()
                         .map(AbnormalLogResponse::from)
                         .toList()
