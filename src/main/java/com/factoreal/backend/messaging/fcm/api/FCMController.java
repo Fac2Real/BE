@@ -1,5 +1,6 @@
 package com.factoreal.backend.messaging.fcm.api;
 
+import com.factoreal.backend.domain.notifyLog.dto.TriggerType;
 import com.factoreal.backend.messaging.fcm.dto.FCMEquipRequest;
 import com.factoreal.backend.messaging.fcm.dto.FCMSafetyRequest;
 import com.factoreal.backend.messaging.fcm.dto.FCMTokenRegistDto;
@@ -11,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/fcm")
@@ -45,7 +48,13 @@ public class FCMController {
     @PostMapping("/zone")
     public ResponseEntity<Object> sendZoneMessage(@RequestBody FCMZoneRequest request) {
 //        fcmService.sendMessage();
-        fcmService.sendZoneSafety(request.getZoneId());
+        fcmService.sendZoneSafety(
+            request.getZoneId(),
+            request.getDangerLevel(),
+            TriggerType.MANUAL,
+            LocalDateTime.now(),
+            null
+        );
         return ResponseEntity.ok().build();
     }
 

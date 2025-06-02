@@ -34,7 +34,7 @@ public class KafkaConsumer {
     }
 
     // 공간 센서 관련 Kafka 메시지 처리
-    @KafkaListener(topics = "ENVIRONMENT", groupId = "environment-consumer-group-msk-1")
+    @KafkaListener(topics = "ENVIRONMENT", groupId = "environment-consumer-group-msk-2")
     public void consumeEnvironment(String message) {
         log.info("📩 [ENVIRONMENT] Kafka 메시지 수신: {}", message);
         handleMessage(message, "ENVIRONMENT");

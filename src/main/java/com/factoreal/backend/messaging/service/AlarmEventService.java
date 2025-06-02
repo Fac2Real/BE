@@ -31,8 +31,6 @@ public class AlarmEventService {
     public void startAlarm(SensorKafkaDto sensorData, AbnormalLog abnormalLog, int dangerLevel) {
         AlarmEventDto alarmEventDto;
         RiskLevel riskLevel = RiskLevel.fromPriority(dangerLevel);
-    //  Todo Flink 수정시 주석 해제
-    //  RiskLevel riskLevel = RiskLevel.fromPriority(sensorData.getDangerLevel);
 
         try {
             // 1. dangerLevel기준으로 alarmEvent 객체 생성.

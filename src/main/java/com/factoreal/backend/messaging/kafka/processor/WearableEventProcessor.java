@@ -2,6 +2,8 @@ package com.factoreal.backend.messaging.kafka.processor;
 
 import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogRepoService;
 import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
+import com.factoreal.backend.domain.notifyLog.dto.TriggerType;
+import com.factoreal.backend.domain.notifyLog.service.NotifyLogService;
 import com.factoreal.backend.domain.stateStore.InMemoryZoneWorkerStateStore;
 import com.factoreal.backend.domain.zone.application.ZoneHistoryRepoService;
 import com.factoreal.backend.domain.zone.application.ZoneHistoryService;
@@ -37,6 +39,7 @@ public class WearableEventProcessor {
     private final InMemoryZoneWorkerStateStore zoneWorkerStateStore;
     private final ZoneHistoryService zoneHistoryService;
     private final ZoneHistoryRepoService zoneHistoryRepoService;
+    private final NotifyLogService notifyLogService;
     private static final String DEFAULT_ZONE_ID = "00000000000000-000";
 
     /**
@@ -87,7 +90,24 @@ public class WearableEventProcessor {
                 // 2-3. 상세 화면으로 웹소켓 보내는 것을 생략
                 // 3. 위험 알림 전송 -> 팝업으로 알려주기
                 AlarmEventDto alarmEventDto = alarmEventService.generateAlarmDto(dto, abnormalLog, riskLevel);
-                webSocketSender.sendDangerAlarm(alarmEventDto);
+                try {
+                    webSocketSender.sendDangerAlarm(alarmEventDto);
+                    notifyLogService.saveNotifyLogFromWebsocket(
+                        "/topic/alarm",
+                        Boolean.TRUE,
+                        TriggerType.AUTOMATIC,
+                        LocalDateTime.parse(alarmEventDto.getTime()),
+                        abnormalLog.getId()
+                    );
+                }catch (Exception e){
+                    notifyLogService.saveNotifyLogFromWebsocket(
+                        "/topic/alarm",
+                        Boolean.FALSE,
+                        TriggerType.AUTOMATIC,
+                        LocalDateTime.parse(alarmEventDto.getTime()),
+                        abnormalLog.getId()
+                    );
+                }
             }
 
             // 4. 읽지 않은 알림 전송

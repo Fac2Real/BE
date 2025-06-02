@@ -20,9 +20,8 @@ public class WebSocketNotificationStrategy implements NotificationStrategy {
     public void send(AlarmEventDto alarmEventDto) {
         log.info("🌐WebSocket Notification Strategy");
         // /topic/userId로 메세지를 전송 => userId를 구분하여 웹 알람 발송
-        // TODO 대시보드 전체에서 보여져야 하는 로직이면 고정 토픽으로 구분없이 보여주는 것도 좋을 듯
+        // 대시보드 전체에서 보여져야 하는 로직이면 고정 토픽으로 구분없이 보여주는 것도 좋을 듯 -> 고정 토픽을 사용중
         webSocketSender.sendDangerAlarm(alarmEventDto);
-
     }
 
     @Override

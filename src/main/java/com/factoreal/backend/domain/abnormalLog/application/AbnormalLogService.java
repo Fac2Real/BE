@@ -4,6 +4,8 @@ import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.dto.request.AbnormalPagingRequest;
 import com.factoreal.backend.domain.abnormalLog.dto.response.AbnormalLogResponse;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
+import com.factoreal.backend.domain.sensor.application.SensorRepoService;
+import com.factoreal.backend.domain.sensor.dao.SensorRepository;
 import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
 import com.factoreal.backend.domain.sensor.entity.Sensor;
 import com.factoreal.backend.domain.stateStore.InMemoryZoneWorkerStateStore;
@@ -28,8 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Service
 @Slf4j
@@ -40,6 +41,8 @@ public class AbnormalLogService {
     private final ObjectMapper objectMapper;
     private final ZoneRepoService zoneRepoService;
     private final InMemoryZoneWorkerStateStore zoneWorkerStateStore;
+    private final SensorRepository sensorRepository;
+    private final SensorRepoService sensorRepoService;
 
     /**
      * 센서 데이터 기반의 알람 로그 생성.
@@ -163,7 +166,7 @@ public class AbnormalLogService {
     // FE에서 알람을 클릭한 경우 읽음으로 수정
     @Transactional
     public boolean readCheck(Long abnormalLogId) {
-        AbnormalLog abnormalLog = abnormalLogRepoService.findById(abnormalLogId).orElse(null);
+        AbnormalLog abnormalLog = abnormalLogRepoService.findById(abnormalLogId);
         if (abnormalLog == null) {
             return false;
         }
@@ -196,7 +199,7 @@ public class AbnormalLogService {
                 abnormalPagingRequest.getSize());
     }
 
-//    public Page<AbnormalLog> findByZone_ZoneIdOrderByDetectedAtDesc(String zoneId, Pageable pageable) {
-//        return abnLogRepository.findByZone_ZoneIdOrderByDetectedAtDesc(zoneId, pageable);
-//    }
+
+
+
 }
