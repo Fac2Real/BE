@@ -4,6 +4,7 @@ import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.dto.response.DangerStatResponse;
 import com.factoreal.backend.domain.abnormalLog.dto.response.GradeSummaryResponse;
 import com.factoreal.backend.domain.abnormalLog.dto.response.MonthlyDetailResponse;
+import com.factoreal.backend.domain.abnormalLog.dto.response.MonthlyGradeSummaryResponse;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -84,7 +85,7 @@ class ReportServiceTest {
         String month = YearMonth.from(LocalDate.now().minusMonths(1)).toString(); // ex "2025-04"
 
         // when
-        MonthlyDetailResponse res = MonthlyDetailResponse.builder().month(month).stats(stats).build();
+        MonthlyDetailResponse res = MonthlyDetailResponse.builder().period(month).stats(stats).build();
 
         assertThat(res.getStats()).isEqualTo(resAnswer);
 
@@ -113,7 +114,9 @@ class ReportServiceTest {
         when(abnLogRepoService.findPreview30daysLog()).thenReturn(fakeLogs);
 
         // when
-        List<GradeSummaryResponse> grades = reportService.getPrevMonthGrade();
+        MonthlyGradeSummaryResponse response = reportService.getPrevMonthGrade();
+
+        List<GradeSummaryResponse> grades = response.getAbnormalInfos();
 
         // then
         GradeSummaryResponse worker = grades.stream()

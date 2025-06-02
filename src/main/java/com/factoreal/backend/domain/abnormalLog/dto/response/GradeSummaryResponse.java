@@ -8,7 +8,7 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class GradeSummaryResponse {
-    private String month;
+//    private String latest30days;
     private String type;        // Worker | Sensor | Equip
     private String grade;       // A / B / C
     private long warnCnt;       // 경고 횟수 참고

@@ -1,5 +1,6 @@
 package com.factoreal.backend.domain.sensor.dao;
 
+import java.util.Collection;
 import java.util.Optional;
 
 import com.factoreal.backend.domain.zone.entity.Zone;
@@ -13,4 +14,6 @@ public interface SensorRepository extends JpaRepository<Sensor, String> {
     List<Sensor> findByZone(Zone zone);
 
     List<Sensor> findByZone_ZoneId(String zoneId);
+
+    List<Sensor> findBySensorIdIn(Collection<String> sensorIds);
 }
