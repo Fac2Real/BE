@@ -32,7 +32,7 @@ public class AutoControlService {
      * 센서 값이 허용 범위를 벗어났을 경우 제어 메시지를 생성하거나 처리하도록 로깅
      */
     @Transactional
-    public void evaluate(SensorKafkaDto dto, int dangerLevel) {
+    public void evaluate(SensorKafkaDto dto, AbnormalLog abnormalLog,int dangerLevel) {
         if (dangerLevel == 0)
             return; // 정상 범위면 아무 처리 안 함
 
@@ -51,9 +51,6 @@ public class AutoControlService {
         if (value < threshold - tolerance || value > threshold + tolerance) {
             String message = buildControlMessage(sensor.getSensorType().name(), value, threshold, tolerance);
             log.info("⚙️ 자동제어 필요: {}", message);
-
-            // 1. 이상 로그 저장
-            AbnormalLog abnormalLog = abnormalLogService.saveAbnormalLog(dto, sensor, dangerLevel);
 
             // 2. 제어 로그 저장
             String controlType = getControlType(sensor.getSensorType().name());

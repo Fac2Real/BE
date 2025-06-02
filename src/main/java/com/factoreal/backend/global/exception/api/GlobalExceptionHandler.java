@@ -3,12 +3,15 @@ package com.factoreal.backend.global.exception.api;
 import com.factoreal.backend.global.common.response.CommonResponse;
 import com.factoreal.backend.global.exception.dto.BadRequestException;
 import com.factoreal.backend.global.exception.dto.NotFoundException;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class GlobalExceptionHandler {
     @ExceptionHandler(NotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
@@ -18,7 +21,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BadRequestException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public CommonResponse<?> handleBadRequestException(NotFoundException e) {
+    public CommonResponse<?> handleBadRequestException(BadRequestException e) {
         return CommonResponse.onFailure(HttpStatus.BAD_REQUEST.value(), e.getMessage());
     }
 }

@@ -63,12 +63,7 @@ public class SensorEventProcessor {
                 RiskLevel riskLevel = RiskLevel.fromPriority(dangerLevel);
                 TargetType targetType = topicToLogType(topic);
 
-                try {
-                    // 자동 제어 메시지 판단 (Todo - 진행중)
-                    autoControlService.evaluate(dto, dangerLevel);
-                }catch(Exception e){
-                    log.info("자동 제어 기능은 제작중인 기능입니다. Todo 입니다.");
-                }
+
 
                 // WebSocket 알림 전송
                 // 1. 히트맵 전송
@@ -83,7 +78,12 @@ public class SensorEventProcessor {
                     AbnormalLog abnLog = abnormalLogService.saveAbnormalLogFromSensorKafkaDto(
                             dto, sensorType, riskLevel, targetType
                     );
-
+                    try {
+                        // 자동 제어 메시지 판단 (Todo - 진행중)
+                        autoControlService.evaluate(dto, abnLog,dangerLevel);
+                    }catch(Exception e){
+                        log.info("자동 제어 기능은 제작중인 기능입니다. Todo 입니다.");
+                    }
                     // 2-3. 위험 알림 전송 -> 위험도별 Websocket + wearable + Slack(SMS 대체)
                     // Todo : (As-is) 전략 기반 startAlarm() 메서드 담당자 확인 필요
                     // webSocketSender.sendDangerAlarm(abnLog.toAlarmEventDto());
