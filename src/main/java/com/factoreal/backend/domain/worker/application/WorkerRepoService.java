@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -40,5 +42,11 @@ public class WorkerRepoService {
         return workerRepository.findAll();
     }
 
-
+    /**
+     * 작업자 정보를 target_id를 키로 추려내는 맵 메서드
+     */
+    public Map<String, Worker> findWorkersMap(List<String> ids) {
+        return workerRepository.findByWorkerIdIn(ids).stream()
+                .collect(Collectors.toMap(Worker::getWorkerId, w -> w));
+    }
 }
