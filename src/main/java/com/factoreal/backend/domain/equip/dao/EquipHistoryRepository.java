@@ -8,8 +8,8 @@ import java.time.LocalDate;
 import java.util.Optional;
 
 public interface EquipHistoryRepository extends JpaRepository<EquipHistory, Long> {
-    // 설비 최신 기록 조회
-    Optional<EquipHistory> findFirstByEquip_EquipIdAndTypeOrderByDateDesc(String equipId, EquipHistoryType type);
+    // 설비 최신 기록 조회 (id 기준 내림차순)
+    Optional<EquipHistory> findFirstByEquip_EquipIdAndTypeOrderByIdDesc(String equipId, EquipHistoryType type);
 
     // 특정 날짜의 이력 존재 여부 확인
     Optional<EquipHistory> findFirstByEquip_EquipIdAndTypeAndDate(String equipId, EquipHistoryType type, LocalDate date);

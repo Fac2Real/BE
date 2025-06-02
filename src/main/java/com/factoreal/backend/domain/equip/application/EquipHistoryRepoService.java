@@ -22,10 +22,10 @@ public class EquipHistoryRepoService {
         return equipHistoryRepository.save(history);
     }
 
-    // 설비의 최신 기록 조회
+    // 설비의 최신 기록 조회 (id 기준 내림차순)
     @Transactional(readOnly = true)
     public Optional<EquipHistory> findFirstByEquip_EquipIdAndTypeOrderByDateDesc(String equipId, EquipHistoryType type) {
-        return equipHistoryRepository.findFirstByEquip_EquipIdAndTypeOrderByDateDesc(equipId, type);
+        return equipHistoryRepository.findFirstByEquip_EquipIdAndTypeOrderByIdDesc(equipId, type);
     }
 
     // 특정 날짜의 이력 존재 여부 확인
