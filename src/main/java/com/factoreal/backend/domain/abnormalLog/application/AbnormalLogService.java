@@ -104,7 +104,7 @@ public class AbnormalLogService {
         Zone zone = zoneRepoService.findByZoneId(zoneWorkerStateStore.getZoneId(wearableKafkaDto.getWorkerId()));
 
         AbnormalLog abnormalLog = AbnormalLog.builder()
-                .targetId(wearableKafkaDto.getWearableDeviceId())
+                .targetId(wearableKafkaDto.getWorkerId())
                 .targetType(targetType)
                 .abnormalType(riskMessageProvider.getRiskMessageByWearble(wearableDataType, riskLevel))
                 .abnVal(Double.valueOf(wearableKafkaDto.getVal()))
