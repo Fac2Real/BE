@@ -10,6 +10,8 @@ import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.domain.controlLog.entity.ControlLog;
 import com.factoreal.backend.domain.controlLog.service.ControlLogRepoService;
 import com.factoreal.backend.domain.sensor.application.SensorRepoService;
+import com.factoreal.backend.domain.worker.application.WorkerRepoService;
+import com.factoreal.backend.domain.worker.entity.Worker;
 import com.factoreal.backend.domain.zone.application.ZoneService;
 import com.factoreal.backend.domain.zone.dto.response.ZoneDetailResponse;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +39,7 @@ public class ReportService {
     private final AbnormalLogRepoService abnormalLogRepoService;
     private final ControlLogRepoService controlLogRepoService;
     private final SensorRepoService sensorRepoService;
+    private final WorkerRepoService workerRepoService;
 
 
     /**
@@ -152,12 +155,19 @@ public class ReportService {
                                 .toList()
                 );
 
+        Map<String, Worker> workerMap = workerRepoService.findWorkersMap(
+                logs.stream()
+                        .filter(l -> l.getTargetType() == TargetType.Worker)
+                        .map(AbnormalLog::getTargetId)
+                        .distinct()
+                        .toList()
+                );
         // ────────────────────────────────────────────────
         // 2-2. Zone 트리(뼈대) + AbnormalLog + ControlLog 합치기 ++ 설비별 센서 매핑 정보도 추가
         // ────────────────────────────────────────────────
 
         List<ZoneBlock> zones = zoneMeta.stream()
-                .map(zm -> buildZoneBlock(zm, logs, ctlMap, sensorToEquip))
+                .map(zm -> buildZoneBlock(zm, logs, ctlMap, sensorToEquip, workerMap))
                 .toList();
 
 
@@ -174,7 +184,8 @@ public class ReportService {
     private ZoneBlock buildZoneBlock(ZoneDetailResponse zm,
                                      List<AbnormalLog> allLogs,
                                      Map<Long,ControlLog> ctlMap,
-                                     Map<String,String> sensorToEquip) {
+                                     Map<String,String> sensorToEquip,
+                                     Map<String, Worker> workerMap) {
 
         String zid = zm.getZoneId();
         List<AbnormalLog> zLogs = allLogs.stream()
@@ -215,6 +226,29 @@ public class ReportService {
                 })
                 .toList();
 
+        Map<String, List<AbnormalLog>> byWorker = zLogs.stream()
+                .filter(l -> l.getTargetType() == TargetType.Worker)
+                .collect(Collectors.groupingBy(AbnormalLog::getTargetId)); // key = workerId
+
+        List<WorkerBlock> workerBlocks = byWorker.entrySet().stream()
+                .map(e -> {
+                    String wid = e.getKey();
+                    Worker   w = workerMap.get(wid);        // null possible
+
+                    List<AbnDetail> workerDetails = e.getValue().stream()
+                            .map(l -> toDetail(l, ctlMap.get(l.getId())))
+                            .toList();
+
+                    return WorkerBlock.builder()
+                            .workerId(wid)
+                            .name(   w != null ? w.getName()         : null)
+                            .phone(  w != null ? w.getPhoneNumber()  : null)
+                            .workerCnt(workerDetails.size())
+                            .workerAbnormals(workerDetails)
+                            .build();
+                })
+                .toList();
+
         int envCnt    = envAbn.size();
         int workerCnt = workerAbn.size();
         int facCnt    = equipBlocks.stream().mapToInt(EquipBlock::getFacCnt).sum();
@@ -228,7 +262,7 @@ public class ReportService {
                 .facCnt(facCnt)
                 .totalCnt(total)
                 .envAbnormals(envAbn)
-                .workerAbnormals(workerAbn)
+                .workers(workerBlocks)
                 .equips(equipBlocks)
                 .build();
     }

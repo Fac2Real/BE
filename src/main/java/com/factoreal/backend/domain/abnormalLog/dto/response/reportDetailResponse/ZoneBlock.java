@@ -21,6 +21,6 @@ public class ZoneBlock {
 
     private List<AbnDetail> envAbnormals;      // targetType = SENSOR (환경용)만
     private List<EquipBlock> equips;           // 설비별 블록
-    private List<AbnDetail> workerAbnormals;   // targetType = WORKER (작업자)만
+    private List<WorkerBlock> workers;        // 작업자별 블록
 
 }
