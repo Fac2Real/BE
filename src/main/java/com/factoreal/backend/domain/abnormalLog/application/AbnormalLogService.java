@@ -7,10 +7,8 @@ import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
 import com.factoreal.backend.domain.sensor.entity.Sensor;
 import com.factoreal.backend.domain.stateStore.InMemoryZoneWorkerStateStore;
-import com.factoreal.backend.domain.zone.application.ZoneHistoryRepoService;
 import com.factoreal.backend.domain.zone.application.ZoneRepoService;
 import com.factoreal.backend.domain.zone.entity.Zone;
-import com.factoreal.backend.domain.zone.entity.ZoneHist;
 import com.factoreal.backend.messaging.kafka.dto.WearableKafkaDto;
 import com.factoreal.backend.messaging.kafka.strategy.alarmMessage.RiskMessageProvider;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
@@ -104,7 +102,7 @@ public class AbnormalLogService {
         Zone zone = zoneRepoService.findByZoneId(zoneWorkerStateStore.getZoneId(wearableKafkaDto.getWorkerId()));
 
         AbnormalLog abnormalLog = AbnormalLog.builder()
-                .targetId(wearableKafkaDto.getWearableDeviceId())
+                .targetId(wearableKafkaDto.getWorkerId())
                 .targetType(targetType)
                 .abnormalType(riskMessageProvider.getRiskMessageByWearble(wearableDataType, riskLevel))
                 .abnVal(Double.valueOf(wearableKafkaDto.getVal()))
