@@ -60,7 +60,7 @@ public class DefaultRiskMessageProvider implements RiskMessageProvider {
             case heartRate -> switch (riskLevel) {
                 case INFO -> "작업자 심박수 정상.";
                 case WARNING -> "작업자 심박수 140 초과.";
-                case CRITICAL -> null;
+                case CRITICAL -> "작업자 심박수 140 초과.";
             };
         };
     }

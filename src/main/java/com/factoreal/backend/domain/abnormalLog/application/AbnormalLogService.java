@@ -109,7 +109,7 @@ public class AbnormalLogService{
         }
 
         AbnormalLog abnormalLog = AbnormalLog.builder()
-                .targetId(wearableKafkaDto.getWearableDeviceId())
+                .targetId(wearableKafkaDto.getWorkerId())
                 .targetType(targetType)
                 .abnormalType(riskMessageProvider.getRiskMessageByWearble(wearableDataType, riskLevel))
                 .abnVal(Double.valueOf(wearableKafkaDto.getVal()))
