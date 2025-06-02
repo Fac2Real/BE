@@ -6,10 +6,9 @@ import com.factoreal.backend.domain.abnormalLog.dto.response.AbnormalLogResponse
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
 import com.factoreal.backend.domain.sensor.entity.Sensor;
-import com.factoreal.backend.domain.zone.application.ZoneHistoryRepoService;
+import com.factoreal.backend.domain.stateStore.InMemoryZoneWorkerStateStore;
 import com.factoreal.backend.domain.zone.application.ZoneRepoService;
 import com.factoreal.backend.domain.zone.entity.Zone;
-import com.factoreal.backend.domain.zone.entity.ZoneHist;
 import com.factoreal.backend.messaging.kafka.dto.WearableKafkaDto;
 import com.factoreal.backend.messaging.kafka.strategy.alarmMessage.RiskMessageProvider;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
@@ -33,12 +32,12 @@ import java.util.Objects;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class AbnormalLogService{
+public class AbnormalLogService {
     private final AbnormalLogRepoService abnormalLogRepoService;
     private final RiskMessageProvider riskMessageProvider;
     private final ObjectMapper objectMapper;
     private final ZoneRepoService zoneRepoService;
-    private final ZoneHistoryRepoService zoneHistoryRepoService;
+    private final InMemoryZoneWorkerStateStore zoneWorkerStateStore;
 
     /**
      * 센서 데이터 기반의 알람 로그 생성.
@@ -100,13 +99,7 @@ public class AbnormalLogService{
             TargetType targetType
     ) {
         // workerId에 해당되는 사람이 제일 최근에 있던 공간 조회
-        ZoneHist zonehist = zoneHistoryRepoService.getCurrentWorkerLocation(wearableKafkaDto.getWorkerId());
-        Zone zone;
-        if (zonehist == null) {
-            zone = zoneRepoService.findByZoneId("00000000000000-000");
-        } else {
-            zone = zonehist.getZone();
-        }
+        Zone zone = zoneRepoService.findByZoneId(zoneWorkerStateStore.getZoneId(wearableKafkaDto.getWorkerId()));
 
         AbnormalLog abnormalLog = AbnormalLog.builder()
                 .targetId(wearableKafkaDto.getWorkerId())
