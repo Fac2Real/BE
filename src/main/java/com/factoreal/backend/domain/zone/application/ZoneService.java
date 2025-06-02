@@ -114,6 +114,7 @@ public class ZoneService {
         List<EquipDetailResponse> facDtos = getEquipDetailDtos(zone);     // ③-2
 
         return ZoneDetailResponse.builder()
+                .zoneId(zone.getZoneId())
                 .zoneName(zone.getZoneName())
                 .envList(envDtos)
                 .equipList(facDtos)
