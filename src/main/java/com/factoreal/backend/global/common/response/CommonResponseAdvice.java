@@ -43,7 +43,10 @@ public class CommonResponseAdvice implements ResponseBodyAdvice<Object> {
         if (body instanceof String || body instanceof Resource) {
             return body;
         }
-
+        // ✅ 이미 래핑된 응답은 무시
+        if (body instanceof CommonResponse<?>) {
+            return body;
+        }
         HttpServletResponse servletResponse = ((ServletServerHttpResponse) response).getServletResponse();
         int status = servletResponse.getStatus();
         HttpStatus httpStatus = HttpStatus.resolve(status);
