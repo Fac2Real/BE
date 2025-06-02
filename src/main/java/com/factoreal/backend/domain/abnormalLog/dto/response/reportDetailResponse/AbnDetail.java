@@ -10,10 +10,10 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class AbnDetail {
-    Long abnormalId;
-    Integer dangerLevel;
-    String abnormalType;
-    Double abnVal;
-    LocalDateTime detectedAt;
-    ControlInfo control;  // null = 미대응
+    private Long abnormalId;
+    private Integer dangerLevel;
+    private String abnormalType;
+    private Double abnVal;
+    private LocalDateTime detectedAt;
+    private ControlInfo control;  // null = 미대응
 }

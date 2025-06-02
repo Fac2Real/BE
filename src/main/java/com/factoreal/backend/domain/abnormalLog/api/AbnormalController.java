@@ -9,6 +9,7 @@ import com.factoreal.backend.domain.abnormalLog.dto.response.AbnormalLogResponse
 import com.factoreal.backend.domain.abnormalLog.dto.response.GradeSummaryResponse;
 import com.factoreal.backend.domain.abnormalLog.dto.response.MonthlyDetailResponse;
 import com.factoreal.backend.domain.abnormalLog.dto.response.MonthlyGradeSummaryResponse;
+import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.PeriodDetailReport;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.messaging.sender.WebSocketSender;
 import io.swagger.v3.oas.annotations.Operation;
@@ -96,16 +97,9 @@ public class AbnormalController {
         return ResponseEntity.ok(reportService.getPrevMonthGrade());
     }
 
-    @GetMapping("/preview-month")
+    @GetMapping("/detail-report")
     @Operation(summary = "이전 한달치 상세 로그 데이터 조회", description = "이전 한달치 데이터의 로그를 조회합니다.")
-    public ResponseEntity<List<AbnormalLogResponse>> getPrevMonthLogs() {
-        return ResponseEntity.ok(
-                abnormalLogRepoService.findPreview30daysLog()
-                        .stream()
-                        .map(AbnormalLogResponse::from)
-                        .toList()
-        );
+    public ResponseEntity<PeriodDetailReport> detail() {
+        return ResponseEntity.ok(reportService.buildLast30DaysReport());
     }
-
-
 }

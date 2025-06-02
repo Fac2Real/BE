@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -71,4 +72,15 @@ public class SensorRepoService {
                         HttpStatus.NOT_FOUND, "존재하지 않는 센서 ID: " + sensorId));
     }
 
+
+    /**
+     * Abnormal에서의 target_id(센서_id)로 매칭되는 설비별 센서들을 탐색하는 메서드
+     */
+    public Map<String,String> sensorIdToEquipId(List<String> ids) {
+        return sensorRepository.findBySensorIdIn(ids).stream()
+                .collect(Collectors.toMap(
+                        Sensor::getSensorId,
+                        s -> s.getEquip().getEquipId()
+                ));
+    }
 }

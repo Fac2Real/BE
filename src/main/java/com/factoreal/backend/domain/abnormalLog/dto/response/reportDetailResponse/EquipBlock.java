@@ -10,8 +10,9 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class EquipBlock {
-    String equipId;
-    String equipName;
-    int totalCnt;                      // 설비별 이상치 수
-    List<AbnDetail> logs;         // 그 설비의 이상치들
+    private String equipId;
+    private String equipName;
+
+    private int facCnt;          // 이 설비의 이상치 건수
+    private List<AbnDetail> facAbnormals;         // 그 설비의 이상치들
 }

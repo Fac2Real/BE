@@ -10,6 +10,6 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class PeriodDetailReport {
-    String period;                     // "2025.04.30 ~ 2025.05.30"
-    List<ZoneBlock> zones;             // 공간 단위 블록
+    private String period;                     // "2025.04.30 ~ 2025.05.30"
+    private List<ZoneBlock> zones;             // 공간 단위 블록
 }

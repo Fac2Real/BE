@@ -10,8 +10,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class ControlInfo {
-    LocalDateTime executedAt;
-    String controlType;
-    Double controlVal;
-    Integer controlStat;
+    private LocalDateTime executedAt;
+    private String controlType;
+    private Double controlVal;
+    private Integer controlStat;
 }
