@@ -6,6 +6,8 @@ import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.domain.notifyLog.service.NotifyLogService;
 import com.factoreal.backend.domain.stateStore.InMemoryZoneWorkerStateStore;
+import com.factoreal.backend.domain.stateStore.ZoneSensorStateStore;
+import com.factoreal.backend.domain.stateStore.ZoneWorkerStateStore;
 import com.factoreal.backend.domain.zone.application.ZoneHistoryRepoService;
 import com.factoreal.backend.domain.zone.application.ZoneHistoryService;
 import com.factoreal.backend.domain.zone.entity.Zone;
@@ -35,9 +37,10 @@ public class WearableEventProcessor {
     private final AbnormalLogRepoService abnormalLogRepoService;
     private final WebSocketSender webSocketSender;
     private final AlarmEventService alarmEventService;
-    private final InMemoryZoneWorkerStateStore zoneWorkerStateStore;
+    private final ZoneWorkerStateStore zoneWorkerStateStore;
     private final ZoneHistoryService zoneHistoryService;
     private final ZoneHistoryRepoService zoneHistoryRepoService;
+    private final ZoneSensorStateStore zoneSensorStateStore;
     private static final String DEFAULT_ZONE_ID = "00000000000000-000";
 
     /**
@@ -66,16 +69,19 @@ public class WearableEventProcessor {
                         return zoneWorkerStateStore.getZoneId(workerId);
                     });
 
+            // 이전 위험도 계산
+            RiskLevel prevWorkerRiskLevel = zoneWorkerStateStore.getWorkerRiskLevel(workerId);
+
             // 타겟타입이 항상 WEARABLE이므로 TargetType.Worker 바로 사용
             // WebSocket 알림 전송
             // 1. 히트맵 전송
-            webSocketSender.sendDangerLevel(
-                    zoneId,
-                    WearableDataType.heartRate.name(),
-                    dangerLevel
-            );
+            RiskLevel sensorRiskLevel = zoneSensorStateStore.getZoneRiskLevel(zoneId);
+            if (riskLevel.getPriority() >= sensorRiskLevel.getPriority()) {
+                webSocketSender.sendDangerLevel(zoneId, WearableDataType.heartRate.name(), dangerLevel);
+            } else if (prevWorkerRiskLevel.getPriority() >= sensorRiskLevel.getPriority()) {
+                webSocketSender.sendDangerLevel(zoneId, zoneSensorStateStore.getHighestRiskSensor(zoneId).getSensorType().name(), sensorRiskLevel.getPriority());
+            }
 
-            RiskLevel prevWorkerRiskLevel = zoneWorkerStateStore.getWorkerRiskLevel(workerId);
             if (prevWorkerRiskLevel.getPriority() != riskLevel.getPriority()) {
                 // 2-1. state 업데이트
                 zoneWorkerStateStore.setWorkerRiskLevel(zoneId, workerId, riskLevel);

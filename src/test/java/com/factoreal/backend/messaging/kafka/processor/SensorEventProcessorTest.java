@@ -4,9 +4,11 @@ import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogRepoServi
 import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
 import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
-import com.factoreal.backend.domain.notifyLog.service.NotifyLogService;
 import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
 import com.factoreal.backend.domain.stateStore.InMemoryZoneSensorStateStore;
+import com.factoreal.backend.domain.stateStore.InMemoryZoneWorkerStateStore;
+import com.factoreal.backend.domain.stateStore.ZoneSensorStateStore;
+import com.factoreal.backend.domain.stateStore.ZoneWorkerStateStore;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
 import com.factoreal.backend.messaging.kafka.strategy.enums.SensorType;
 import com.factoreal.backend.messaging.sender.WebSocketSender;
@@ -28,13 +30,15 @@ class SensorEventProcessorTest {
     AbnormalLogRepoService repoSvc = mock(AbnormalLogRepoService.class);
     AlarmEventService alarmSvc = mock(AlarmEventService.class);
     WebSocketSender ws = mock(WebSocketSender.class);
-    InMemoryZoneSensorStateStore store = new InMemoryZoneSensorStateStore();
+
+    ZoneSensorStateStore store = new InMemoryZoneSensorStateStore(null);
+    ZoneWorkerStateStore workerStateStore = new InMemoryZoneWorkerStateStore();
     SensorEventProcessor processor;
 
     @BeforeEach
     void setUp() {
         processor = new SensorEventProcessor(
-                auto, abnormalSvc, repoSvc, alarmSvc, ws, store);
+                auto, abnormalSvc, repoSvc, alarmSvc, ws, store, workerStateStore);
     }
 
     @Test

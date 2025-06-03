@@ -16,7 +16,7 @@ public class InMemoryZoneSensorStateStoreTest {
 
     @BeforeEach
     void setUp() {
-        store = new InMemoryZoneSensorStateStore();
+        store = new InMemoryZoneSensorStateStore(null);
     }
 
     @Test

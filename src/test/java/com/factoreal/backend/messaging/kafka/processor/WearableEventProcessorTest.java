@@ -4,7 +4,7 @@ import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogRepoServi
 import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
 import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
-import com.factoreal.backend.domain.notifyLog.service.NotifyLogService;
+import com.factoreal.backend.domain.stateStore.InMemoryZoneSensorStateStore;
 import com.factoreal.backend.domain.stateStore.InMemoryZoneWorkerStateStore;
 import com.factoreal.backend.domain.zone.application.ZoneHistoryRepoService;
 import com.factoreal.backend.domain.zone.application.ZoneHistoryService;
@@ -47,6 +47,7 @@ class WearableEventProcessorTest {
 
     // ── system under test ────────────────────────────────────
     private InMemoryZoneWorkerStateStore store = new InMemoryZoneWorkerStateStore();
+    private InMemoryZoneSensorStateStore sensorStateStore = new InMemoryZoneSensorStateStore(null);
     private WearableEventProcessor processor;
 
     // 공통 상수
@@ -75,7 +76,8 @@ class WearableEventProcessorTest {
                 alarmSvc,
                 store,
                 historySvc,
-                historyRepo
+                historyRepo,
+                sensorStateStore
         );
         // 공통 stub
         when(repoSvc.countByIsReadFalse()).thenReturn(3L);

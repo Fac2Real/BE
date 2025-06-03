@@ -8,6 +8,9 @@ import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
 import com.factoreal.backend.domain.stateStore.InMemoryZoneSensorStateStore;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
 import com.factoreal.backend.messaging.kafka.strategy.enums.SensorType;
+import com.factoreal.backend.domain.stateStore.ZoneSensorStateStore;
+import com.factoreal.backend.domain.stateStore.ZoneWorkerStateStore;
+import com.factoreal.backend.messaging.kafka.strategy.enums.WearableDataType;
 import com.factoreal.backend.messaging.sender.WebSocketSender;
 import com.factoreal.backend.messaging.service.AlarmEventService;
 import com.factoreal.backend.messaging.service.AutoControlService;
@@ -28,7 +31,9 @@ public class SensorEventProcessor {
     private final AbnormalLogRepoService abnormalLogRepoService;
     private final AlarmEventService alarmEventService;
     private final WebSocketSender webSocketSender;
-    private final InMemoryZoneSensorStateStore zoneSensorStateStore;
+    private final ZoneSensorStateStore zoneSensorStateStore;
+    private final ZoneWorkerStateStore zoneWorkerStateStore;
+
     /**
      * 센서 Kafka 메시지 처리
      *
@@ -37,22 +42,24 @@ public class SensorEventProcessor {
      */
     public void process(SensorKafkaDto dto, String topic) {
         try {
+            String zoneId = dto.getZoneId();
+            String sensorId = dto.getSensorId();
 
             // 유효성 검사: zoneId와 sensorId는 필수
-            if (dto.getZoneId() == null || dto.getZoneId().isBlank()) {
+            if (zoneId == null || zoneId.isBlank()) {
                 log.warn("⚠️ 유효하지 않은 zoneId: null 또는 빈 문자열");
                 return;
             }
-            if (dto.getSensorId() == null || dto.getSensorId().isBlank()) {
+            if (sensorId == null || sensorId.isBlank()) {
                 log.warn("⚠️ 유효하지 않은 sensorId: null 또는 빈 문자열");
                 return;
             }
 
             // ENVIRONMENT 토픽인 경우에만 아래 처리 로직 수행
             if ("ENVIRONMENT".equalsIgnoreCase(topic)) {
-                if (dto.getEquipId() == null || !dto.getEquipId().equals(dto.getZoneId())) {
+                if (dto.getEquipId() == null || !dto.getEquipId().equals(zoneId)) {
                     log.warn("⚠️ ENVIRONMENT 토픽이지만 equipId와 zoneId가 일치하지 않음: equipId={}, zoneId={}",
-                            dto.getEquipId(), dto.getZoneId());
+                            dto.getEquipId(), zoneId);
                     return;
                 }
 
@@ -62,16 +69,21 @@ public class SensorEventProcessor {
                 RiskLevel riskLevel = RiskLevel.fromPriority(dangerLevel);
                 TargetType targetType = topicToLogType(topic);
 
-
+                // 이전 위험도 계산
+                RiskLevel prevSensorRiskLevel = zoneSensorStateStore.getSensorRiskLevel(zoneId, sensorId);
 
                 // WebSocket 알림 전송
                 // 1. 히트맵 전송
-                webSocketSender.sendDangerLevel(dto.getZoneId(), dto.getSensorType(), dangerLevel);
+                RiskLevel workerRiskLevel = zoneWorkerStateStore.getZoneRiskLevel(zoneId);
+                if (riskLevel.getPriority() >= workerRiskLevel.getPriority()) {
+                    webSocketSender.sendDangerLevel(zoneId, dto.getSensorType(), dangerLevel);
+                } else if (prevSensorRiskLevel.getPriority() >= workerRiskLevel.getPriority()) {
+                    webSocketSender.sendDangerLevel(zoneId, WearableDataType.heartRate.name(), workerRiskLevel.getPriority());
+                }
 
-                RiskLevel prevSensorRiskLevel = zoneSensorStateStore.getSensorRiskLevel(dto.getZoneId(), dto.getSensorId());
                 if (prevSensorRiskLevel.getPriority() != riskLevel.getPriority()) {
                     // 2-1. state 업데이트
-                    zoneSensorStateStore.setSensorRiskLevel(dto.getZoneId(), dto.getSensorId(), riskLevel);
+                    zoneSensorStateStore.setSensorRiskLevel(zoneId, sensorId, riskLevel);
 
                     // 2-2. 이상 로그 저장
                     AbnormalLog abnLog = abnormalLogService.saveAbnormalLogFromSensorKafkaDto(
@@ -79,8 +91,8 @@ public class SensorEventProcessor {
                     );
                     try {
                         // 자동 제어 메시지 판단 (Todo - 진행중)
-                        autoControlService.evaluate(dto, abnLog,dangerLevel);
-                    }catch(Exception e){
+                        autoControlService.evaluate(dto, abnLog, dangerLevel);
+                    } catch (Exception e) {
                         log.info("자동 제어 기능은 제작중인 기능입니다. Todo 입니다.");
                     }
                     // 2-3. 위험 알림 전송 -> 위험도별 Websocket + wearable + Slack(SMS 대체)
@@ -93,7 +105,7 @@ public class SensorEventProcessor {
                 webSocketSender.sendUnreadCount(count);
 
                 log.info("✅ 센서 이벤트 처리 완료: sensorId={}, zoneId={}, level={} ({} topic)",
-                        dto.getSensorId(), dto.getZoneId(), dangerLevel, topic);
+                        sensorId, zoneId, dangerLevel, topic);
             }
         } catch (Exception e) {
             log.error("❌ 센서 이벤트 처리 실패: sensorId={}, zoneId={}", dto.getSensorId(), dto.getZoneId(), e);
