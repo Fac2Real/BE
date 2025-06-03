@@ -4,6 +4,7 @@ import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogRepoServi
 import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
 import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
+import com.factoreal.backend.domain.notifyLog.service.NotifyLogService;
 import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
 import com.factoreal.backend.domain.stateStore.InMemoryZoneSensorStateStore;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
@@ -14,10 +15,10 @@ import com.factoreal.backend.messaging.service.AutoControlService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class SensorEventProcessorTest {
@@ -27,7 +28,6 @@ class SensorEventProcessorTest {
     AbnormalLogRepoService repoSvc = mock(AbnormalLogRepoService.class);
     AlarmEventService alarmSvc = mock(AlarmEventService.class);
     WebSocketSender ws = mock(WebSocketSender.class);
-
     InMemoryZoneSensorStateStore store = new InMemoryZoneSensorStateStore();
     SensorEventProcessor processor;
 

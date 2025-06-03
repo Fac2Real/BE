@@ -1,19 +1,20 @@
 package com.factoreal.backend.messaging.kafka.processor;
 
 import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogRepoService;
+import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
 import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
+import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
+import com.factoreal.backend.domain.notifyLog.service.NotifyLogService;
 import com.factoreal.backend.domain.stateStore.InMemoryZoneWorkerStateStore;
 import com.factoreal.backend.domain.zone.application.ZoneHistoryRepoService;
 import com.factoreal.backend.domain.zone.application.ZoneHistoryService;
 import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.domain.zone.entity.ZoneHist;
 import com.factoreal.backend.messaging.kafka.dto.WearableKafkaDto;
-import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.messaging.kafka.strategy.enums.AlarmEventDto;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
 import com.factoreal.backend.messaging.kafka.strategy.enums.WearableDataType;
 import com.factoreal.backend.messaging.sender.WebSocketSender;
-import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
 import com.factoreal.backend.messaging.service.AlarmEventService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

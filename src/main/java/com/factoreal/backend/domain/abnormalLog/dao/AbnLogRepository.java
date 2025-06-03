@@ -2,9 +2,12 @@ package com.factoreal.backend.domain.abnormalLog.dao;
 
 import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
+import com.factoreal.backend.domain.zone.entity.Zone;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -27,4 +30,23 @@ public interface AbnLogRepository extends JpaRepository<AbnormalLog,Long> {
 
     /** 일정 기간의 Abn 로그를 조회하는 기능 */
     List<AbnormalLog> findByDetectedAtBetween(LocalDateTime from, LocalDateTime to);
+
+    @Query("""
+        SELECT a
+        FROM AbnormalLog a
+        WHERE a.targetType = :targetType
+          AND a.targetId IN (
+              SELECT s.sensorId
+              FROM Sensor s
+              WHERE s.zone = :zone
+          )
+          AND a.dangerLevel = :dangerLevel
+        ORDER BY a.detectedAt DESC
+        LIMIT 1
+    """)
+    Optional<AbnormalLog> findLatestSensorLogInZoneWithDangerLevel(
+        @Param("targetType") TargetType targetType,
+        @Param("zone") Zone zone,
+        @Param("dangerLevel") Integer dangerLevel
+    );
 }
