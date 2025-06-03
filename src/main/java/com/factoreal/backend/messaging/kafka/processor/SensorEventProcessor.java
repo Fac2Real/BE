@@ -70,22 +70,44 @@ public class SensorEventProcessor {
                 TargetType targetType = topicToLogType(topic);
 
                 // 이전 위험도 계산
+                RiskLevel prevZoneSensorRiskLevel = zoneSensorStateStore.getZoneRiskLevel(zoneId);
                 RiskLevel prevSensorRiskLevel = zoneSensorStateStore.getSensorRiskLevel(zoneId, sensorId);
+
+                // 0. zoneSensorStateStore 업데이트
+                zoneSensorStateStore.setSensorRiskLevel(zoneId, sensorId, riskLevel);
+
+                // 현재 위험도 계산
+                RiskLevel nowZoneSensorRiskLevel = zoneSensorStateStore.getZoneRiskLevel(zoneId);
+                RiskLevel zoneWorkerRiskLevel = zoneWorkerStateStore.getZoneRiskLevel(zoneId);
 
                 // WebSocket 알림 전송
                 // 1. 히트맵 전송
-                RiskLevel workerRiskLevel = zoneWorkerStateStore.getZoneRiskLevel(zoneId);
-                if (riskLevel.getPriority() >= workerRiskLevel.getPriority()) {
-                    webSocketSender.sendDangerLevel(zoneId, dto.getSensorType(), dangerLevel);
-                } else if (prevSensorRiskLevel.getPriority() >= workerRiskLevel.getPriority()) {
-                    webSocketSender.sendDangerLevel(zoneId, WearableDataType.heartRate.name(), workerRiskLevel.getPriority());
+                // 만약 존의 현재 Sensor 위험도가 Worker 위험도보다 크거나 같을 경우
+                if (nowZoneSensorRiskLevel.getPriority() >= zoneWorkerRiskLevel.getPriority()) {
+                    // 존의 현재 Sensor 위험도가 이전 Sensor 위험도보다 크면
+                    if (nowZoneSensorRiskLevel.getPriority() >= prevZoneSensorRiskLevel.getPriority()) {
+                        // 클라이언트에게 이벤트가 발생한 센서를 기반으로 sendDangerLevel 보냄
+                        webSocketSender.sendDangerLevel(zoneId,
+                                dto.getSensorType(), nowZoneSensorRiskLevel.getPriority());
+                    }
+                    // 존의 현재 Sensor 위험도가 이전 Sensor 위험도보다 작다면
+                    else {
+                        // 클라이언트에게 존에서 RiskLevel 높은 센서를 기반으로 sendDangerLevel 보냄
+                        webSocketSender.sendDangerLevel(zoneId,
+                                zoneSensorStateStore.getHighestRiskSensor(zoneId).getSensorType().name(),
+                                nowZoneSensorRiskLevel.getPriority());
+                    }
+                }
+                // 존의 현재 Sensor 위험도가 Worker 위험도보다 작고, 과거 Sensor 위험도가 Worker 위험도보다 크면
+                else if (prevZoneSensorRiskLevel.getPriority() >= zoneWorkerRiskLevel.getPriority()) {
+                    // 클라이언트에게 Worker 위험도를 기반으로 sendDangerLevel 보냄
+                    webSocketSender.sendDangerLevel(zoneId,
+                            WearableDataType.heartRate.name(), zoneWorkerRiskLevel.getPriority());
                 }
 
+                // 이벤트 Sensor에 대한 RiskLevel이 변경되면
                 if (prevSensorRiskLevel.getPriority() != riskLevel.getPriority()) {
-                    // 2-1. state 업데이트
-                    zoneSensorStateStore.setSensorRiskLevel(zoneId, sensorId, riskLevel);
-
-                    // 2-2. 이상 로그 저장
+                    // 2-1. 이상 로그 저장
                     AbnormalLog abnLog = abnormalLogService.saveAbnormalLogFromSensorKafkaDto(
                             dto, sensorType, riskLevel, targetType
                     );
@@ -95,7 +117,7 @@ public class SensorEventProcessor {
                     } catch (Exception e) {
                         log.info("자동 제어 기능은 제작중인 기능입니다. Todo 입니다.");
                     }
-                    // 2-3. 위험 알림 전송 -> 위험도별 Websocket + wearable + Slack(SMS 대체)
+                    // 2-2. 위험 알림 전송 -> 위험도별 Websocket + wearable + Slack(SMS 대체)
                     // Todo : (As-is) 전략 기반 startAlarm() 메서드 담당자 확인 필요 -> 확인됨
                     alarmEventService.startAlarm(dto, abnLog, dangerLevel);
                 }

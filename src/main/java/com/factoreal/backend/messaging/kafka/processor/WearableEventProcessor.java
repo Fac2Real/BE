@@ -70,28 +70,48 @@ public class WearableEventProcessor {
                     });
 
             // 이전 위험도 계산
+            RiskLevel prevZoneWorkerRiskLevel = zoneWorkerStateStore.getZoneRiskLevel(zoneId);
             RiskLevel prevWorkerRiskLevel = zoneWorkerStateStore.getWorkerRiskLevel(workerId);
+
+            // 0. zoneWorkerStateStore 업데이트
+            zoneWorkerStateStore.setWorkerRiskLevel(zoneId, workerId, riskLevel);
+
+            // 현재 위험도 계산
+            RiskLevel nowZoneWorkerRiskLevel = zoneWorkerStateStore.getZoneRiskLevel(zoneId);
+            RiskLevel zoneSensorRiskLevel = zoneSensorStateStore.getZoneRiskLevel(zoneId);
 
             // 타겟타입이 항상 WEARABLE이므로 TargetType.Worker 바로 사용
             // WebSocket 알림 전송
             // 1. 히트맵 전송
-            RiskLevel sensorRiskLevel = zoneSensorStateStore.getZoneRiskLevel(zoneId);
-            if (riskLevel.getPriority() >= sensorRiskLevel.getPriority()) {
-                webSocketSender.sendDangerLevel(zoneId, WearableDataType.heartRate.name(), dangerLevel);
-            } else if (prevWorkerRiskLevel.getPriority() >= sensorRiskLevel.getPriority()) {
-                webSocketSender.sendDangerLevel(zoneId, zoneSensorStateStore.getHighestRiskSensor(zoneId).getSensorType().name(), sensorRiskLevel.getPriority());
+            // 만약 존의 현재 Worker 위험도가 Sensor 위험도보다 크거나 같을 경우
+            if (nowZoneWorkerRiskLevel.getPriority() >= zoneSensorRiskLevel.getPriority()) {
+                // 존의 현재 Worker 위험도가 이전 Worker 위험도보다 크면
+                if (nowZoneWorkerRiskLevel.getPriority() >= prevZoneWorkerRiskLevel.getPriority()) {
+                    // 클라이언트에게 이벤트가 발생한 Worker 기반으로 sendDangerLevel 보냄
+                    webSocketSender.sendDangerLevel(zoneId, WearableDataType.heartRate.name(), nowZoneWorkerRiskLevel.getPriority());
+                }
+                // 존의 현재 Worker 위험도가 이전 Worker 위험도보다 작다면
+                else {
+                    // 클라이언트에게 존에서 RiskLevel 높은 Worker 기반으로 sendDangerLevel 보냄 <TODO: WearableDataType 추가시 변경 요망>
+                    webSocketSender.sendDangerLevel(zoneId, WearableDataType.heartRate.name(), nowZoneWorkerRiskLevel.getPriority());
+                }
+            }
+            // 존의 현재 Worker 위험도가 Sensor 위험도보다 작고, 과거 Worker 위험도가 Sensor 위험도보다 크면
+            else if (prevZoneWorkerRiskLevel.getPriority() >= zoneSensorRiskLevel.getPriority()) {
+                // 클라이언트에게 Sensor 위험도를 기반으로 sendDangerLevel 보냄
+                webSocketSender.sendDangerLevel(zoneId,
+                        zoneSensorStateStore.getHighestRiskSensor(zoneId).getSensorType().name(),
+                        zoneSensorRiskLevel.getPriority());
             }
 
+            // 이벤트 Worker에 대한 RiskLevel이 변경되면
             if (prevWorkerRiskLevel.getPriority() != riskLevel.getPriority()) {
-                // 2-1. state 업데이트
-                zoneWorkerStateStore.setWorkerRiskLevel(zoneId, workerId, riskLevel);
-
-                // 2-2. abnormalLog 기록
+                // 2-1. abnormalLog 기록
                 AbnormalLog abnormalLog = abnormalLogService.saveAbnormalLogFromWearableKafkaDto(
                         dto, wearableDataType, riskLevel, TargetType.Worker
                 );
 
-                // 2-3. 상세 화면으로 웹소켓 보내는 것을 생략
+                // 2-2. 상세 화면으로 웹소켓 보내는 것을 생략
                 // 3. 위험 알림 전송 -> 팝업으로 알려주기
                 AlarmEventDto alarmEventDto = alarmEventService.generateAlarmDto(dto, abnormalLog, riskLevel);
                 webSocketSender.sendDangerAlarm(alarmEventDto);
