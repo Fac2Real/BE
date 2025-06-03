@@ -44,7 +44,6 @@ class WearableEventProcessorTest {
     private AlarmEventService alarmSvc = mock(AlarmEventService.class);
     private ZoneHistoryService historySvc = mock(ZoneHistoryService.class);
     private ZoneHistoryRepoService historyRepo = mock(ZoneHistoryRepoService.class);
-    private NotifyLogService notifyLogSvc = mock(NotifyLogService.class);
 
     // ── system under test ────────────────────────────────────
     private InMemoryZoneWorkerStateStore store = new InMemoryZoneWorkerStateStore();
@@ -76,8 +75,7 @@ class WearableEventProcessorTest {
                 alarmSvc,
                 store,
                 historySvc,
-                historyRepo,
-            notifyLogSvc
+                historyRepo
         );
         // 공통 stub
         when(repoSvc.countByIsReadFalse()).thenReturn(3L);

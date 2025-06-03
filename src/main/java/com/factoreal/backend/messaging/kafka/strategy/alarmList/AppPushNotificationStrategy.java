@@ -33,7 +33,7 @@ public class AppPushNotificationStrategy implements NotificationStrategy {
             fcmService.sendZoneSafety(
                 alarmEventDto.getZoneId(),
                 alarmEventDto.getRiskLevel().getPriority(),
-                TriggerType.MANUAL,
+                TriggerType.AUTOMATIC,
                 LocalDateTime.parse(alarmEventDto.getTime()),
                 abnormalLog
             );

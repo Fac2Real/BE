@@ -15,10 +15,10 @@ import com.factoreal.backend.messaging.service.AutoControlService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class SensorEventProcessorTest {
@@ -28,14 +28,13 @@ class SensorEventProcessorTest {
     AbnormalLogRepoService repoSvc = mock(AbnormalLogRepoService.class);
     AlarmEventService alarmSvc = mock(AlarmEventService.class);
     WebSocketSender ws = mock(WebSocketSender.class);
-    NotifyLogService notifySvc = mock(NotifyLogService.class);
     InMemoryZoneSensorStateStore store = new InMemoryZoneSensorStateStore();
     SensorEventProcessor processor;
 
     @BeforeEach
     void setUp() {
         processor = new SensorEventProcessor(
-                auto, abnormalSvc, repoSvc, alarmSvc, ws, store,notifySvc);
+                auto, abnormalSvc, repoSvc, alarmSvc, ws, store);
     }
 
     @Test

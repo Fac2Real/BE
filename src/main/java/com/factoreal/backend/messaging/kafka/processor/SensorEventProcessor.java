@@ -1,23 +1,19 @@
 package com.factoreal.backend.messaging.kafka.processor;
 
 import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogRepoService;
-import com.factoreal.backend.domain.notifyLog.dto.TriggerType;
-import com.factoreal.backend.domain.notifyLog.service.NotifyLogService;
-import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
+import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
 import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
+import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
 import com.factoreal.backend.domain.stateStore.InMemoryZoneSensorStateStore;
-import com.factoreal.backend.messaging.sender.WebSocketSender;
-import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
-import com.factoreal.backend.messaging.service.AlarmEventService;
-import com.factoreal.backend.messaging.service.AutoControlService;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
 import com.factoreal.backend.messaging.kafka.strategy.enums.SensorType;
+import com.factoreal.backend.messaging.sender.WebSocketSender;
+import com.factoreal.backend.messaging.service.AlarmEventService;
+import com.factoreal.backend.messaging.service.AutoControlService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
 
 /**
  * SensorEventProcessor 클래스는 Kafka로부터 전달받은 센서 데이터를 분석 및 처리하는 클래스입니다.
@@ -33,7 +29,6 @@ public class SensorEventProcessor {
     private final AlarmEventService alarmEventService;
     private final WebSocketSender webSocketSender;
     private final InMemoryZoneSensorStateStore zoneSensorStateStore;
-    private final NotifyLogService notifyLogService;
     /**
      * 센서 Kafka 메시지 처리
      *
@@ -90,25 +85,7 @@ public class SensorEventProcessor {
                     }
                     // 2-3. 위험 알림 전송 -> 위험도별 Websocket + wearable + Slack(SMS 대체)
                     // Todo : (As-is) 전략 기반 startAlarm() 메서드 담당자 확인 필요 -> 확인됨
-                    try {
-                        alarmEventService.startAlarm(dto, abnLog, dangerLevel);
-                        notifyLogService.saveNotifyLogFromWebsocket(
-                            "/topic/alarm",
-                            Boolean.TRUE,
-                            TriggerType.AUTOMATIC,
-                            LocalDateTime.parse(dto.getTime()),
-                            abnLog.getId()
-                        );
-                    }catch (Exception e){
-                        notifyLogService.saveNotifyLogFromWebsocket(
-                            "/topic/alarm",
-                            Boolean.FALSE,
-                            TriggerType.AUTOMATIC,
-                            LocalDateTime.parse(dto.getTime()),
-                            abnLog.getId()
-                        );
-                    }
-
+                    alarmEventService.startAlarm(dto, abnLog, dangerLevel);
                 }
 
                 // 3. 읽지 않은 수 전송

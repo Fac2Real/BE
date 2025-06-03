@@ -1,8 +1,9 @@
 package com.factoreal.backend.messaging.kafka.processor;
 
 import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogRepoService;
+import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
 import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
-import com.factoreal.backend.domain.notifyLog.dto.TriggerType;
+import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.domain.notifyLog.service.NotifyLogService;
 import com.factoreal.backend.domain.stateStore.InMemoryZoneWorkerStateStore;
 import com.factoreal.backend.domain.zone.application.ZoneHistoryRepoService;
@@ -10,12 +11,10 @@ import com.factoreal.backend.domain.zone.application.ZoneHistoryService;
 import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.domain.zone.entity.ZoneHist;
 import com.factoreal.backend.messaging.kafka.dto.WearableKafkaDto;
-import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.messaging.kafka.strategy.enums.AlarmEventDto;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
 import com.factoreal.backend.messaging.kafka.strategy.enums.WearableDataType;
 import com.factoreal.backend.messaging.sender.WebSocketSender;
-import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
 import com.factoreal.backend.messaging.service.AlarmEventService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,7 +38,6 @@ public class WearableEventProcessor {
     private final InMemoryZoneWorkerStateStore zoneWorkerStateStore;
     private final ZoneHistoryService zoneHistoryService;
     private final ZoneHistoryRepoService zoneHistoryRepoService;
-    private final NotifyLogService notifyLogService;
     private static final String DEFAULT_ZONE_ID = "00000000000000-000";
 
     /**
@@ -90,24 +88,7 @@ public class WearableEventProcessor {
                 // 2-3. 상세 화면으로 웹소켓 보내는 것을 생략
                 // 3. 위험 알림 전송 -> 팝업으로 알려주기
                 AlarmEventDto alarmEventDto = alarmEventService.generateAlarmDto(dto, abnormalLog, riskLevel);
-                try {
-                    webSocketSender.sendDangerAlarm(alarmEventDto);
-                    notifyLogService.saveNotifyLogFromWebsocket(
-                        "/topic/alarm",
-                        Boolean.TRUE,
-                        TriggerType.AUTOMATIC,
-                        LocalDateTime.parse(alarmEventDto.getTime()),
-                        abnormalLog.getId()
-                    );
-                }catch (Exception e){
-                    notifyLogService.saveNotifyLogFromWebsocket(
-                        "/topic/alarm",
-                        Boolean.FALSE,
-                        TriggerType.AUTOMATIC,
-                        LocalDateTime.parse(alarmEventDto.getTime()),
-                        abnormalLog.getId()
-                    );
-                }
+                webSocketSender.sendDangerAlarm(alarmEventDto);
             }
 
             // 4. 읽지 않은 알림 전송
