@@ -1,8 +1,11 @@
 package com.factoreal.backend.domain.stateStore;
 
+import com.factoreal.backend.domain.sensor.application.SensorRepoService;
+import com.factoreal.backend.domain.sensor.entity.Sensor;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
 import org.springframework.stereotype.Component;
 
+import java.util.Comparator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicIntegerArray;
@@ -12,6 +15,12 @@ public class InMemoryZoneSensorStateStore implements ZoneSensorStateStore {
     private final ConcurrentMap<String, AtomicIntegerArray> zoneStateCounts = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, ConcurrentMap<String, RiskLevel>> zoneSensorStates = new ConcurrentHashMap<>();
     private static final RiskLevel[] PRIORITY_TO_LEVEL = RiskLevel.values();
+
+    private final SensorRepoService sensorRepoService;
+
+    public InMemoryZoneSensorStateStore(SensorRepoService sensorRepoService) {
+        this.sensorRepoService = sensorRepoService;
+    }
 
     @Override
     public RiskLevel getZoneRiskLevel(String zoneId) {
@@ -38,6 +47,21 @@ public class InMemoryZoneSensorStateStore implements ZoneSensorStateStore {
         }
 
         return sensorStates.getOrDefault(sensorId, RiskLevel.INFO);
+    }
+
+    @Override
+    public Sensor getHighestRiskSensor(String zoneId) {
+        ConcurrentMap<String, RiskLevel> sensorStates = zoneSensorStates.get(zoneId);
+
+        // 1) 해당 존(zone)에 센서가 없으면 바로 null
+        if (sensorStates == null || sensorStates.isEmpty()) {
+            return null;
+        }
+
+        return sensorStates.entrySet().stream()
+                .max(Comparator.comparingInt(e -> e.getValue().getPriority()))
+                .flatMap(e -> sensorRepoService.findById(e.getKey())) // Optional<Sensor>
+                .orElse(null);
     }
 
     @Override
