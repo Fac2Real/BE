@@ -142,14 +142,19 @@ public class AbnormalLogService {
     }
 
     public List<AbnormalLogResponse> findLatestAbnormalLogsForTargets(TargetType targetType, List<String> targetIds) {
-        return targetIds.stream()
-                .map(targetId ->
-                        abnormalLogRepoService.findFirstByTargetTypeAndTargetIdOrderByDetectedAtDesc(targetType, targetId)
-                                .map(AbnormalLog::fromEntity) // 또는 objectMapper.convertValue(...)
-                                .orElse(null) // 값이 없으면 null
-                )
-                .filter(Objects::nonNull) // null 제거
+        log.info("findLatestAbnormalLogsForTargets 호출 - targetType: {}, targetIds: {}", targetType, targetIds);
+        List<AbnormalLogResponse> responses = targetIds.stream()
+                .map(targetId -> {
+                    Optional<AbnormalLog> latestLog = abnormalLogRepoService.findFirstByTargetTypeAndTargetIdOrderByDetectedAtDesc(targetType, targetId);
+                    log.info("작업자 ID: {} 의 최신 로그: {}", targetId, latestLog.orElse(null));
+                    return latestLog
+                            .map(AbnormalLogResponse::from)
+                            .orElse(null);
+                })
+                .filter(Objects::nonNull)
                 .toList();
+        log.info("최종 반환되는 응답 목록: {}", responses);
+        return responses;
     }
 
     public Page<AbnormalLogResponse> findAbnormalLogsByTargetId(AbnormalPagingRequest abnormalPagingRequest, TargetType targetType, String targetId) {

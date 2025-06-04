@@ -20,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +47,12 @@ public class WorkerService {
     public List<WorkerDetailResponse> getAllWorkers() {
         log.info("전체 작업자 목록 조회");
         List<Worker> workers = workerRepoService.findAll();
+        
+        if (workers.isEmpty()) {
+            log.info("등록된 작업자가 없습니다.");
+            return new ArrayList<>();
+        }
+        
         // workerId 목록
         List<String> workerIds = workers.stream()
                 .map(Worker::getWorkerId)
@@ -54,39 +61,63 @@ public class WorkerService {
         // AbnormalLog 에서 작업자 상태 조회
         List<AbnormalLogResponse> statusList = abnormalLogService.
                 findLatestAbnormalLogsForTargets(TargetType.Worker, workerIds);
-        // HistZone에서 작업자 위치 조회
-//        List<ZoneHist> zoneHistsList = workerIds.stream()
-//                .map(workerId -> zoneHistoryRepository.findByWorker_WorkerIdAndExistFlag(workerId, 1))
-//                .toList();
 
         // 상태 Map<workerId, status>
         Map<String, Integer> statusMap = statusList.stream()
-                .collect(Collectors.toMap(AbnormalLogResponse::getTargetId, AbnormalLogResponse::getDangerLevel));
+                .collect(
+                        Collectors.toMap(
+                                AbnormalLogResponse::getTargetId, 
+                                AbnormalLogResponse::getDangerLevel
+                                )
+                        );
 
         // 위치 Map<workerId, zoneName>
         Map<String, Map<String, String>> zoneMap = workerIds.stream()
                 .collect(Collectors.toMap(
                         workerId -> workerId,
                         workerId -> {
-                            ZoneHist zh = zoneHistoryRepoService.findByWorker_WorkerIdAndExistFlag(workerId, 1);
-                            if (zh == null || zh.getZone() == null) {
-                                return new HashMap<>();
-                            }
                             Map<String, String> zone = new HashMap<>();
-                            zone.put("zoneId", zh.getZone().getZoneId());
-                            zone.put("zoneName", zh.getZone().getZoneName());
+                            try {
+                                ZoneHist zh = zoneHistoryRepoService.findByWorker_WorkerIdAndExistFlag(workerId, 1);
+                                if (zh != null && zh.getZone() != null) {
+                                    zone.put("zoneId", zh.getZone().getZoneId());
+                                    zone.put("zoneName", zh.getZone().getZoneName());
+                                } else {
+                                    zone.put("zoneId", "00000000000000-000");
+                                    zone.put("zoneName", "대기실");
+                                }
+                            } catch (Exception e) {
+                                log.error("작업자 위치 조회 중 오류 발생. workerId: {}, error: {}", workerId, e.getMessage());
+                                zone.put("zoneId", "00000000000000-000");
+                                zone.put("zoneName", "대기실");
+                            }
                             return zone;
                         }
                 ));
+
         return workers.stream()
-                .map(worker -> WorkerDetailResponse.fromEntity(
-                        worker,
-                        workerZoneRepoService.findByWorkerWorkerIdAndManageYnIsTrue(worker.getWorkerId())
-                                .isPresent(),
-                        statusMap.getOrDefault(worker.getWorkerId(),0),
-                        zoneMap.get(worker.getWorkerId()).getOrDefault("zoneId","00000000000000-000"),
-                        zoneMap.get(worker.getWorkerId()).getOrDefault("zoneName","대기실")
-                ))
+                .map(worker -> {
+                    try {
+                        Map<String, String> zoneInfo = zoneMap.getOrDefault(worker.getWorkerId(), new HashMap<>());
+                        return WorkerDetailResponse.fromEntity(
+                                worker,
+                                workerZoneRepoService.findByWorkerWorkerIdAndManageYnIsTrue(worker.getWorkerId())
+                                        .isPresent(),
+                                statusMap.getOrDefault(worker.getWorkerId(), 0),
+                                zoneInfo.getOrDefault("zoneId", "00000000000000-000"),
+                                zoneInfo.getOrDefault("zoneName", "대기실")
+                        );
+                    } catch (Exception e) {
+                        log.error("작업자 정보 변환 중 오류 발생. worker: {}, error: {}", worker.getWorkerId(), e.getMessage());
+                        return WorkerDetailResponse.fromEntity(
+                                worker,
+                                false,
+                                0,
+                                "00000000000000-000",
+                                "대기실"
+                        );
+                    }
+                })
                 .collect(Collectors.toList());
     }
 
