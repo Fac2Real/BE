@@ -76,6 +76,13 @@ dependencies {
 
     // Slack
     implementation("com.slack.api:slack-api-client:1.45.3")
+
+    // CSV
+    implementation("com.opencsv:opencsv:5.9")
+    
+    // Java 메일 서비스
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+
 }
 
 tasks.named('test') {
