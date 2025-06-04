@@ -21,10 +21,9 @@ public class EquipHistory {
     @ManyToOne(fetch = FetchType.LAZY)
     private Equip equip; // 기록되는 설비의 id
 
-    @Column(name = "date", nullable = false)
-    private LocalDate date; // 교체일자 (YYYY-MM-DD)
+    @Column(name = "accident_date", nullable = false)
+    private LocalDate accidentDate; // 예상 점검일자
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false)
-    private EquipHistoryType type; // 기록의 종류 (UPDATE, ACCIDENT)
+    @Column(name = "check_date")
+    private LocalDate checkDate; // 실제 점검일자
 }
