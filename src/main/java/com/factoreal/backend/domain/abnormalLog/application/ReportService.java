@@ -46,7 +46,7 @@ public class ReportService {
      * 오늘로부터 한달 이전의 리포트의 상세 정보를 열람하기 위한 서비스입니다.
      * 각 타입별 경고 횟수, 위험 횟수를 반환합니다.
      */
-    public MonthlyDetailResponse getPrevMonthDetail(){
+    public MonthlyDetailResponse getPrevMonth(){
 
         List<AbnormalLog> logs = abnLogRepoService.findPreview30daysLog();
 
@@ -95,7 +95,7 @@ public class ReportService {
         // 2️⃣ 문자열 생성  →  2025.04.30 ~ 2025.05.30
         String monthPeriod = fmt.format(start) + " ~ " + fmt.format(end);
 
-        List<DangerStatResponse> stats = getPrevMonthDetail().getStats();
+        List<DangerStatResponse> stats = getPrevMonth().getStats();
         List<GradeSummaryResponse> summaryList = stats.stream()
                 .map(s -> GradeSummaryResponse.builder()
 //                        .latest30days(monthPeriod)
