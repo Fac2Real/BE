@@ -65,8 +65,8 @@ class ReportServiceTest {
 
     /** 전달 한 달치 상세 통계 */
     @Test
-    @DisplayName("getPrevMonthDetail() - 경고/위험 건수 올바르게 집계")
-    void getPrevMonthDetail() {
+    @DisplayName("getPrevMonth() - 경고/위험 건수 올바르게 집계")
+    void getPrevMonth() {
         // given : 가짜 로그 6건 (Worker 3, Sensor 2, Equip 1)
         List<AbnormalLog> fakeLogs = List.of(
                 createLog(TargetType.Worker, 1),
@@ -173,21 +173,6 @@ class ReportServiceTest {
                 .build();
     }
 
-    @Test
-    @DisplayName("buildLast30DaysReport() - 최근 30일에 대해 공간별로 분류한 이상치 상세 리포트")
-    void buildLast30DaysReport() {
-
-    }
-    @Test
-    @DisplayName("buildZoneBlock() - 공간 하나에 대한 이상치들을 정리하는 메서드")
-    void buildZoneBlock() {
-    }
-    @Test
-    @DisplayName("toDetail() - 이상치 객체의 반환할 구조를 만들어 주는 메서드")
-    void toDetail(){
-
-    }
-
 
     /* ── ② 테스트 대상 ──────────────────────────── */
 
@@ -218,7 +203,7 @@ class ReportServiceTest {
 
     /* ── ④ 실제 테스트 ─────────────────────────── */
     @Test
-    @DisplayName("buildLast30DaysReport() : 기본 Count 계산")
+    @DisplayName("buildLast30DaysReport() : 최근 30일에 대한 이상치 로그의 반환과 갯수를 잘 파악하는지 테스트")
     void buildLast30DaysReport_basicCounts() throws JsonProcessingException {
         /* 준비 : Zone 1개, Equip 1대  */
         ZoneDetailResponse zm = zone("Z1", "생산 A",
