@@ -19,15 +19,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.lang.annotation.Target;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.Month;
-import java.time.YearMonth;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -119,41 +113,50 @@ public class ReportService {
         return "C";
     }
 
+    /**
+     * 전날 기준 최근 30일 이상치 조회
+     */
     public PeriodDetailReport buildLast30DaysReport() {
-        // ────────────────────────────────────────────────
-        // 2-1. 데이터 준비
-        // ────────────────────────────────────────────────
-
-        // (a) 조회 기간: 오늘 기준 30일 전 ~ 지금
         LocalDateTime end = LocalDateTime.now().minusDays(1);
         LocalDateTime start = end.minusDays(30);
 
-        // (b) Zone 트리 뼈대: ZoneService#getZoneItems() 호출
-        //     (예: ZoneDetailResponse 에는 zoneId, zoneName, envList, equipList 등이 들어 있음)
-        List<ZoneDetailResponse> zoneMeta = zoneService.getZoneItems();
-
-        // (c) 30일치 위험·경고 이상치 AbnormalLog 리스트
-        //     AbnormalLogRepoService#findPreview30daysLog() 는
-        //     이미 dangerLevel==1 or 2 로 필터링된 로그를 반환한다고 가정
         List<AbnormalLog> logs = abnormalLogRepoService.findPreview30daysLog();
 
-        // (d) AbnormalLog 의 ID 들만 추출 → ControlLog 한꺼번에 조회
+        return buildPeriodDetailReport(start, end, logs);
+    }
+
+    /**
+     * 이전달 이상치 로그 조회
+     */
+    public PeriodDetailReport buildLastMonthReport() {
+        LocalDate today = LocalDate.now();
+        LocalDate firstDay = today.minusMonths(1).withDayOfMonth(1);
+        LocalDate lastDay  = firstDay.withDayOfMonth(firstDay.lengthOfMonth());
+
+        LocalDateTime start = firstDay.atStartOfDay();
+        LocalDateTime end   = lastDay.atTime(LocalTime.MAX);
+
+        List<AbnormalLog> logs = abnormalLogRepoService.findPreviousMonthLogs();
+
+        return buildPeriodDetailReport(start, end, logs);
+    }
+
+    private PeriodDetailReport buildPeriodDetailReport(LocalDateTime start, LocalDateTime end, List<AbnormalLog> logs) {
+        List<ZoneDetailResponse> zoneMeta = zoneService.getZoneItems();
+
         List<Long> abnIds = logs.stream()
                 .map(AbnormalLog::getId)
                 .toList();
 
-        // ControlLogRepository 에는 AbnormalLog ID 리스트로 대응 기록을 모두 꺼내오는 메서드.
         Map<Long, ControlLog> ctlMap = controlLogRepoService.getControlLogs(abnIds);
 
-        // ❶ 로그·ControlLog 준비한 후 …
-        Map<String,String> sensorToEquip = sensorRepoService
-                .sensorIdToEquipId(
-                        logs.stream()
-                                .filter(l -> l.getTargetType()==TargetType.Equip)
-                                .map(AbnormalLog::getTargetId)
-                                .distinct()
-                                .toList()
-                );
+        Map<String, String> sensorToEquip = sensorRepoService.sensorIdToEquipId(
+                logs.stream()
+                        .filter(l -> l.getTargetType() == TargetType.Equip)
+                        .map(AbnormalLog::getTargetId)
+                        .distinct()
+                        .toList()
+        );
 
         Map<String, Worker> workerMap = workerRepoService.findWorkersMap(
                 logs.stream()
@@ -161,19 +164,11 @@ public class ReportService {
                         .map(AbnormalLog::getTargetId)
                         .distinct()
                         .toList()
-                );
-        // ────────────────────────────────────────────────
-        // 2-2. Zone 트리(뼈대) + AbnormalLog + ControlLog 합치기 ++ 설비별 센서 매핑 정보도 추가
-        // ────────────────────────────────────────────────
+        );
 
         List<ZoneBlock> zones = zoneMeta.stream()
                 .map(zm -> buildZoneBlock(zm, logs, ctlMap, sensorToEquip, workerMap))
                 .toList();
-
-
-        // ────────────────────────────────────────────────
-        // 2-3. 최종 PeriodDetailReport 생성
-        // ────────────────────────────────────────────────
 
         DateTimeFormatter f = DateTimeFormatter.ofPattern("yyyy.MM.dd");
         String period = f.format(start.toLocalDate()) + " ~ " + f.format(end.toLocalDate());
@@ -196,6 +191,7 @@ public class ReportService {
         List<AbnDetail> envAbn = zLogs.stream()
                 .filter(l -> l.getTargetType()==TargetType.Sensor)
                 .map(l -> toDetail(l, ctlMap.get(l.getId())))
+                .sorted(Comparator.comparing(AbnDetail::getDetectedAt))
                 .toList();
 
         // ② 작업자
@@ -216,6 +212,7 @@ public class ReportService {
                     List<AbnormalLog> eLogs = byEquip.getOrDefault(em.getEquipId(),List.of());
                     List<AbnDetail> fac = eLogs.stream()
                             .map(l -> toDetail(l, ctlMap.get(l.getId())))
+                            .sorted(Comparator.comparing(AbnDetail::getDetectedAt))
                             .toList();
                     return EquipBlock.builder()
                             .equipId(em.getEquipId())
@@ -237,6 +234,7 @@ public class ReportService {
 
                     List<AbnDetail> workerDetails = e.getValue().stream()
                             .map(l -> toDetail(l, ctlMap.get(l.getId())))
+                            .sorted(Comparator.comparing(AbnDetail::getDetectedAt))
                             .toList();
 
                     return WorkerBlock.builder()

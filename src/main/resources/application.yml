@@ -37,6 +37,19 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: false
 
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_SERVER_USERNAME}   # 보내는 메일 주소
+    password: ${MAIL_SERVER_PASSWORD}         # 앱 비밀번호 (계정보안 > 앱비밀번호 발급)
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
 # ===============================
 # Server Port
 # ===============================
