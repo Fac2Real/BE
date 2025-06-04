@@ -18,7 +18,7 @@ public class GrafanaClient {
 
     private final RestTemplateBuilder restTemplateBuilder;
 
-    @Value("${grafana.url}")
+    @Value("${grafana.url.inter}")
     private String url;
 
     @Value("${grafana.api-key}")
