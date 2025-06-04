@@ -2,6 +2,7 @@ package com.factoreal.backend.domain.abnormalLog.api;
 
 import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogRepoService;
 import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
+import com.factoreal.backend.domain.abnormalLog.application.ReportMailService;
 import com.factoreal.backend.domain.abnormalLog.application.ReportService;
 import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.dto.request.AbnormalPagingRequest;
@@ -32,6 +33,7 @@ public class AbnormalController {
     private final WebSocketSender webSocketSender;
     private final AbnormalLogRepoService abnormalLogRepoService;
     private final ReportService reportService;
+    private final ReportMailService reportMailService;
 
     // 전체 로그 조회
     @GetMapping
@@ -102,4 +104,12 @@ public class AbnormalController {
     public ResponseEntity<PeriodDetailReport> detail() {
         return ResponseEntity.ok(reportService.buildLast30DaysReport());
     }
+
+    @GetMapping("/send-report")
+    @Operation(summary = "공간 담당자들에게 이상치 리포트를 전송하는 테스트용 api", description = "메일 전송 체크를 위한 api")
+    public ResponseEntity<Void> sendReport() throws Exception {
+        reportMailService.sendMonthlyDetailReports();
+        return ResponseEntity.ok().build();
+    }
+
 }
