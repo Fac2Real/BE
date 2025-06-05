@@ -1,8 +1,9 @@
 package com.factoreal.backend.global.fileUtil;
 
+import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogRepoService;
 import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.*;
+import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.domain.controlLog.entity.ControlLog;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.opencsv.CSVWriter;
 import org.springframework.stereotype.Component;
 
@@ -15,16 +16,20 @@ import java.util.Map;
 @Component
 public class CsvUtil {
 
-    private final ObjectMapper om = new ObjectMapper();
+    private final AbnormalLogRepoService abnormalLogRepoService;
+
+    public CsvUtil(AbnormalLogRepoService abnormalLogRepoService) {
+        this.abnormalLogRepoService = abnormalLogRepoService;
+    }
 
     public Path writeReportAsCsv(PeriodDetailReport rpt, Map<Long, ControlLog> ctlMap) throws IOException {
         Path tmp = Files.createTempFile("PreviewMonthReport-", ".csv");
 
         try (CSVWriter w = new CSVWriter(new FileWriter(tmp.toFile()))) {
             // 헤더에 targetName 추가
-            w.writeNext(new String[]{"공간Id", "공간 이름", "이상치 유형", "작업자/설비 이름",
-                    "발생 시간", "이상치 내용", "위험 레벨", "이상치 값",
-                    "제어 타입", "제어 값", "점검일", "제어여부"
+            w.writeNext(new String[]{"공간Id", "공간 이름", "이상치 유형",
+                    "타겟 ID", "작업자/설비 이름","발생 시간", "이상치 내용",
+                    "위험 레벨", "이상치 값","제어 타입", "제어 값", "점검일", "제어여부"
             });
 
 
@@ -50,11 +55,14 @@ public class CsvUtil {
             Long abnId, Map<Long, ControlLog> ctlMap, String targetName
     ) {
         ControlLog ctl = ctlMap.get(abnId);
+        AbnormalLog abn = abnormalLogRepoService.findById(abnId);
+        String targetId = abn.getTargetId();
 
         w.writeNext(new String[]{
                 z.getZoneId(),
                 z.getZoneName(),
                 tp,
+                targetId,
                 targetName,
                 d.getDetectedAt().toString(),
                 String.valueOf(d.getAbnormalType()),
