@@ -13,13 +13,13 @@ import lombok.*;
 public class Worker {
 
     @Id
-    @Column(name = "worker_id", length = 100, nullable = false)
+    @Column(name = "worker_id", length = 100, nullable = false, unique = true)
     private String workerId;
 
     @Column(name = "name", length = 100)
     private String name;
 
-    @Column(name = "phone_number", length = 50)
+    @Column(name = "phone_number", length = 50, unique = true)
     private String phoneNumber; // 작업자 번호 (국가번호+전화번호의 조합) ex) +8201012345678
 
     @Column(name = "email", length = 100)

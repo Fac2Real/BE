@@ -1,19 +1,19 @@
 package com.factoreal.backend.domain.worker.dto.request;
 
-import java.util.List;
-
 import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 // 작업자 생성 요청 DTO (FE -> BE)
-public class CreateWorkerRequest {
+public class UpdateWorkerRequest {
   @Pattern(regexp = "^\\d{8}$")
   private String workerId; // 작업자 ID (사원 번호)
   private String name; // 작업자 이름
