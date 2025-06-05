@@ -292,7 +292,7 @@ public class ReportService {
 
         /* ① 기간 계산 : 어제~30일 전 */
         LocalDate yesterday = LocalDate.now().minusDays(1);
-        LocalDate startDay  = yesterday.minusDays(29);     // 총 30일
+        LocalDate startDay  = yesterday.minusDays(30);     // 총 30일
 
         LocalDateTime start = startDay.atStartOfDay();
         LocalDateTime end   = yesterday.atTime(LocalTime.MAX);
