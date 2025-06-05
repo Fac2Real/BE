@@ -93,17 +93,16 @@ public class ReportMailService {
             /* ── 3. 메일 발송 ──────────────────────────────── */
             MimeMessageHelper helper =
                     new MimeMessageHelper(mailSender.createMimeMessage(), true, "UTF-8");
-            helper.setSubject("[월간 이상치 리포트] " + zoneName);
+            helper.setSubject("[모니토리 " + prevMonthStr + " 이상치 리포트] " + zoneName);
             helper.setTo(managerEmail.toArray(String[]::new));
             helper.setText("""
-                <p>%s %s 담당자님, 안녕하세요.</p>
+                <p>%s - %s 담당자님, 안녕하세요. 모니토리 서비스입니다.</p>
                 <p>%s의 이상치 및 대응 현황을 첨부 드립니다.</p>
                 <ul>
                   <li>CSV : %s 이상치 데이터</li>
                 </ul>
                 """.formatted(zoneName, manager.getName() ,prevMonthStr, prevMonthStr), true);
             helper.addAttachment(csv.getFileName().toString(), csv.toFile());
-//            helper.addAttachment(pdf.getFileName().toString(), pdf.toFile());
 
             mailSender.send(helper.getMimeMessage());
             log.info("[{}] 리포트 메일 발송 완료 → {}", zoneName, managerEmail);
