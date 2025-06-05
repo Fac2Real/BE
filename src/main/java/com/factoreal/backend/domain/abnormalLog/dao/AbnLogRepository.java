@@ -49,4 +49,10 @@ public interface AbnLogRepository extends JpaRepository<AbnormalLog,Long> {
         @Param("zone") Zone zone,
         @Param("dangerLevel") Integer dangerLevel
     );
+
+    /**
+     * 30일 기간의 이상치(위험도 1과 2) 에 해당되는 ABN 로그를 불러오는 기능
+     */
+    List<AbnormalLog> findByDetectedAtBetweenAndDangerLevelIn(
+            LocalDateTime start, LocalDateTime end, List<Integer> dangerLevels);
 }

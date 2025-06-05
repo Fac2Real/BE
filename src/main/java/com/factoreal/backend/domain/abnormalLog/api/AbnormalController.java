@@ -11,6 +11,7 @@ import com.factoreal.backend.domain.abnormalLog.dto.response.GradeSummaryRespons
 import com.factoreal.backend.domain.abnormalLog.dto.response.MonthlyDetailResponse;
 import com.factoreal.backend.domain.abnormalLog.dto.response.MonthlyGradeSummaryResponse;
 import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.PeriodDetailReport;
+import com.factoreal.backend.domain.abnormalLog.dto.response.reportGraphResponse.GraphSummaryResponse;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.messaging.sender.WebSocketSender;
 import io.swagger.v3.oas.annotations.Operation;
@@ -110,6 +111,12 @@ public class AbnormalController {
     public ResponseEntity<Void> sendReport() throws Exception {
         reportMailService.sendMonthlyDetailReports();
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/graph-report")
+    @Operation(summary = "지난 30일 그래프용 이상치 횟수 집계", description = "이상치 횟수를 상황별로 보기 위한 api")
+    public GraphSummaryResponse getSummary() {
+        return reportService.buildLast30DaysGraph();
     }
 
 }

@@ -112,4 +112,8 @@ public class AbnormalLogRepoService{
         );
         return abnormalLog.get();
     }
+
+    public List<AbnormalLog> findByDetectedAtBetweenAndDangerLevelIn(LocalDateTime start, LocalDateTime end, List<Integer> integers) {
+        return abnLogRepository.findByDetectedAtBetweenAndDangerLevelIn(start, end, integers);
+    }
 }

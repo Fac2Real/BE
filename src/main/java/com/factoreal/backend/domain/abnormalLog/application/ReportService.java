@@ -6,6 +6,8 @@ import com.factoreal.backend.domain.abnormalLog.dto.response.GradeSummaryRespons
 import com.factoreal.backend.domain.abnormalLog.dto.response.MonthlyDetailResponse;
 import com.factoreal.backend.domain.abnormalLog.dto.response.MonthlyGradeSummaryResponse;
 import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.*;
+import com.factoreal.backend.domain.abnormalLog.dto.response.reportGraphResponse.Bar;
+import com.factoreal.backend.domain.abnormalLog.dto.response.reportGraphResponse.GraphSummaryResponse;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.domain.controlLog.entity.ControlLog;
 import com.factoreal.backend.domain.controlLog.service.ControlLogRepoService;
@@ -286,4 +288,48 @@ public class ReportService {
         );
     }
 
+    public GraphSummaryResponse buildLast30DaysGraph() {
+
+        /* ① 기간 계산 : 어제~30일 전 */
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+        LocalDate startDay  = yesterday.minusDays(29);     // 총 30일
+
+        LocalDateTime start = startDay.atStartOfDay();
+        LocalDateTime end   = yesterday.atTime(LocalTime.MAX);
+
+        /* ② 로그 조회 (dangerLevel 1 | 2 만) */
+        List<AbnormalLog> logs = abnormalLogRepoService.findByDetectedAtBetweenAndDangerLevelIn(
+                start, end, List.of(1, 2));
+
+        /* ③ 그래프 1 : TargetType 별 */
+        List<Bar> typeStats = logs.stream()
+                .collect(Collectors.groupingBy(AbnormalLog::getTargetType, Collectors.counting()))
+                .entrySet().stream()
+                .map(e -> new Bar(e.getKey().name(), e.getValue()))
+                .sorted(Comparator.comparingLong(Bar::getCnt).reversed())
+                .toList();
+
+        /* ④ 그래프 2 : 날짜(월-일) 별 */
+        DateTimeFormatter mmdd = DateTimeFormatter.ofPattern("MM-dd");
+        List<Bar> dateStats = logs.stream()
+                .collect(Collectors.groupingBy(l -> l.getDetectedAt().toLocalDate(), Collectors.counting()))
+                .entrySet().stream()
+                .map(e -> new Bar(mmdd.format(e.getKey()), e.getValue()))
+                .sorted(Comparator.comparing(Bar::getLabel))           // x축 순서 보장
+                .toList();
+
+        /* ⑤ 그래프 3 : Zone 별 */
+        List<Bar> zoneStats = logs.stream()
+                .collect(Collectors.groupingBy(l -> l.getZone().getZoneName(), Collectors.counting()))
+                .entrySet().stream()
+                .map(e -> new Bar(e.getKey(), e.getValue()))
+                .sorted(Comparator.comparingLong(Bar::getCnt).reversed())
+                .toList();
+
+        /* ⑥ 기간 문자열 */
+        DateTimeFormatter f = DateTimeFormatter.ofPattern("yyyy.MM.dd");
+        String period = f.format(startDay) + " ~ " + f.format(yesterday);
+
+        return new GraphSummaryResponse(period, typeStats, dateStats, zoneStats);
+    }
 }
