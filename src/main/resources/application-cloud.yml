@@ -5,10 +5,10 @@ spring:
       on-profile: cloud
 
   datasource:
-    url: jdbc:mysql://${DB_HOST:mysql_container}:3306/${DB_NAME:my_database}
+    url: jdbc:mysql://${RDS_HOST}:3306/${DB_NAME}
     driver-class-name: com.mysql.cj.jdbc.Driver
-    username: ${DB_USER:user}
-    password: ${DB_PASSWORD:factor2al}
+    username: ${RDS_USERNAME}
+    password: ${RDS_PASSWORD}
 
 
 
