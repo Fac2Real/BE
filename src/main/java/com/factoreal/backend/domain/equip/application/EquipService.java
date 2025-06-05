@@ -103,15 +103,15 @@ public class EquipService {
         return equipRepoService.findAll();
     }
 
-    // 설비 정보와 센서 정보를 함께 반환하는 메서드 (FE -> BE)
+    // 설비 정보와 센서 정보를 함께 반환하는 메서드 (BE -> FE)
     public List<EquipWithSensorsResponse> getEquipsByZoneId(String zoneId) {
         Zone zone = findByZoneId(zoneId);
         return equipRepoService.findEquipsByZone(zone).stream()
             .map(equip -> {
-                // 최근 점검일자 조회
+                // 최근 실제 점검일자 조회 (checkDate가 null이 아닌 것 중에서 가장 최근 날짜)
                 LocalDate lastCheckDate = equipHistoryRepoService
-                    .findFirstByEquip_EquipIdAndTypeOrderByDateDesc(equip.getEquipId(), EquipHistoryType.CHECK)
-                    .map(EquipHistory::getDate)
+                    .findLatestCheckedByEquipId(equip.getEquipId())
+                    .map(EquipHistory::getCheckDate)
                     .orElse(null);
 
                 return EquipWithSensorsResponse.fromEntity(
