@@ -87,7 +87,7 @@ public class SlackEquipAlarmService {
         return daysUntilMaintenance == 5 || daysUntilMaintenance == 3;
     }
 
-    // 설비 점검 알림 남은 기간 계산
+    // 설비 점검 알림 남은 기간 계산 (예상 점검일자 - 오늘 날짜)
     public long getDaysUntilMaintenance(LocalDate expectedMaintenanceDate) {
         return ChronoUnit.DAYS.between(LocalDate.now(), expectedMaintenanceDate);
     }

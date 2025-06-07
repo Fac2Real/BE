@@ -51,7 +51,7 @@ public class EquipController {
     }
 
     @GetMapping("/zone/{zoneId}")
-    @Operation(summary = "공간별 설비 목록 조회", description = "특정 공간에 있는 설비 목록과 각 설비의 최신 점검일자 및 설비에 연결된 센서 정보를 조회합니다.")
+    @Operation(summary = "공간별 설비 목록 조회", description = "특정 공간에 있는 설비 목록과 각 설비의 최근 점검일자 및 설비에 연결된 센서 정보를 조회합니다.")
     public List<EquipWithSensorsResponse> getEquipsByZone(@PathVariable String zoneId) {
         return service.getEquipsByZoneId(zoneId);
     }

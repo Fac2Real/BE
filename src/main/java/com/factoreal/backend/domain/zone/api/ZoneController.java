@@ -47,7 +47,7 @@ public class ZoneController {
     }
 
     @GetMapping("/zoneitems")
-    @Operation(summary = "공간별 설비,센서 데이터 조회", description = "등록된 공간들의 각 정보를 조회합니다.")
+    @Operation(summary = "공간별 설비, 센서 데이터 조회", description = "등록된 공간들의 각 정보를 조회합니다.")
     public List<ZoneDetailResponse> listZoneItems() {
         return service.getZoneItems();
     }
