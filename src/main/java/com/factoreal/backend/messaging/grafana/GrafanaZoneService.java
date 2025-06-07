@@ -16,12 +16,11 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class GrafanaZoneService {
-//    private final SensorService sensorService;
     private final DashboardFactory dashboardFactory;
     private final GrafanaClient grafanaClient;
     private final SensorRepoService sensorRepoService;
 
-    @Value("${grafana.url}")
+    @Value("${grafana.url.outer}")
     private String grafanaUrl;
 
     @Value("${grafana.org-id}")
@@ -30,8 +29,6 @@ public class GrafanaZoneService {
     @Value("${grafana.datasource-uid}")
     private String datasourceUid;
 
-    // 30 분 임계
-    private static final Duration THRESHOLD = Duration.ofMinutes(30);
 
     /**
      * zoneId용 대시보드를 1개 생성하고,

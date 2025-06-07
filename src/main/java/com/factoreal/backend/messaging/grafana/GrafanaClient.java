@@ -18,7 +18,7 @@ public class GrafanaClient {
 
     private final RestTemplateBuilder restTemplateBuilder;
 
-    @Value("${grafana.url}")
+    @Value("${grafana.url.inter}")
     private String url;
 
     @Value("${grafana.api-key}")
@@ -39,6 +39,7 @@ public class GrafanaClient {
         // 2) HttpEntity에 payload + headers 담기
         HttpEntity<String> entity = new HttpEntity<>(dashboardJson, headers);
 
+        log.info("{}에 POST요청 시작", url + "/api/dashboards/db");
         // 3) POST 요청
         ResponseEntity<Map<String, Object>> res = restTemplate.exchange(
                 "/api/dashboards/db",
@@ -47,6 +48,7 @@ public class GrafanaClient {
                 new ParameterizedTypeReference<>() {
                 }
         );
+        log.info("POST 요청 완료");
 
         Map<String, Object> body = res.getBody();
         if (body == null || body.get("uid") == null) {
