@@ -1,5 +1,6 @@
 package com.factoreal.backend.domain.worker.dto.request;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -16,6 +17,7 @@ import java.util.List;
 public class UpdateWorkerRequest {
   @Pattern(regexp = "^\\d{8}$")
   private String workerId; // 작업자 ID (사원 번호)
+  @NotBlank
   private String name; // 작업자 이름
   private String phoneNumber; // 연락처
   private String email; // 이메일

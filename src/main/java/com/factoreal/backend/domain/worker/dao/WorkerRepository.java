@@ -8,4 +8,13 @@ import java.util.List;
 
 public interface WorkerRepository extends JpaRepository<Worker, String> {
     List<Worker> findByWorkerIdIn(Collection<String> ids);
+
+    /**
+     * 중복 작업자 정보 체크용 메서드
+     */
+    boolean existsByWorkerId(String workerId);
+
+    boolean existsByPhoneNumber(String phoneNumber);
+
+    boolean existsByEmail(String email);
 }

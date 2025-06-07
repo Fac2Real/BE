@@ -2,11 +2,13 @@ package com.factoreal.backend.domain.worker.api;
 
 import com.factoreal.backend.domain.worker.application.WorkerService;
 import com.factoreal.backend.domain.worker.dto.request.CreateWorkerRequest;
+import com.factoreal.backend.domain.worker.dto.request.UpdateWorkerRequest;
 import com.factoreal.backend.domain.worker.dto.response.WorkerDetailResponse;
 import com.factoreal.backend.domain.worker.dto.response.WorkerInfoResponse;
 import com.factoreal.backend.domain.worker.dto.response.ZoneManagerResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -54,5 +56,12 @@ public class WorkerController {
 
         ZoneManagerResponse response = workerService.getZoneManagerWithLocation(zoneId);
         return response;
+    }
+
+    @Operation(summary = "작업자의 정보를 수정합니다.", description = "요청한 정보를 토대로 (이름, 휴대폰번호, 이메일, 출입권한공간리스트) 정보 수정")
+    @PostMapping("/update")
+    public ResponseEntity<Void> updateWorker(@Valid @RequestBody UpdateWorkerRequest req){
+        workerService.updateWorker(req);
+        return ResponseEntity.ok().build();
     }
 }
