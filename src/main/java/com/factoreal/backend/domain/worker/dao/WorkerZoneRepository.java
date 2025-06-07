@@ -20,4 +20,5 @@ public interface WorkerZoneRepository extends JpaRepository<WorkerZone, WorkerZo
 
     // 특정 작업자가 담당자로 있는 공간 조회
     Optional<WorkerZone> findByWorkerWorkerIdAndManageYnIsTrue(String workerId);
+
 }
