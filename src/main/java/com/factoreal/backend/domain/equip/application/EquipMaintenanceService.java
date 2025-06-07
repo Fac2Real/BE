@@ -60,6 +60,22 @@ public class EquipMaintenanceService {
         if (latestUncheckedHistory.isEmpty()) {
             saveNewMaintenanceHistory(equip, expectedMaintenanceDate);
             log.info("설비 [{}] 첫 예상 점검일자 {}를 저장했습니다.", equip.getEquipName(), expectedMaintenanceDate);
+            
+            // 첫 예측값에 대한 슬랙 알림 발송
+            try {
+                slackEquipAlarmService.sendEquipmentMaintenanceAlert(
+                    equip.getEquipName(),
+                    equip.getZone().getZoneName(),
+                    expectedMaintenanceDate,
+                    daysUntilMaintenance
+                );
+                log.info("설비 [{}] (공간: {}) 첫 예상 점검일자에 대한 알림 발송 완료 (D-{})", 
+                    equip.getEquipName(), 
+                    equip.getZone().getZoneName(), 
+                    daysUntilMaintenance);
+            } catch (IOException e) {
+                log.error("설비 [{}] 첫 예상 점검일자 알림 발송 실패: {}", equip.getEquipName(), e.getMessage());
+            }
             return;
         }
 
