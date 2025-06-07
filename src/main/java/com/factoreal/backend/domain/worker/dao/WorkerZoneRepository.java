@@ -22,4 +22,5 @@ public interface WorkerZoneRepository extends JpaRepository<WorkerZone, WorkerZo
     Optional<WorkerZone> findByWorkerWorkerIdAndManageYnIsTrue(String workerId);
 
     List<WorkerZone> findByWorker_WorkerId(String workerId);
+
 }
