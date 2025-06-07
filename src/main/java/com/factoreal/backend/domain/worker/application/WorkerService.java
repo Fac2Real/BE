@@ -13,6 +13,7 @@ import com.factoreal.backend.domain.worker.entity.WorkerZoneId;
 import com.factoreal.backend.domain.zone.application.ZoneHistoryRepoService;
 import com.factoreal.backend.domain.zone.application.ZoneHistoryService;
 import com.factoreal.backend.domain.zone.application.ZoneRepoService;
+import com.factoreal.backend.domain.zone.dto.response.ZoneInfoResponse;
 import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.domain.zone.entity.ZoneHist;
 import com.factoreal.backend.global.exception.dto.DuplicateResourceException;
@@ -48,12 +49,12 @@ public class WorkerService {
     public List<WorkerDetailResponse> getAllWorkers() {
         log.info("전체 작업자 목록 조회");
         List<Worker> workers = workerRepoService.findAll();
-        
+
         if (workers.isEmpty()) {
             log.info("등록된 작업자가 없습니다.");
             return new ArrayList<>();
         }
-        
+
         // workerId 목록
         List<String> workerIds = workers.stream()
                 .map(Worker::getWorkerId)
@@ -67,7 +68,7 @@ public class WorkerService {
         Map<String, Integer> statusMap = statusList.stream()
                 .collect(
                         Collectors.toMap(
-                                AbnormalLogResponse::getTargetId, 
+                                AbnormalLogResponse::getTargetId,
                                 AbnormalLogResponse::getDangerLevel
                                 )
                         );
@@ -99,6 +100,23 @@ public class WorkerService {
         return workers.stream()
                 .map(worker -> {
                     try {
+                        // 잭슨 직렬화 문제로 ZoneInfo DTO 필요함 -> Zone 엔티티를 직접 사용 불가
+                        // 1) 출입 권한 zone 전부
+                        List<ZoneInfoResponse> accessZones = workerZoneRepoService
+                                .findByWorker_WorkerId(worker.getWorkerId())  // List<WorkerZone>
+                                .stream()
+                                .map(wz -> new ZoneInfoResponse(
+                                        wz.getZone().getZoneId(),
+                                        wz.getZone().getZoneName()))
+                                .toList();
+
+                        // 2) 담당 zone (있으면 1개) → List<Zone>
+                        List<ZoneInfoResponse> managedZones = workerZoneRepoService
+                                .findByWorkerWorkerIdAndManageYnIsTrue(worker.getWorkerId())
+                                .map(wz -> List.of(new ZoneInfoResponse(
+                                        wz.getZone().getZoneId(),
+                                        wz.getZone().getZoneName())))
+                                .orElse(List.of());
                         Map<String, String> zoneInfo = zoneMap.getOrDefault(worker.getWorkerId(), new HashMap<>());
                         return WorkerDetailResponse.fromEntity(
                                 worker,
@@ -106,7 +124,9 @@ public class WorkerService {
                                         .isPresent(),
                                 statusMap.getOrDefault(worker.getWorkerId(), 0),
                                 zoneInfo.getOrDefault("zoneId", "00000000000000-000"),
-                                zoneInfo.getOrDefault("zoneName", "대기실")
+                                zoneInfo.getOrDefault("zoneName", "대기실"),
+                                accessZones,
+                                managedZones
                         );
                     } catch (Exception e) {
                         log.error("작업자 정보 변환 중 오류 발생. worker: {}, error: {}", worker.getWorkerId(), e.getMessage());
@@ -115,7 +135,8 @@ public class WorkerService {
                                 false,
                                 0,
                                 "00000000000000-000",
-                                "대기실"
+                                "대기실",
+                                List.of(), List.of()
                         );
                     }
                 })
