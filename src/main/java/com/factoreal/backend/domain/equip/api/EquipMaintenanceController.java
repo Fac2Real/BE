@@ -20,7 +20,7 @@ public class EquipMaintenanceController {
     @Operation(summary = "공장 관리자에게 설비 점검일자 D-5, D-3 때마다 알림 발송", description = "모든 설비의 예상 점검일을 확인하고 필요시 알림을 발송합니다.")
     @PostMapping("/check")
     public ResponseEntity<String> checkMaintenanceDates() {
-        equipMaintenanceService.checkMaintenanceDates();
+        equipMaintenanceService.fetchAndProcessMaintenancePredictions();
         return ResponseEntity.ok("점검일 확인 완료");
     }
-} 
+}
