@@ -15,6 +15,7 @@ import com.factoreal.backend.domain.zone.application.ZoneHistoryService;
 import com.factoreal.backend.domain.zone.application.ZoneRepoService;
 import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.domain.zone.entity.ZoneHist;
+import com.factoreal.backend.global.exception.dto.DuplicateResourceException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -161,6 +162,16 @@ public class WorkerService {
     @Transactional
     public void createWorker(CreateWorkerRequest request) {
         log.info("작업자 생성 요청: {}", request);
+
+        // 등록할때 중복되는 작업자의 경우 반려시키는 로직 추가
+        if(workerRepoService.existsByWorkerId(request.getWorkerId())) {
+            log.info("이미 존재하는 작업자입니다.(작업자ID 중복)");
+            throw new DuplicateResourceException("이미 존재하는 작업자입니다.(작업자ID 중복)");
+        }
+        if(workerRepoService.existsByPhoneNumber(request.getPhoneNumber())) {
+            log.info("이미 존재하는 작업자입니다.(작업자ID 중복)");
+            throw new DuplicateResourceException("이미 존재하는 작업자입니다.(전화번호 중복).");
+        }
 
         // 1. 작업자 정보 저장
         Worker worker = Worker.builder()
