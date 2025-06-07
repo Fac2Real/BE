@@ -2,6 +2,7 @@ package com.factoreal.backend.domain.equip.application;
 
 import com.factoreal.backend.domain.equip.dto.response.EquipInfoResponse;
 import com.factoreal.backend.domain.equip.dto.response.MaintenancePredictionResponse;
+import com.factoreal.backend.domain.equip.dto.response.LatestMaintenancePredictionResponse;
 import com.factoreal.backend.domain.equip.entity.Equip;
 import com.factoreal.backend.domain.equip.entity.EquipHistory;
 import com.factoreal.backend.domain.zone.entity.Zone;
@@ -17,19 +18,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.server.ResponseStatusException;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class EquipMaintenanceServiceTest {
@@ -535,6 +537,109 @@ class EquipMaintenanceServiceTest {
 
             // then
             assertThat(result).isEqualTo(expectedDate);
+        }
+    }
+
+    @Nested
+    @DisplayName("getLatestMaintenancePrediction 메서드 테스트")
+    class GetLatestMaintenancePredictionTest {
+        
+        @Test
+        @DisplayName("미점검 이력이 있는 경우, 해당 이력의 예상 점검일자를 반환한다")
+        void whenUncheckedHistoryExists_returnsThatHistory() {
+            // given
+            LocalDate expectedDate = LocalDate.now().plusDays(5);
+            EquipHistory uncheckedHistory = EquipHistory.builder()
+                .equip(equip)
+                .accidentDate(expectedDate)
+                .checkDate(null)
+                .build();
+
+            given(equipRepoService.findById(equipId)).willReturn(equip);
+            given(equipHistoryRepoService.findLatestUncheckedByEquipId(equipId))
+                .willReturn(Optional.of(uncheckedHistory));
+            given(slackEquipAlarmService.getDaysUntilMaintenance(expectedDate))
+                .willReturn(5L);
+
+            // when
+            LatestMaintenancePredictionResponse response = 
+                equipMaintenanceService.getLatestMaintenancePrediction(equipId, zoneId);
+
+            // then
+            assertThat(response.getEquipId()).isEqualTo(equipId);
+            assertThat(response.getEquipName()).isEqualTo(equipName);
+            assertThat(response.getZoneId()).isEqualTo(zoneId);
+            assertThat(response.getZoneName()).isEqualTo(zoneName);
+            assertThat(response.getExpectedMaintenanceDate()).isEqualTo(expectedDate);
+            assertThat(response.getDaysUntilMaintenance()).isEqualTo(5L);
+        }
+
+        @Test
+        @DisplayName("모든 이력이 점검 완료된 경우, 가장 최근 이력의 예상 점검일자를 반환한다")
+        void whenAllHistoriesChecked_returnsLatestHistory() {
+            // given
+            LocalDate expectedDate = LocalDate.now().plusDays(10);
+            EquipHistory checkedHistory = EquipHistory.builder()
+                .equip(equip)
+                .accidentDate(expectedDate)
+                .checkDate(LocalDate.now())
+                .build();
+
+            given(equipRepoService.findById(equipId)).willReturn(equip);
+            given(equipHistoryRepoService.findLatestUncheckedByEquipId(equipId))
+                .willReturn(Optional.empty());
+            given(equipHistoryRepoService.findLatestByEquipId(equipId))
+                .willReturn(Optional.of(checkedHistory));
+            given(slackEquipAlarmService.getDaysUntilMaintenance(expectedDate))
+                .willReturn(10L);
+
+            // when
+            LatestMaintenancePredictionResponse response = 
+                equipMaintenanceService.getLatestMaintenancePrediction(equipId, zoneId);
+
+            // then
+            assertThat(response.getEquipId()).isEqualTo(equipId);
+            assertThat(response.getExpectedMaintenanceDate()).isEqualTo(expectedDate);
+            assertThat(response.getDaysUntilMaintenance()).isEqualTo(10L);
+        }
+
+        @Test
+        @DisplayName("이력이 전혀 없는 경우, NotFound 예외를 던진다")
+        void whenNoHistoryExists_throwsNotFoundException() {
+            // given
+            given(equipRepoService.findById(equipId)).willReturn(equip);
+            given(equipHistoryRepoService.findLatestUncheckedByEquipId(equipId))
+                .willReturn(Optional.empty());
+            given(equipHistoryRepoService.findLatestByEquipId(equipId))
+                .willReturn(Optional.empty());
+
+            // when & then
+            assertThrows(ResponseStatusException.class, () -> 
+                equipMaintenanceService.getLatestMaintenancePrediction(equipId, zoneId),
+                "최근 예상 점검일자를 찾을 수 없습니다.");
+        }
+
+        @Test
+        @DisplayName("잘못된 zoneId가 입력된 경우, BadRequest 예외를 던진다")
+        void whenInvalidZoneId_throwsBadRequestException() {
+            // given
+            String wrongZoneId = "wrong_zone_id";
+            Zone wrongZone = Zone.builder()
+                .zoneId(wrongZoneId)
+                .zoneName("Wrong Zone")
+                .build();
+            Equip equipWithWrongZone = Equip.builder()
+                .equipId(equipId)
+                .equipName(equipName)
+                .zone(wrongZone)
+                .build();
+
+            given(equipRepoService.findById(equipId)).willReturn(equipWithWrongZone);
+
+            // when & then
+            assertThrows(ResponseStatusException.class, () -> 
+                equipMaintenanceService.getLatestMaintenancePrediction(equipId, zoneId),
+                "설비가 해당 공간에 속하지 않습니다.");
         }
     }
 } 

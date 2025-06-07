@@ -31,4 +31,10 @@ public class EquipHistoryRepoService {
     public Optional<EquipHistory> findLatestCheckedByEquipId(String equipId) {
         return equipHistoryRepository.findFirstByEquip_EquipIdAndCheckDateIsNotNullOrderByCheckDateDesc(equipId);
     }
+
+    // 설비의 가장 최근 이력 조회 (점검 여부 상관없이)
+    @Transactional(readOnly = true)
+    public Optional<EquipHistory> findLatestByEquipId(String equipId) {
+        return equipHistoryRepository.findFirstByEquip_EquipIdOrderByIdDesc(equipId);
+    }
 } 
