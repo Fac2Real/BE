@@ -58,4 +58,7 @@ public class WorkerRepoService {
     public boolean existsByPhoneNumber(String phoneNumber) {
         return workerRepository.existsByPhoneNumber(phoneNumber);
     }
+    public boolean existsByEmail(String email){
+        return workerRepository.existsByEmail(email);
+    }
 }

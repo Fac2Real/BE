@@ -4,6 +4,7 @@ import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
 import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.dto.response.AbnormalLogResponse;
 import com.factoreal.backend.domain.worker.dto.request.CreateWorkerRequest;
+import com.factoreal.backend.domain.worker.dto.request.UpdateWorkerRequest;
 import com.factoreal.backend.domain.worker.dto.response.WorkerDetailResponse;
 import com.factoreal.backend.domain.worker.dto.response.WorkerInfoResponse;
 import com.factoreal.backend.domain.worker.dto.response.ZoneManagerResponse;
@@ -21,11 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -218,6 +215,56 @@ public class WorkerService {
         }
 
         log.info("작업자 생성 완료 - workerId: {}", worker.getWorkerId());
+    }
+
+    @Transactional
+    public void updateWorker(UpdateWorkerRequest r) {
+
+        /* 1) 대상 작업자 조회 */
+        Worker worker = workerRepoService.findById(r.getWorkerId());
+
+        /* 2) 전화번호 중복 검사 (자기 자신 제외) */
+        if (!worker.getPhoneNumber().equals(r.getPhoneNumber())
+                && workerRepoService.existsByPhoneNumber(r.getPhoneNumber()))
+            throw new DuplicateResourceException("중복되는 휴대폰번호입니다.");
+
+        if (!worker.getEmail().equals(r.getEmail()) &&
+                workerRepoService.existsByEmail(r.getEmail()))
+            throw new DuplicateResourceException("중복되는 이메일입니다.");
+        /* 3) 기본정보 수정 */
+        worker.setName(r.getName());
+        worker.setPhoneNumber(r.getPhoneNumber());
+        worker.setEmail(r.getEmail());
+
+        /* 4) 출입-권한(WorkerZone) 재설정 -------------- */
+        // 4-1. 현재 담당자(manageYn=true)인 공간 KEEP
+        List<WorkerZone> managerZones = workerZoneRepoService
+                .findByWorker_WorkerId(worker.getWorkerId())
+                .stream()
+                .filter(WorkerZone::getManageYn)
+                .toList();                    // 담장 구역은 그대로 유지
+
+        // 4-2. 기존 권한 전부 삭제
+        workerZoneRepoService.deleteByWorkerWorkerId(worker.getWorkerId());
+
+        // 4-3. 요청한 zoneNames + managerZones를 합쳐 다시 저장
+        //      (중복은 Set 으로 제거)
+        Set<String> newZoneNames = new HashSet<>(r.getZoneNames());
+        managerZones.forEach(mz -> newZoneNames.add(mz.getZone().getZoneName())); // keep
+
+        for (String zoneName : newZoneNames) {
+            Zone zone = zoneRepoService.findByZoneName(zoneName);       // 400 발생 가능 ⇒ 글로벌 예외 처리 권장
+            boolean isManager = managerZones.stream()
+                    .anyMatch(mz -> mz.getZone().getZoneId().equals(zone.getZoneId()));
+
+            WorkerZone wz = WorkerZone.builder()
+                    .id(new WorkerZoneId(worker.getWorkerId(), zone.getZoneId()))
+                    .worker(worker)
+                    .zone(zone)
+                    .manageYn(isManager)
+                    .build();
+            workerZoneRepoService.save(wz);
+        }
     }
 
 

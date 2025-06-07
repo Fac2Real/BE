@@ -23,4 +23,5 @@ public interface WorkerZoneRepository extends JpaRepository<WorkerZone, WorkerZo
 
     List<WorkerZone> findByWorker_WorkerId(String workerId);
 
+    void deleteByWorkerWorkerId(String workerId);
 }

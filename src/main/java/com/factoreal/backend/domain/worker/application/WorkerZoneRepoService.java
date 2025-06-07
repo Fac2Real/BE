@@ -53,4 +53,9 @@ public class WorkerZoneRepoService {
     public List<WorkerZone> findByWorker_WorkerId(String workerId) {
         return workerZoneRepository.findByWorker_WorkerId(workerId);
     }
+
+
+    public void deleteByWorkerWorkerId(String workerId) {
+        workerZoneRepository.deleteByWorkerWorkerId(workerId);
+    }
 }
