@@ -11,7 +11,6 @@ import com.factoreal.backend.domain.worker.entity.Worker;
 import com.factoreal.backend.domain.worker.entity.WorkerZone;
 import com.factoreal.backend.domain.worker.entity.WorkerZoneId;
 import com.factoreal.backend.domain.zone.application.ZoneHistoryRepoService;
-import com.factoreal.backend.domain.zone.application.ZoneHistoryService;
 import com.factoreal.backend.domain.zone.application.ZoneRepoService;
 import com.factoreal.backend.domain.zone.dto.response.ZoneInfoResponse;
 import com.factoreal.backend.domain.zone.entity.Zone;
