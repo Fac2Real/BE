@@ -37,7 +37,6 @@ public class WorkerService {
     private final WorkerRepoService workerRepoService;
 
     private final ZoneRepoService zoneRepoService;
-    private final ZoneHistoryService zoneHistoryService;
     private final AbnormalLogService abnormalLogService;
     private final ZoneHistoryRepoService zoneHistoryRepoService;
 
