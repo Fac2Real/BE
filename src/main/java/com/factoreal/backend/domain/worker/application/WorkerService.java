@@ -65,8 +65,8 @@ public class WorkerService {
                         Collectors.toMap(
                                 AbnormalLogResponse::getTargetId,
                                 AbnormalLogResponse::getDangerLevel
-                                )
-                        );
+                        )
+                );
 
         // 위치 Map<workerId, zoneName>
         Map<String, Map<String, String>> zoneMap = workerIds.stream()
@@ -141,6 +141,7 @@ public class WorkerService {
     /**
      * 특정 공간에 현재 들어가있는 작업자 목록 조회
      */
+    @Transactional(readOnly = true)
     public List<WorkerInfoResponse> getWorkersByZoneId(String zoneId) {
         log.info("공간 ID: {}의 현재 작업자 목록 조회", zoneId);
         // existFlag는 boolean 같은 개념 0 혹은 1이 들어감
@@ -153,6 +154,7 @@ public class WorkerService {
     /**
      * 특정 공간의 담당자와 현재 위치 정보 조회
      */
+    @Transactional(readOnly = true)
     public ZoneManagerResponse getZoneManagerWithLocation(String zoneId) {
         log.info("공간 ID: {}의 담당자 정보 조회", zoneId);
 
@@ -180,11 +182,11 @@ public class WorkerService {
         log.info("작업자 생성 요청: {}", request);
 
         // 등록할때 중복되는 작업자의 경우 반려시키는 로직 추가
-        if(workerRepoService.existsByWorkerId(request.getWorkerId())) {
+        if (workerRepoService.existsByWorkerId(request.getWorkerId())) {
             log.info("이미 존재하는 작업자입니다.(작업자ID 중복)");
             throw new DuplicateResourceException("이미 존재하는 작업자입니다.(작업자ID 중복)");
         }
-        if(workerRepoService.existsByPhoneNumber(request.getPhoneNumber())) {
+        if (workerRepoService.existsByPhoneNumber(request.getPhoneNumber())) {
             log.info("이미 존재하는 작업자입니다.(작업자ID 중복)");
             throw new DuplicateResourceException("이미 존재하는 작업자입니다.(전화번호 중복).");
         }
@@ -266,9 +268,6 @@ public class WorkerService {
             workerZoneRepoService.save(wz);
         }
     }
-
-
-
 
 
 //    public Worker findById(String workerId) {
