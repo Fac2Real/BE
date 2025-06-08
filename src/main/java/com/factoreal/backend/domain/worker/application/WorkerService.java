@@ -11,6 +11,7 @@ import com.factoreal.backend.domain.worker.entity.Worker;
 import com.factoreal.backend.domain.worker.entity.WorkerZone;
 import com.factoreal.backend.domain.worker.entity.WorkerZoneId;
 import com.factoreal.backend.domain.zone.application.ZoneHistoryRepoService;
+import com.factoreal.backend.domain.zone.application.ZoneHistoryService;
 import com.factoreal.backend.domain.zone.application.ZoneRepoService;
 import com.factoreal.backend.domain.zone.dto.response.ZoneInfoResponse;
 import com.factoreal.backend.domain.zone.entity.Zone;
@@ -21,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -34,6 +36,7 @@ public class WorkerService {
     private final ZoneRepoService zoneRepoService;
     private final AbnormalLogService abnormalLogService;
     private final ZoneHistoryRepoService zoneHistoryRepoService;
+    private final ZoneHistoryService zoneHistoryService;
 
 
     /**
@@ -214,6 +217,8 @@ public class WorkerService {
 
             workerZoneRepoService.save(workerZone); // WorkerZone 저장
         }
+        // 3. 기본적으로 작업자를 대기실로 배정하기 (작업자 , 대기실, 작업자를 등록하는 시간대로) 등록하기
+        zoneHistoryService.updateWorkerLocation(worker.getWorkerId(),"00000000000000-000", LocalDateTime.now());
 
         log.info("작업자 생성 완료 - workerId: {}", worker.getWorkerId());
     }
