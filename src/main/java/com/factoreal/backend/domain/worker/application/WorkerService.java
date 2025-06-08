@@ -4,7 +4,6 @@ import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
 import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.dto.response.AbnormalLogResponse;
 import com.factoreal.backend.domain.worker.dto.request.CreateWorkerRequest;
-import com.factoreal.backend.domain.worker.dto.request.UpdateWorkerRequest;
 import com.factoreal.backend.domain.worker.dto.response.WorkerDetailResponse;
 import com.factoreal.backend.domain.worker.dto.response.WorkerInfoResponse;
 import com.factoreal.backend.domain.worker.dto.response.ZoneManagerResponse;
@@ -220,7 +219,7 @@ public class WorkerService {
     }
 
     @Transactional
-    public void updateWorker(UpdateWorkerRequest r) {
+    public void updateWorker(CreateWorkerRequest r) {
 
         /* 1) 대상 작업자 조회 */
         Worker worker = workerRepoService.findById(r.getWorkerId());

@@ -38,6 +38,7 @@ public class SensorRepoService {
                 .map(s -> new SensorInfoResponse(
                         s.getSensorId(),
                         s.getSensorType().toString(),
+                        s.getSensorType().name(),
                         s.getZone().getZoneId(),
                         s.getEquip().getEquipId(),
                         s.getSensorThres(),

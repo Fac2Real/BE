@@ -20,7 +20,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.lang.annotation.Target;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -59,7 +58,7 @@ public class ReportService {
                 })
                 .toList();
 
-        LocalDate end   = LocalDate.now().minusDays(1);;          // 오늘
+        LocalDate end   = LocalDate.now().minusDays(1);          // 오늘
         LocalDate start = end.minusDays(30);        // 30일 전
 
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy.MM.dd");
@@ -301,12 +300,14 @@ public class ReportService {
         List<AbnormalLog> logs = abnormalLogRepoService.findByDetectedAtBetweenAndDangerLevelIn(
                 start, end, List.of(1, 2));
 
+        /* ③ 그래프 1 : TargetType 별 ─ 항상 3개(SENSOR/EQUIP/WORKER) 보장 */
+        Map<TargetType, Long> typeCntMap = logs.stream()
+                .collect(Collectors.groupingBy(AbnormalLog::getTargetType, Collectors.counting()));
+
         /* ③ 그래프 1 : TargetType 별 */
-        List<Bar> typeStats = logs.stream()
-                .collect(Collectors.groupingBy(AbnormalLog::getTargetType, Collectors.counting()))
-                .entrySet().stream()
-                .map(e -> new Bar(e.getKey().name(), e.getValue()))
-                .sorted(Comparator.comparingLong(Bar::getCnt).reversed())
+        List<Bar> typeStats = Arrays.stream(TargetType.values())
+                .map(tp -> new Bar(tp.name(), typeCntMap.getOrDefault(tp, 0L)))
+                .sorted(Comparator.comparingLong(Bar::getCnt).reversed())   // 큰 순서
                 .toList();
 
         /* ④ 그래프 2 : 날짜(월-일) 별 */

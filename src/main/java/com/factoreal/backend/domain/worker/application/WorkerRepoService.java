@@ -3,7 +3,6 @@ package com.factoreal.backend.domain.worker.application;
 import com.factoreal.backend.domain.worker.dao.WorkerRepository;
 import com.factoreal.backend.domain.worker.entity.Worker;
 import com.factoreal.backend.global.exception.dto.NotFoundException;
-import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -51,7 +50,7 @@ public class WorkerRepoService {
                 .collect(Collectors.toMap(Worker::getWorkerId, w -> w));
     }
 
-    public boolean existsByWorkerId(@Pattern(regexp = "^\\d{8}$") String workerId) {
+    public boolean existsByWorkerId(String workerId) {
         return workerRepository.existsByWorkerId(workerId);
     }
 
