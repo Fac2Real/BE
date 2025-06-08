@@ -2,7 +2,6 @@ package com.factoreal.backend.domain.worker.api;
 
 import com.factoreal.backend.domain.worker.application.WorkerService;
 import com.factoreal.backend.domain.worker.dto.request.CreateWorkerRequest;
-import com.factoreal.backend.domain.worker.dto.request.UpdateWorkerRequest;
 import com.factoreal.backend.domain.worker.dto.response.WorkerDetailResponse;
 import com.factoreal.backend.domain.worker.dto.response.WorkerInfoResponse;
 import com.factoreal.backend.domain.worker.dto.response.ZoneManagerResponse;
@@ -27,7 +26,7 @@ public class WorkerController {
 
     @Operation(summary = "작업자 생성", description = "새로운 작업자를 생성하고 접근 가능한 공간들을 선택합니다.")
     @PostMapping
-    public ResponseEntity<Void> createWorker(@RequestBody CreateWorkerRequest request) {
+    public ResponseEntity<Void> createWorker(@Valid @RequestBody CreateWorkerRequest request) {
         log.info("작업자 생성 요청: {}", request);
         workerService.createWorker(request);
         return ResponseEntity.ok().build(); // 작업자 생성 성공 시 200 응답
@@ -60,7 +59,7 @@ public class WorkerController {
 
     @Operation(summary = "작업자의 정보를 수정합니다.", description = "요청한 정보를 토대로 (이름, 휴대폰번호, 이메일, 출입권한공간리스트) 정보 수정")
     @PostMapping("/update")
-    public ResponseEntity<Void> updateWorker(@Valid @RequestBody UpdateWorkerRequest req){
+    public ResponseEntity<Void> updateWorker(@Valid @RequestBody CreateWorkerRequest req){
         workerService.updateWorker(req);
         return ResponseEntity.ok().build();
     }

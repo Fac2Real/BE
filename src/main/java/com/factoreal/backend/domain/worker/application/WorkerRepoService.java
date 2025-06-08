@@ -51,7 +51,7 @@ public class WorkerRepoService {
                 .collect(Collectors.toMap(Worker::getWorkerId, w -> w));
     }
 
-    public boolean existsByWorkerId(@Pattern(regexp = "^\\d{8}$") String workerId) {
+    public boolean existsByWorkerId(String workerId) {
         return workerRepository.existsByWorkerId(workerId);
     }
 
