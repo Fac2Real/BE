@@ -1,6 +1,7 @@
 package com.factoreal.backend.domain.sensor.dto.response;
 
 import com.factoreal.backend.domain.sensor.entity.Sensor;
+import com.factoreal.backend.messaging.kafka.strategy.enums.SensorType;
 import lombok.*;
 
 @Getter
@@ -22,7 +23,7 @@ public class SensorInfoResponse {
         if (sensor == null) return null;
 
         var typeEnum = sensor.getSensorType();   // enum -> SensorTypeKr
-        var koName = SensorTypeKr.valueOf(typeEnum.name()) // enum 이름으로 매핑
+        var koName = SensorType.valueOf(typeEnum.name()) // enum 이름으로 매핑
                 .getKoName();
 
         return SensorInfoResponse.builder()
