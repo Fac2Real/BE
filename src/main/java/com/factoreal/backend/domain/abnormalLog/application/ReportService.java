@@ -20,7 +20,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.lang.annotation.Target;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -59,7 +58,7 @@ public class ReportService {
                 })
                 .toList();
 
-        LocalDate end   = LocalDate.now().minusDays(1);;          // 오늘
+        LocalDate end   = LocalDate.now().minusDays(1);          // 오늘
         LocalDate start = end.minusDays(30);        // 30일 전
 
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy.MM.dd");
