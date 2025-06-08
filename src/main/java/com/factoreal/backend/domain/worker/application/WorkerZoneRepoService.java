@@ -46,4 +46,16 @@ public class WorkerZoneRepoService {
     public WorkerZone save(WorkerZone workerZone) {
         return workerZoneRepository.save(workerZone);
     }
+
+    /**
+     * 작업자 ID로 관련 zone들을 불러오는 메서드
+     */
+    public List<WorkerZone> findByWorker_WorkerId(String workerId) {
+        return workerZoneRepository.findByWorker_WorkerId(workerId);
+    }
+
+
+    public void deleteByWorkerWorkerId(String workerId) {
+        workerZoneRepository.deleteByWorkerWorkerId(workerId);
+    }
 }
