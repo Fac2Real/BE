@@ -8,7 +8,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Bar {
+public class BarResponse {
     private String label;   // x 축
-    private long   cnt;     // y 축
+    private long cnt;     // y 축
 }

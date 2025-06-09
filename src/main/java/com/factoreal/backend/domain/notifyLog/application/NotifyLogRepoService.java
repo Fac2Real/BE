@@ -1,4 +1,4 @@
-package com.factoreal.backend.domain.notifyLog.service;
+package com.factoreal.backend.domain.notifyLog.application;
 
 import com.factoreal.backend.domain.notifyLog.dao.NotifyLogRepository;
 import com.factoreal.backend.domain.notifyLog.entity.NotifyLog;

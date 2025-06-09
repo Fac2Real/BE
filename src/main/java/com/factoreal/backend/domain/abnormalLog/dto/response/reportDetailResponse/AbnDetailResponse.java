@@ -9,11 +9,11 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AbnDetail {
+public class AbnDetailResponse {
     private Long abnormalId;
     private Integer dangerLevel;
     private String abnormalType;
     private Double abnVal;
     private LocalDateTime detectedAt;
-    private ControlInfo control;  // null = 미대응
+    private ControlInfoResponse control;  // null = 미대응
 }

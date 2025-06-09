@@ -9,10 +9,10 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class EquipBlock {
+public class EquipBlockResponse {
     private String equipId;
     private String equipName;
 
     private int facCnt;          // 이 설비의 이상치 건수
-    private List<AbnDetail> facAbnormals;         // 그 설비의 이상치들
+    private List<AbnDetailResponse> facAbnormals;         // 그 설비의 이상치들
 }

@@ -6,7 +6,7 @@ import com.factoreal.backend.domain.equip.dto.response.LatestMaintenancePredicti
 import com.factoreal.backend.domain.equip.entity.Equip;
 import com.factoreal.backend.domain.equip.entity.EquipHistory;
 import com.factoreal.backend.domain.zone.entity.Zone;
-import com.factoreal.backend.messaging.slack.service.SlackEquipAlarmService;
+import com.factoreal.backend.messaging.slack.api.SlackEquipAlarmService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -19,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -73,21 +74,21 @@ class EquipMaintenanceServiceTest {
         zoneName = "조립라인1";
 
         zone = Zone.builder()
-            .zoneId(zoneId)
-            .zoneName(zoneName)
-            .build();
+                .zoneId(zoneId)
+                .zoneName(zoneName)
+                .build();
 
         equip = Equip.builder()
-            .equipId(equipId)
-            .equipName(equipName)
-            .zone(zone)
-            .build();
+                .equipId(equipId)
+                .equipName(equipName)
+                .zone(zone)
+                .build();
     }
 
     @Nested
     @DisplayName("processMaintenancePrediction 메서드 테스트")
     class ProcessMaintenancePredictionTest {
-        
+
         @Test
         @DisplayName("Case 1: 첫 예측값일 때 - 이력 저장 및 알림 발송 (D-3)")
         void firstPrediction_shouldSaveAndSendAlert_D3() throws IOException {
@@ -95,7 +96,7 @@ class EquipMaintenanceServiceTest {
             LocalDate expectedDate = LocalDate.now().plusDays(3);  // D-3
             given(equipRepoService.findById(equipId)).willReturn(equip);
             given(equipHistoryRepoService.findLatestUncheckedByEquipId(equipId))
-                .willReturn(Optional.empty());
+                    .willReturn(Optional.empty());
             given(slackEquipAlarmService.getDaysUntilMaintenance(expectedDate)).willReturn(3L);
 
             // when
@@ -104,12 +105,12 @@ class EquipMaintenanceServiceTest {
             // then
             verify(equipHistoryRepoService, times(1)).save(any(EquipHistory.class));
             verify(slackEquipAlarmService, times(1))
-                .sendEquipmentMaintenanceAlert(
-                    eq(equipName),
-                    eq(zoneName),
-                    eq(expectedDate),
-                    eq(3L)
-                );
+                    .sendEquipmentMaintenanceAlert(
+                            eq(equipName),
+                            eq(zoneName),
+                            eq(expectedDate),
+                            eq(3L)
+                    );
         }
 
         @Test
@@ -119,7 +120,7 @@ class EquipMaintenanceServiceTest {
             LocalDate expectedDate = LocalDate.now().plusDays(7);  // D-7
             given(equipRepoService.findById(equipId)).willReturn(equip);
             given(equipHistoryRepoService.findLatestUncheckedByEquipId(equipId))
-                .willReturn(Optional.empty());
+                    .willReturn(Optional.empty());
             given(slackEquipAlarmService.getDaysUntilMaintenance(expectedDate)).willReturn(7L);
 
             // when
@@ -128,12 +129,12 @@ class EquipMaintenanceServiceTest {
             // then
             verify(equipHistoryRepoService, times(1)).save(any(EquipHistory.class));
             verify(slackEquipAlarmService, times(1))
-                .sendEquipmentMaintenanceAlert(
-                    eq(equipName),
-                    eq(zoneName),
-                    eq(expectedDate),
-                    eq(7L)
-                );
+                    .sendEquipmentMaintenanceAlert(
+                            eq(equipName),
+                            eq(zoneName),
+                            eq(expectedDate),
+                            eq(7L)
+                    );
         }
 
         @Test
@@ -143,16 +144,16 @@ class EquipMaintenanceServiceTest {
             LocalDate expectedDate = LocalDate.now().plusDays(3);
             given(equipRepoService.findById(equipId)).willReturn(equip);
             given(equipHistoryRepoService.findLatestUncheckedByEquipId(equipId))
-                .willReturn(Optional.empty());
+                    .willReturn(Optional.empty());
             given(slackEquipAlarmService.getDaysUntilMaintenance(expectedDate)).willReturn(3L);
             doThrow(new IOException("Slack API 호출 실패"))
-                .when(slackEquipAlarmService)
-                .sendEquipmentMaintenanceAlert(
-                    eq(equipName),
-                    eq(zoneName),
-                    eq(expectedDate),
-                    eq(3L)
-                );
+                    .when(slackEquipAlarmService)
+                    .sendEquipmentMaintenanceAlert(
+                            eq(equipName),
+                            eq(zoneName),
+                            eq(expectedDate),
+                            eq(3L)
+                    );
 
             // when
             equipMaintenanceService.processMaintenancePrediction(equipId, expectedDate);
@@ -160,12 +161,12 @@ class EquipMaintenanceServiceTest {
             // then
             verify(equipHistoryRepoService, times(1)).save(any(EquipHistory.class));
             verify(slackEquipAlarmService, times(1))
-                .sendEquipmentMaintenanceAlert(
-                    eq(equipName),
-                    eq(zoneName),
-                    eq(expectedDate),
-                    eq(3L)
-                );
+                    .sendEquipmentMaintenanceAlert(
+                            eq(equipName),
+                            eq(zoneName),
+                            eq(expectedDate),
+                            eq(3L)
+                    );
         }
 
         @Test
@@ -174,15 +175,15 @@ class EquipMaintenanceServiceTest {
             // given
             LocalDate currentDate = LocalDate.now().plusDays(6);
             LocalDate newDate = LocalDate.now().plusDays(4);
-            
+
             EquipHistory currentHistory = EquipHistory.builder()
-                .equip(equip)
-                .accidentDate(currentDate)
-                .build();
+                    .equip(equip)
+                    .accidentDate(currentDate)
+                    .build();
 
             given(equipRepoService.findById(equipId)).willReturn(equip);
             given(equipHistoryRepoService.findLatestUncheckedByEquipId(equipId))
-                .willReturn(Optional.of(currentHistory));
+                    .willReturn(Optional.of(currentHistory));
             given(slackEquipAlarmService.getDaysUntilMaintenance(newDate)).willReturn(4L);
 
             // when
@@ -199,15 +200,15 @@ class EquipMaintenanceServiceTest {
             // given
             LocalDate currentDate = LocalDate.now().plusDays(10);
             LocalDate newDate = LocalDate.now().plusDays(7);
-            
+
             EquipHistory currentHistory = EquipHistory.builder()
-                .equip(equip)
-                .accidentDate(currentDate)
-                .build();
+                    .equip(equip)
+                    .accidentDate(currentDate)
+                    .build();
 
             given(equipRepoService.findById(equipId)).willReturn(equip);
             given(equipHistoryRepoService.findLatestUncheckedByEquipId(equipId))
-                .willReturn(Optional.of(currentHistory));
+                    .willReturn(Optional.of(currentHistory));
             given(slackEquipAlarmService.getDaysUntilMaintenance(newDate)).willReturn(7L);
             given(slackEquipAlarmService.getDaysUntilMaintenance(currentDate)).willReturn(10L);
 
@@ -225,15 +226,15 @@ class EquipMaintenanceServiceTest {
             // given
             LocalDate currentDate = LocalDate.now().plusDays(7);
             LocalDate newDate = LocalDate.now().plusDays(10);
-            
+
             EquipHistory currentHistory = EquipHistory.builder()
-                .equip(equip)
-                .accidentDate(currentDate)
-                .build();
+                    .equip(equip)
+                    .accidentDate(currentDate)
+                    .build();
 
             given(equipRepoService.findById(equipId)).willReturn(equip);
             given(equipHistoryRepoService.findLatestUncheckedByEquipId(equipId))
-                .willReturn(Optional.of(currentHistory));
+                    .willReturn(Optional.of(currentHistory));
             given(slackEquipAlarmService.getDaysUntilMaintenance(newDate)).willReturn(10L);
             given(slackEquipAlarmService.getDaysUntilMaintenance(currentDate)).willReturn(7L);
 
@@ -266,34 +267,34 @@ class EquipMaintenanceServiceTest {
 
             // 기존 이력이 있는 상태로 설정 (첫 예측값이 아님)
             EquipHistory existingHistory = EquipHistory.builder()
-                .equip(equip)
-                .accidentDate(LocalDate.now().plusDays(10))
-                .build();
+                    .equip(equip)
+                    .accidentDate(LocalDate.now().plusDays(10))
+                    .build();
 
             given(equipRepoService.findAll()).willReturn(List.of(equipInfo));
             given(equipRepoService.findById(equipId)).willReturn(equip);
             given(equipHistoryRepoService.findLatestUncheckedByEquipId(equipId))
-                .willReturn(Optional.of(existingHistory));  // 기존 이력 있음
+                    .willReturn(Optional.of(existingHistory));  // 기존 이력 있음
             given(restTemplate.getForEntity(anyString(), eq(MaintenancePredictionResponse.class)))
-                .willReturn(ResponseEntity.ok(predictionResponse));
+                    .willReturn(ResponseEntity.ok(predictionResponse));
             given(slackEquipAlarmService.shouldSendAlert(expectedDate)).willReturn(true);
             given(slackEquipAlarmService.getDaysUntilMaintenance(any(LocalDate.class)))
-                .willAnswer(invocation -> {
-                    LocalDate date = invocation.getArgument(0);
-                    return ChronoUnit.DAYS.between(LocalDate.now(), date);
-                });
+                    .willAnswer(invocation -> {
+                        LocalDate date = invocation.getArgument(0);
+                        return ChronoUnit.DAYS.between(LocalDate.now(), date);
+                    });
 
             // when
             equipMaintenanceService.fetchAndProcessMaintenancePredictions();
 
             // then
             verify(slackEquipAlarmService, times(1))
-                .sendEquipmentMaintenanceAlert(
-                    eq(equipName),
-                    eq(zoneName),
-                    eq(expectedDate),
-                    eq(5L)
-                );
+                    .sendEquipmentMaintenanceAlert(
+                            eq(equipName),
+                            eq(zoneName),
+                            eq(expectedDate),
+                            eq(5L)
+                    );
         }
 
         @Test
@@ -312,34 +313,34 @@ class EquipMaintenanceServiceTest {
 
             // 기존 이력이 있는 상태로 설정
             EquipHistory existingHistory = EquipHistory.builder()
-                .equip(equip)
-                .accidentDate(LocalDate.now().plusDays(10))
-                .build();
+                    .equip(equip)
+                    .accidentDate(LocalDate.now().plusDays(10))
+                    .build();
 
             given(equipRepoService.findAll()).willReturn(List.of(equipInfo));
             given(equipRepoService.findById(equipId)).willReturn(equip);
             given(equipHistoryRepoService.findLatestUncheckedByEquipId(equipId))
-                .willReturn(Optional.of(existingHistory));
+                    .willReturn(Optional.of(existingHistory));
             given(restTemplate.getForEntity(anyString(), eq(MaintenancePredictionResponse.class)))
-                .willReturn(ResponseEntity.ok(predictionResponse));
+                    .willReturn(ResponseEntity.ok(predictionResponse));
             given(slackEquipAlarmService.shouldSendAlert(expectedDate)).willReturn(true);
             given(slackEquipAlarmService.getDaysUntilMaintenance(any(LocalDate.class)))
-                .willAnswer(invocation -> {
-                    LocalDate date = invocation.getArgument(0);
-                    return ChronoUnit.DAYS.between(LocalDate.now(), date);
-                });
+                    .willAnswer(invocation -> {
+                        LocalDate date = invocation.getArgument(0);
+                        return ChronoUnit.DAYS.between(LocalDate.now(), date);
+                    });
 
             // when
             equipMaintenanceService.fetchAndProcessMaintenancePredictions();
 
             // then
             verify(slackEquipAlarmService, times(1))
-                .sendEquipmentMaintenanceAlert(
-                    eq(equipName),
-                    eq(zoneName),
-                    eq(expectedDate),
-                    eq(3L)
-                );
+                    .sendEquipmentMaintenanceAlert(
+                            eq(equipName),
+                            eq(zoneName),
+                            eq(expectedDate),
+                            eq(3L)
+                    );
         }
 
         @Test
@@ -358,34 +359,34 @@ class EquipMaintenanceServiceTest {
 
             // 기존 이력이 있는 상태로 설정
             EquipHistory existingHistory = EquipHistory.builder()
-                .equip(equip)
-                .accidentDate(LocalDate.now().plusDays(10))
-                .build();
+                    .equip(equip)
+                    .accidentDate(LocalDate.now().plusDays(10))
+                    .build();
 
             given(equipRepoService.findAll()).willReturn(List.of(equipInfo));
             given(equipRepoService.findById(equipId)).willReturn(equip);
             given(equipHistoryRepoService.findLatestUncheckedByEquipId(equipId))
-                .willReturn(Optional.of(existingHistory));
+                    .willReturn(Optional.of(existingHistory));
             given(restTemplate.getForEntity(anyString(), eq(MaintenancePredictionResponse.class)))
-                .willReturn(ResponseEntity.ok(predictionResponse));
+                    .willReturn(ResponseEntity.ok(predictionResponse));
             given(slackEquipAlarmService.shouldSendAlert(expectedDate)).willReturn(false);
             given(slackEquipAlarmService.getDaysUntilMaintenance(any(LocalDate.class)))
-                .willAnswer(invocation -> {
-                    LocalDate date = invocation.getArgument(0);
-                    return ChronoUnit.DAYS.between(LocalDate.now(), date);
-                });
+                    .willAnswer(invocation -> {
+                        LocalDate date = invocation.getArgument(0);
+                        return ChronoUnit.DAYS.between(LocalDate.now(), date);
+                    });
 
             // when
             equipMaintenanceService.fetchAndProcessMaintenancePredictions();
 
             // then
             verify(slackEquipAlarmService, never())
-                .sendEquipmentMaintenanceAlert(
-                    anyString(),
-                    anyString(),
-                    any(LocalDate.class),
-                    anyLong()
-                );
+                    .sendEquipmentMaintenanceAlert(
+                            anyString(),
+                            anyString(),
+                            any(LocalDate.class),
+                            anyLong()
+                    );
         }
 
         @Test
@@ -404,42 +405,42 @@ class EquipMaintenanceServiceTest {
 
             // 기존 이력이 있는 상태로 설정
             EquipHistory existingHistory = EquipHistory.builder()
-                .equip(equip)
-                .accidentDate(LocalDate.now().plusDays(10))
-                .build();
+                    .equip(equip)
+                    .accidentDate(LocalDate.now().plusDays(10))
+                    .build();
 
             given(equipRepoService.findAll()).willReturn(List.of(equipInfo));
             given(equipRepoService.findById(equipId)).willReturn(equip);
             given(equipHistoryRepoService.findLatestUncheckedByEquipId(equipId))
-                .willReturn(Optional.of(existingHistory));
+                    .willReturn(Optional.of(existingHistory));
             given(restTemplate.getForEntity(anyString(), eq(MaintenancePredictionResponse.class)))
-                .willReturn(ResponseEntity.ok(predictionResponse));
+                    .willReturn(ResponseEntity.ok(predictionResponse));
             given(slackEquipAlarmService.shouldSendAlert(expectedDate)).willReturn(true);
             given(slackEquipAlarmService.getDaysUntilMaintenance(any(LocalDate.class)))
-                .willAnswer(invocation -> {
-                    LocalDate date = invocation.getArgument(0);
-                    return ChronoUnit.DAYS.between(LocalDate.now(), date);
-                });
+                    .willAnswer(invocation -> {
+                        LocalDate date = invocation.getArgument(0);
+                        return ChronoUnit.DAYS.between(LocalDate.now(), date);
+                    });
             doThrow(new IOException("Slack API 호출 실패"))
-                .when(slackEquipAlarmService)
-                .sendEquipmentMaintenanceAlert(
-                    eq(equipName),
-                    eq(zoneName),
-                    eq(expectedDate),
-                    eq(5L)
-                );
+                    .when(slackEquipAlarmService)
+                    .sendEquipmentMaintenanceAlert(
+                            eq(equipName),
+                            eq(zoneName),
+                            eq(expectedDate),
+                            eq(5L)
+                    );
 
             // when
             equipMaintenanceService.fetchAndProcessMaintenancePredictions();
 
             // then
             verify(slackEquipAlarmService, times(1))
-                .sendEquipmentMaintenanceAlert(
-                    eq(equipName),
-                    eq(zoneName),
-                    eq(expectedDate),
-                    eq(5L)
-                );
+                    .sendEquipmentMaintenanceAlert(
+                            eq(equipName),
+                            eq(zoneName),
+                            eq(expectedDate),
+                            eq(5L)
+                    );
         }
     }
 
@@ -459,14 +460,14 @@ class EquipMaintenanceServiceTest {
 
             given(equipRepoService.findAll()).willReturn(List.of(equipInfo));
             given(restTemplate.getForEntity(anyString(), eq(MaintenancePredictionResponse.class)))
-                .willThrow(new RuntimeException("API 호출 실패"));
+                    .willThrow(new RuntimeException("API 호출 실패"));
 
             // when
             equipMaintenanceService.fetchAndProcessMaintenancePredictions();
 
             // then
             verify(slackEquipAlarmService, never())
-                .sendEquipmentMaintenanceAlert(anyString(), anyString(), any(LocalDate.class), anyLong());
+                    .sendEquipmentMaintenanceAlert(anyString(), anyString(), any(LocalDate.class), anyLong());
         }
 
         @Test
@@ -481,14 +482,14 @@ class EquipMaintenanceServiceTest {
 
             given(equipRepoService.findAll()).willReturn(List.of(equipInfo));
             given(restTemplate.getForEntity(anyString(), eq(MaintenancePredictionResponse.class)))
-                .willReturn(ResponseEntity.ok(null));
+                    .willReturn(ResponseEntity.ok(null));
 
             // when
             equipMaintenanceService.fetchAndProcessMaintenancePredictions();
 
             // then
             verify(slackEquipAlarmService, never())
-                .sendEquipmentMaintenanceAlert(anyString(), anyString(), any(LocalDate.class), anyLong());
+                    .sendEquipmentMaintenanceAlert(anyString(), anyString(), any(LocalDate.class), anyLong());
         }
 
         @Test
@@ -506,14 +507,14 @@ class EquipMaintenanceServiceTest {
 
             given(equipRepoService.findAll()).willReturn(List.of(equipInfo));
             given(restTemplate.getForEntity(anyString(), eq(MaintenancePredictionResponse.class)))
-                .willReturn(ResponseEntity.ok(predictionResponse));
+                    .willReturn(ResponseEntity.ok(predictionResponse));
 
             // when
             equipMaintenanceService.fetchAndProcessMaintenancePredictions();
 
             // then
             verify(slackEquipAlarmService, never())
-                .sendEquipmentMaintenanceAlert(anyString(), anyString(), any(LocalDate.class), anyLong());
+                    .sendEquipmentMaintenanceAlert(anyString(), anyString(), any(LocalDate.class), anyLong());
         }
     }
 
@@ -530,9 +531,9 @@ class EquipMaintenanceServiceTest {
 
             // when
             LocalDate result = ReflectionTestUtils.invokeMethod(
-                equipMaintenanceService,
-                "calculateExpectedMaintenanceDate",
-                remainingDays
+                    equipMaintenanceService,
+                    "calculateExpectedMaintenanceDate",
+                    remainingDays
             );
 
             // then
@@ -543,27 +544,27 @@ class EquipMaintenanceServiceTest {
     @Nested
     @DisplayName("getLatestMaintenancePrediction 메서드 테스트")
     class GetLatestMaintenancePredictionTest {
-        
+
         @Test
         @DisplayName("미점검 이력이 있는 경우, 해당 이력의 예상 점검일자를 반환한다")
         void whenUncheckedHistoryExists_returnsThatHistory() {
             // given
             LocalDate expectedDate = LocalDate.now().plusDays(5);
             EquipHistory uncheckedHistory = EquipHistory.builder()
-                .equip(equip)
-                .accidentDate(expectedDate)
-                .checkDate(null)
-                .build();
+                    .equip(equip)
+                    .accidentDate(expectedDate)
+                    .checkDate(null)
+                    .build();
 
             given(equipRepoService.findById(equipId)).willReturn(equip);
             given(equipHistoryRepoService.findLatestUncheckedByEquipId(equipId))
-                .willReturn(Optional.of(uncheckedHistory));
+                    .willReturn(Optional.of(uncheckedHistory));
             given(slackEquipAlarmService.getDaysUntilMaintenance(expectedDate))
-                .willReturn(5L);
+                    .willReturn(5L);
 
             // when
-            LatestMaintenancePredictionResponse response = 
-                equipMaintenanceService.getLatestMaintenancePrediction(equipId, zoneId);
+            LatestMaintenancePredictionResponse response =
+                    equipMaintenanceService.getLatestMaintenancePrediction(equipId, zoneId);
 
             // then
             assertThat(response.getEquipId()).isEqualTo(equipId);
@@ -580,22 +581,22 @@ class EquipMaintenanceServiceTest {
             // given
             LocalDate expectedDate = LocalDate.now().plusDays(10);
             EquipHistory checkedHistory = EquipHistory.builder()
-                .equip(equip)
-                .accidentDate(expectedDate)
-                .checkDate(LocalDate.now())
-                .build();
+                    .equip(equip)
+                    .accidentDate(expectedDate)
+                    .checkDate(LocalDate.now())
+                    .build();
 
             given(equipRepoService.findById(equipId)).willReturn(equip);
             given(equipHistoryRepoService.findLatestUncheckedByEquipId(equipId))
-                .willReturn(Optional.empty());
+                    .willReturn(Optional.empty());
             given(equipHistoryRepoService.findLatestByEquipId(equipId))
-                .willReturn(Optional.of(checkedHistory));
+                    .willReturn(Optional.of(checkedHistory));
             given(slackEquipAlarmService.getDaysUntilMaintenance(expectedDate))
-                .willReturn(10L);
+                    .willReturn(10L);
 
             // when
-            LatestMaintenancePredictionResponse response = 
-                equipMaintenanceService.getLatestMaintenancePrediction(equipId, zoneId);
+            LatestMaintenancePredictionResponse response =
+                    equipMaintenanceService.getLatestMaintenancePrediction(equipId, zoneId);
 
             // then
             assertThat(response.getEquipId()).isEqualTo(equipId);
@@ -609,14 +610,14 @@ class EquipMaintenanceServiceTest {
             // given
             given(equipRepoService.findById(equipId)).willReturn(equip);
             given(equipHistoryRepoService.findLatestUncheckedByEquipId(equipId))
-                .willReturn(Optional.empty());
+                    .willReturn(Optional.empty());
             given(equipHistoryRepoService.findLatestByEquipId(equipId))
-                .willReturn(Optional.empty());
+                    .willReturn(Optional.empty());
 
             // when & then
-            assertThrows(ResponseStatusException.class, () -> 
-                equipMaintenanceService.getLatestMaintenancePrediction(equipId, zoneId),
-                "최근 예상 점검일자를 찾을 수 없습니다.");
+            assertThrows(ResponseStatusException.class, () ->
+                            equipMaintenanceService.getLatestMaintenancePrediction(equipId, zoneId),
+                    "최근 예상 점검일자를 찾을 수 없습니다.");
         }
 
         @Test
@@ -625,21 +626,21 @@ class EquipMaintenanceServiceTest {
             // given
             String wrongZoneId = "wrong_zone_id";
             Zone wrongZone = Zone.builder()
-                .zoneId(wrongZoneId)
-                .zoneName("Wrong Zone")
-                .build();
+                    .zoneId(wrongZoneId)
+                    .zoneName("Wrong Zone")
+                    .build();
             Equip equipWithWrongZone = Equip.builder()
-                .equipId(equipId)
-                .equipName(equipName)
-                .zone(wrongZone)
-                .build();
+                    .equipId(equipId)
+                    .equipName(equipName)
+                    .zone(wrongZone)
+                    .build();
 
             given(equipRepoService.findById(equipId)).willReturn(equipWithWrongZone);
 
             // when & then
-            assertThrows(ResponseStatusException.class, () -> 
-                equipMaintenanceService.getLatestMaintenancePrediction(equipId, zoneId),
-                "설비가 해당 공간에 속하지 않습니다.");
+            assertThrows(ResponseStatusException.class, () ->
+                            equipMaintenanceService.getLatestMaintenancePrediction(equipId, zoneId),
+                    "설비가 해당 공간에 속하지 않습니다.");
         }
     }
 } 

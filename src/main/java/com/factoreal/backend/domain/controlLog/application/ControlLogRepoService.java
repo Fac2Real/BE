@@ -1,7 +1,7 @@
-package com.factoreal.backend.domain.controlLog.service;
+package com.factoreal.backend.domain.controlLog.application;
 
 import com.factoreal.backend.domain.controlLog.entity.ControlLog;
-import com.factoreal.backend.domain.controlLog.repository.ControlLogRepository;
+import com.factoreal.backend.domain.controlLog.dao.ControlLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

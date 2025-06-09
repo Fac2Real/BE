@@ -1,7 +1,7 @@
 package com.factoreal.backend.messaging.kafka.strategy.alarmList;
 
 import com.factoreal.backend.domain.notifyLog.dto.TriggerType;
-import com.factoreal.backend.domain.notifyLog.service.NotifyLogService;
+import com.factoreal.backend.domain.notifyLog.application.NotifyLogService;
 import com.factoreal.backend.messaging.sender.WebSocketSender;
 import com.factoreal.backend.messaging.kafka.strategy.enums.AlarmEventDto;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
@@ -28,19 +28,19 @@ public class WebSocketNotificationStrategy implements NotificationStrategy {
         try {
             webSocketSender.sendDangerAlarm(alarmEventDto);
             notifyLogService.saveNotifyLogFromWebsocket(
-                "/topic/alarm",
-                Boolean.TRUE,
-                TriggerType.AUTOMATIC,
-                LocalDateTime.parse(alarmEventDto.getTime()),
-                alarmEventDto.getEventId()
+                    "/topic/alarm",
+                    Boolean.TRUE,
+                    TriggerType.AUTOMATIC,
+                    LocalDateTime.parse(alarmEventDto.getTime()),
+                    alarmEventDto.getEventId()
             );
-        }catch (Exception e){
+        } catch (Exception e) {
             notifyLogService.saveNotifyLogFromWebsocket(
-                "/topic/alarm",
-                Boolean.FALSE,
-                TriggerType.AUTOMATIC,
-                LocalDateTime.parse(alarmEventDto.getTime()),
-                alarmEventDto.getEventId()
+                    "/topic/alarm",
+                    Boolean.FALSE,
+                    TriggerType.AUTOMATIC,
+                    LocalDateTime.parse(alarmEventDto.getTime()),
+                    alarmEventDto.getEventId()
             );
         }
     }

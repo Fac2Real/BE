@@ -1,13 +1,14 @@
-package com.factoreal.backend.messaging.fcm.service;
+package com.factoreal.backend.messaging.fcm.application;
 
 import static org.junit.jupiter.api.Assertions.*;
+
 import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogRepoService;
 import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.domain.equip.application.EquipRepoService;
 import com.factoreal.backend.domain.equip.entity.Equip;
 import com.factoreal.backend.domain.notifyLog.dto.TriggerType;
-import com.factoreal.backend.domain.notifyLog.service.NotifyLogService;
+import com.factoreal.backend.domain.notifyLog.application.NotifyLogService;
 import com.factoreal.backend.domain.sensor.application.SensorRepoService;
 import com.factoreal.backend.domain.sensor.entity.Sensor;
 import com.factoreal.backend.domain.worker.application.WorkerRepoService;
@@ -34,7 +35,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -154,7 +154,7 @@ class FCMServiceTest {
         when(equipRepoService.findById(equipId)).thenReturn(mockEquip);
         when(workerRepoService.findById(workerId)).thenReturn(mockWorker);
         when(fcmPushService.sendMessage(anyString(), anyString(), anyString()))
-            .thenReturn(CompletableFuture.completedFuture("messageId"));
+                .thenReturn(CompletableFuture.completedFuture("messageId"));
 
         // Act
         fcmService.sendEquipMaintain(workerId, equipId);
@@ -173,11 +173,11 @@ class FCMServiceTest {
         assertEquals("Test Zone의 Test Equip설비 점검 요청합니다.", bodyCaptor.getValue());
 
         verify(notifyLogService).saveNotifyLogFromFCM(
-            eq(workerId),
-            eq(Boolean.TRUE),
-            eq(TriggerType.MANUAL),
-            any(LocalDateTime.class),
-            isNull()
+                eq(workerId),
+                eq(Boolean.TRUE),
+                eq(TriggerType.MANUAL),
+                any(LocalDateTime.class),
+                isNull()
         );
     }
 
@@ -193,7 +193,7 @@ class FCMServiceTest {
         CompletableFuture<String> failedFuture = new CompletableFuture<>();
         failedFuture.completeExceptionally(new RuntimeException("FCM send failed"));
         when(fcmPushService.sendMessage(anyString(), anyString(), anyString()))
-            .thenReturn(failedFuture);
+                .thenReturn(failedFuture);
 
         // Act & Assert
         BadRequestException exception = assertThrows(BadRequestException.class, () -> {
@@ -202,11 +202,11 @@ class FCMServiceTest {
         assertEquals("❌ 작업자의 fcm 토큰이 등록되지 않았습니다.", exception.getMessage()); // Or more generic message if Future exception is different
 
         verify(notifyLogService).saveNotifyLogFromFCM(
-            eq(workerId),
-            eq(Boolean.FALSE),
-            eq(TriggerType.MANUAL),
-            any(LocalDateTime.class),
-            isNull()
+                eq(workerId),
+                eq(Boolean.FALSE),
+                eq(TriggerType.MANUAL),
+                any(LocalDateTime.class),
+                isNull()
         );
     }
 
@@ -234,7 +234,7 @@ class FCMServiceTest {
         when(workerRepoService.findById(careNeedWorkerId)).thenReturn(careNeedWorker);
         when(zoneHistoryRepoService.getCurrentWorkerLocation(careNeedWorkerId)).thenReturn(currentZoneHist);
         when(fcmPushService.sendMessage(anyString(), anyString(), anyString()))
-            .thenReturn(CompletableFuture.completedFuture("messageId"));
+                .thenReturn(CompletableFuture.completedFuture("messageId"));
 
         // Act
         fcmService.sendWorkerSafety(helperWorkerId, careNeedWorkerId);
@@ -245,11 +245,11 @@ class FCMServiceTest {
         assertEquals("Danger Zone에 있는 작업자 Care Worker씨의 건강 이상이 발견되었습니다. 지원바랍니다.", bodyCaptor.getValue());
 
         verify(notifyLogService).saveNotifyLogFromFCM(
-            eq(helperWorkerId),
-            eq(Boolean.TRUE),
-            eq(TriggerType.MANUAL),
-            any(LocalDateTime.class),
-            isNull()
+                eq(helperWorkerId),
+                eq(Boolean.TRUE),
+                eq(TriggerType.MANUAL),
+                any(LocalDateTime.class),
+                isNull()
         );
     }
 
@@ -272,7 +272,7 @@ class FCMServiceTest {
         when(workerRepoService.findById(careNeedWorkerId)).thenReturn(careNeedWorker);
         when(zoneHistoryRepoService.getCurrentWorkerLocation(careNeedWorkerId)).thenReturn(null); // No ZoneHist
         when(fcmPushService.sendMessage(anyString(), anyString(), anyString()))
-            .thenReturn(CompletableFuture.completedFuture("messageId"));
+                .thenReturn(CompletableFuture.completedFuture("messageId"));
 
         // Act
         fcmService.sendWorkerSafety(helperWorkerId, careNeedWorkerId);
@@ -283,11 +283,11 @@ class FCMServiceTest {
         assertEquals(FCMService.DEFAULT_ZONE_NAME + "에 있는 작업자 Care Worker씨의 건강 이상이 발견되었습니다. 지원바랍니다.", bodyCaptor.getValue());
 
         verify(notifyLogService).saveNotifyLogFromFCM(
-            eq(helperWorkerId),
-            eq(Boolean.TRUE),
-            eq(TriggerType.MANUAL),
-            any(LocalDateTime.class),
-            isNull()
+                eq(helperWorkerId),
+                eq(Boolean.TRUE),
+                eq(TriggerType.MANUAL),
+                any(LocalDateTime.class),
+                isNull()
         );
     }
 
@@ -311,7 +311,7 @@ class FCMServiceTest {
         CompletableFuture<String> failedFuture = new CompletableFuture<>();
         failedFuture.completeExceptionally(new RuntimeException("FCM send failed"));
         when(fcmPushService.sendMessage(anyString(), anyString(), anyString()))
-            .thenReturn(failedFuture);
+                .thenReturn(failedFuture);
 
         // Act & Assert
         BadRequestException exception = assertThrows(BadRequestException.class, () -> {
@@ -320,11 +320,11 @@ class FCMServiceTest {
         assertEquals("❌ 작업자의 fcm 토큰이 등록되지 않았습니다.", exception.getMessage());
 
         verify(notifyLogService).saveNotifyLogFromFCM(
-            eq(helperWorkerId),
-            eq(Boolean.FALSE),
-            eq(TriggerType.MANUAL),
-            any(LocalDateTime.class),
-            isNull()
+                eq(helperWorkerId),
+                eq(Boolean.FALSE),
+                eq(TriggerType.MANUAL),
+                any(LocalDateTime.class),
+                isNull()
         );
     }
 
@@ -354,11 +354,11 @@ class FCMServiceTest {
 
         when(zoneRepoService.findById(zoneId)).thenReturn(mockZone);
         when(abnormalLogRepoService.findLatestSensorLogInZoneWithDangerLevel(TargetType.Sensor, mockZone, dangerLevel))
-            .thenReturn(mockAbnormalLog);
+                .thenReturn(mockAbnormalLog);
         when(sensorRepoService.getSensorById(mockAbnormalLog.getTargetId())).thenReturn(mockSensor);
         when(zoneHistoryRepoService.getCurrentWorkersByZoneId(zoneId)).thenReturn(zoneHists);
         when(fcmPushService.sendMessage(anyString(), anyString(), anyString()))
-            .thenReturn(CompletableFuture.completedFuture("messageId"));
+                .thenReturn(CompletableFuture.completedFuture("messageId"));
 
         // Act
         fcmService.sendZoneSafety(zoneId, dangerLevel, triggerType, time, null);
@@ -377,11 +377,11 @@ class FCMServiceTest {
         verify(fcmPushService).sendMessage(eq(workerInZone2.getFcmToken()), eq(expectedTitle), eq(expectedBody));
 
         verify(notifyLogService, times(2)).saveNotifyLogFromFCM(
-            anyString(),
-            eq(Boolean.TRUE),
-            eq(triggerType),
-            eq(time),
-            eq(mockAbnormalLog.getId())
+                anyString(),
+                eq(Boolean.TRUE),
+                eq(triggerType),
+                eq(time),
+                eq(mockAbnormalLog.getId())
         );
         verify(notifyLogService).saveNotifyLogFromFCM(eq(workerInZone1.getWorkerId()), eq(Boolean.TRUE), eq(triggerType), eq(time), eq(mockAbnormalLog.getId()));
         verify(notifyLogService).saveNotifyLogFromFCM(eq(workerInZone2.getWorkerId()), eq(Boolean.TRUE), eq(triggerType), eq(time), eq(mockAbnormalLog.getId()));
@@ -415,7 +415,7 @@ class FCMServiceTest {
         when(sensorRepoService.getSensorById(providedAbnormalLog.getTargetId())).thenReturn(providedSensor);
         when(zoneHistoryRepoService.getCurrentWorkersByZoneId(zoneId)).thenReturn(zoneHists);
         when(fcmPushService.sendMessage(anyString(), anyString(), anyString()))
-            .thenReturn(CompletableFuture.completedFuture("messageId"));
+                .thenReturn(CompletableFuture.completedFuture("messageId"));
 
         // Act
         fcmService.sendZoneSafety(zoneId, dangerLevel, triggerType, time, providedAbnormalLog);
@@ -428,11 +428,11 @@ class FCMServiceTest {
         verify(fcmPushService).sendMessage(eq(workerInZone.getFcmToken()), anyString(), eq(expectedBody));
 
         verify(notifyLogService).saveNotifyLogFromFCM(
-            eq(workerInZone.getWorkerId()),
-            eq(Boolean.TRUE),
-            eq(triggerType),
-            eq(time),
-            eq(providedAbnormalLog.getId())
+                eq(workerInZone.getWorkerId()),
+                eq(Boolean.TRUE),
+                eq(triggerType),
+                eq(time),
+                eq(providedAbnormalLog.getId())
         );
     }
 
@@ -447,7 +447,7 @@ class FCMServiceTest {
 
         when(zoneRepoService.findById(zoneId)).thenReturn(mockZone);
         when(abnormalLogRepoService.findLatestSensorLogInZoneWithDangerLevel(TargetType.Sensor, mockZone, dangerLevel))
-            .thenReturn(mockAbnormalLog); // This will still be called
+                .thenReturn(mockAbnormalLog); // This will still be called
         when(sensorRepoService.getSensorById(mockAbnormalLog.getTargetId())).thenReturn(mockSensor);
         when(zoneHistoryRepoService.getCurrentWorkersByZoneId(zoneId)).thenReturn(Collections.emptyList()); // No workers
 
@@ -505,21 +505,21 @@ class FCMServiceTest {
         // Verify successful send and log
         verify(fcmPushService).sendMessage(eq(workerSuccess.getFcmToken()), anyString(), anyString());
         verify(notifyLogService).saveNotifyLogFromFCM(
-            eq(workerSuccess.getWorkerId()),
-            eq(Boolean.TRUE),
-            eq(triggerType),
-            eq(time),
-            eq(mockAbnormalLog.getId())
+                eq(workerSuccess.getWorkerId()),
+                eq(Boolean.TRUE),
+                eq(triggerType),
+                eq(time),
+                eq(mockAbnormalLog.getId())
         );
 
         // Verify failed send and log for the worker that caused the exception
         verify(fcmPushService).sendMessage(eq(workerFail.getFcmToken()), anyString(), anyString());
         verify(notifyLogService).saveNotifyLogFromFCM(
-            eq(workerFail.getWorkerId()),
-            eq(Boolean.FALSE),
-            eq(triggerType),
-            eq(time),
-            eq(mockAbnormalLog.getId())
+                eq(workerFail.getWorkerId()),
+                eq(Boolean.FALSE),
+                eq(triggerType),
+                eq(time),
+                eq(mockAbnormalLog.getId())
         );
     }
 }

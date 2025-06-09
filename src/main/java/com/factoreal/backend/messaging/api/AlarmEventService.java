@@ -1,4 +1,4 @@
-package com.factoreal.backend.messaging.service;
+package com.factoreal.backend.messaging.api;
 
 import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
@@ -49,6 +49,7 @@ public class AlarmEventService {
             // TODO: 기타 처리 오류 처리
         }
     }
+
     public AlarmEventDto generateAlarmDto(WearableKafkaDto data, AbnormalLog abnormalLog, RiskLevel riskLevel) {
         String source = "웨어러블";
 
@@ -66,6 +67,7 @@ public class AlarmEventService {
                 .zoneName(abnormalLog.getZone().getZoneName())
                 .build();
     }
+
     private AlarmEventDto generateAlarmDto(SensorKafkaDto data, AbnormalLog abnormalLog, RiskLevel riskLevel)
             throws Exception {
 
@@ -86,6 +88,7 @@ public class AlarmEventService {
                 .zoneName(zoneName)
                 .build();
     }
+
     private void processAlarmEvent(AlarmEventDto alarmEventDto) {
         if (alarmEventDto == null || alarmEventDto.getRiskLevel() == null) {
             log.warn("Received null AlarmEvent DTO or DTO with null severity. Skipping notification.");

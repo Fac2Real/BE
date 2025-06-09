@@ -5,16 +5,15 @@ import com.factoreal.backend.domain.abnormalLog.dto.response.DangerStatResponse;
 import com.factoreal.backend.domain.abnormalLog.dto.response.GradeSummaryResponse;
 import com.factoreal.backend.domain.abnormalLog.dto.response.MonthlyDetailResponse;
 import com.factoreal.backend.domain.abnormalLog.dto.response.MonthlyGradeSummaryResponse;
-import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.AbnDetail;
-import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.EquipBlock;
-import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.PeriodDetailReport;
-import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.ZoneBlock;
+import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.AbnDetailResponse;
+import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.EquipBlockResponse;
+import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.PeriodDetailReportResponse;
+import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.ZoneBlockResponse;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.domain.controlLog.entity.ControlLog;
-import com.factoreal.backend.domain.controlLog.service.ControlLogRepoService;
+import com.factoreal.backend.domain.controlLog.application.ControlLogRepoService;
 import com.factoreal.backend.domain.equip.dto.response.EquipDetailResponse;
 import com.factoreal.backend.domain.sensor.application.SensorRepoService;
-import com.factoreal.backend.domain.sensor.dto.response.SensorInfoResponse;
 import com.factoreal.backend.domain.worker.application.WorkerRepoService;
 import com.factoreal.backend.domain.worker.entity.Worker;
 import com.factoreal.backend.domain.zone.application.ZoneService;
@@ -39,11 +38,9 @@ import java.time.YearMonth;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.when;
 
@@ -58,12 +55,18 @@ class ReportServiceTest {
 
 
     /* ── ① 상세 리포트 페이지를 위한 목업 레포들 ─────────────────────────────── */
-    @Mock ControlLogRepoService   ctlRepo;
-    @Mock ZoneService             zoneSvc;
-    @Mock SensorRepoService       sensorRepo;
-    @Mock WorkerRepoService       workerRepo;
+    @Mock
+    ControlLogRepoService ctlRepo;
+    @Mock
+    ZoneService zoneSvc;
+    @Mock
+    SensorRepoService sensorRepo;
+    @Mock
+    WorkerRepoService workerRepo;
 
-    /** 전달 한 달치 상세 통계 */
+    /**
+     * 전달 한 달치 상세 통계
+     */
     @Test
     @DisplayName("getPrevMonth() - 경고/위험 건수 올바르게 집계")
     void getPrevMonth() {
@@ -96,7 +99,7 @@ class ReportServiceTest {
                 .type("설비")
                 .build();
 
-        List<DangerStatResponse> resAnswer = List.of(sensorStatResponse,workerStatResponse, EquipStatResponse);
+        List<DangerStatResponse> resAnswer = List.of(sensorStatResponse, workerStatResponse, EquipStatResponse);
         when(abnLogRepoService.findPreview30daysLog()).thenReturn(fakeLogs);
         List<AbnormalLog> logs = abnLogRepoService.findPreview30daysLog();
         Map<TargetType, List<AbnormalLog>> byType =
@@ -105,7 +108,7 @@ class ReportServiceTest {
         List<DangerStatResponse> stats = Arrays.stream(TargetType.values()).map(
                         t -> {
                             List<AbnormalLog> list = byType.getOrDefault(t, List.of());
-                            long warn   = list.stream().filter(l -> l.getDangerLevel() == 1).count();
+                            long warn = list.stream().filter(l -> l.getDangerLevel() == 1).count();
                             long danger = list.stream().filter(l -> l.getDangerLevel() == 2).count();
                             return DangerStatResponse.builder()
                                     .type(koreanName(t)).warnCnt(warn).dangerCnt(danger).build();
@@ -121,15 +124,18 @@ class ReportServiceTest {
 
         System.out.println(res);
     }
+
     private String koreanName(TargetType t) {
         return switch (t) {
-            case Worker  -> "작업자";
-            case Sensor  -> "환경";
-            case Equip   -> "설비";
+            case Worker -> "작업자";
+            case Sensor -> "환경";
+            case Equip -> "설비";
         };
     }
 
-    /** 전달 한 달치 등급 요약 */
+    /**
+     * 전달 한 달치 등급 요약
+     */
     @Test
     @DisplayName("getPrevMonthGrade() - 등급 계산 로직 검증")
     void getPrevMonthGrade() {
@@ -186,15 +192,17 @@ class ReportServiceTest {
                 .detectedAt(LocalDateTime.now())
                 .build();
     }
-    private ZoneDetailResponse zone(String id,String name,
-                                    List<EquipDetailResponse> eqlist){
+
+    private ZoneDetailResponse zone(String id, String name,
+                                    List<EquipDetailResponse> eqlist) {
         return ZoneDetailResponse.builder()
                 .zoneId(id).zoneName(name)
                 .envList(List.of())  // 간단히 비워 둠
                 .equipList(eqlist)
                 .build();
     }
-    private EquipDetailResponse equip(String eid,String name){
+
+    private EquipDetailResponse equip(String eid, String name) {
         return EquipDetailResponse.builder()
                 .equipId(eid).equipName(name)
                 .facSensor(List.of())  // 필요 시 센서 넣기
@@ -211,10 +219,10 @@ class ReportServiceTest {
         when(zoneSvc.getZoneItems()).thenReturn(List.of(zm));
 
         /* 준비 : AbnormalLog – 1)Sensor 2)Worker 3)Equip */
-        AbnormalLog lg1 = log(1, TargetType.Sensor, "S-Tmp-1","Z1",1);
-        AbnormalLog lg2 = log(2, TargetType.Worker, "W-100"  ,"Z1",2);
-        AbnormalLog lg3 = log(3, TargetType.Equip , "S-E1-tmp","Z1",1);
-        when(abnLogRepoService.findPreview30daysLog()).thenReturn(List.of(lg1,lg2,lg3));
+        AbnormalLog lg1 = log(1, TargetType.Sensor, "S-Tmp-1", "Z1", 1);
+        AbnormalLog lg2 = log(2, TargetType.Worker, "W-100", "Z1", 2);
+        AbnormalLog lg3 = log(3, TargetType.Equip, "S-E1-tmp", "Z1", 1);
+        when(abnLogRepoService.findPreview30daysLog()).thenReturn(List.of(lg1, lg2, lg3));
 
         /* 준비 : ControlLog(없어도 됨) */
         when(ctlRepo.getControlLogs(Mockito.anyList())).thenReturn(Map.of());
@@ -237,21 +245,21 @@ class ReportServiceTest {
                 });
 
         /* 실행 */
-        PeriodDetailReport rpt = reportService.buildLast30DaysReport();
+        PeriodDetailReportResponse rpt = reportService.buildLast30DaysReport();
 
         System.out.println();
         /* 검증 */
         assertThat(rpt.getZones()).hasSize(1);
-        ZoneBlock zb = rpt.getZones().get(0);
+        ZoneBlockResponse zb = rpt.getZones().get(0);
 
-        assertThat(zb.getEnvCnt())   .isEqualTo(1);  // Sensor 1
+        assertThat(zb.getEnvCnt()).isEqualTo(1);  // Sensor 1
         assertThat(zb.getWorkerCnt()).isEqualTo(1);  // Worker 1
-        assertThat(zb.getFacCnt())   .isEqualTo(1);  // Equip 1
-        assertThat(zb.getTotalCnt()) .isEqualTo(3);
+        assertThat(zb.getFacCnt()).isEqualTo(1);  // Equip 1
+        assertThat(zb.getTotalCnt()).isEqualTo(3);
 
-        EquipBlock eb = zb.getEquips().get(0);
+        EquipBlockResponse eb = zb.getEquips().get(0);
         assertThat(eb.getEquipId()).isEqualTo("E1");
-        assertThat(eb.getFacCnt())   .isEqualTo(1);
+        assertThat(eb.getFacCnt()).isEqualTo(1);
 
         // ── 반환되는 객체 구조 확인 ───────────────────
         ObjectMapper om = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
@@ -263,8 +271,8 @@ class ReportServiceTest {
        - private → package 로 열어두거나 @Testable 로 감싸서 호출 */
     @Test
     void toDetail_mapping() throws Exception {
-        AbnormalLog src = log(10, TargetType.Sensor,"S-1","Z1",2);
-        ControlLog ctl  = ControlLog.builder()
+        AbnormalLog src = log(10, TargetType.Sensor, "S-1", "Z1", 2);
+        ControlLog ctl = ControlLog.builder()
                 .abnormalLog(src).controlType("에어컨")
                 .controlVal(25D).controlStat(1)
                 .executedAt(LocalDateTime.now())
@@ -272,13 +280,13 @@ class ReportServiceTest {
 
         // 리플렉션으로 private 메서드 호출 예시
         Method m = ReflectionUtils
-                .findMethod(ReportService.class,"toDetail",AbnormalLog.class,ControlLog.class);
+                .findMethod(ReportService.class, "toDetail", AbnormalLog.class, ControlLog.class);
 
         assertThat(m).isNotNull();              // ① null-check
         ReflectionUtils.makeAccessible(m);      // ② Spring util – null 안전
         m.setAccessible(true);
 
-        AbnDetail dt = (AbnDetail) m.invoke(reportService, src, ctl);
+        AbnDetailResponse dt = (AbnDetailResponse) m.invoke(reportService, src, ctl);
 
         assertThat(dt.getAbnormalId()).isEqualTo(10L);
         assertThat(dt.getControl().getControlType()).isEqualTo("에어컨");

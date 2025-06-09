@@ -1,4 +1,4 @@
-package com.factoreal.backend.domain.notifyLog.service;
+package com.factoreal.backend.domain.notifyLog.application;
 
 import com.factoreal.backend.domain.notifyLog.dto.NotifyType;
 import com.factoreal.backend.domain.notifyLog.dto.TriggerType;
@@ -43,21 +43,21 @@ class NotifyLogServiceTest {
         Long abnormalLogId = 1L;
 
         NotifyLog expectedSavedLog = NotifyLog.builder()
-            .id(100L)
-            .notifyType(NotifyType.WebSocket)
-            .target(webSocketTopic)
-            .status(success)
-            .triggerType(triggerType)
-            .notifiedAt(triggerTime)
-            .abnormalLogId(abnormalLogId)
-            .build();
+                .id(100L)
+                .notifyType(NotifyType.WebSocket)
+                .target(webSocketTopic)
+                .status(success)
+                .triggerType(triggerType)
+                .notifiedAt(triggerTime)
+                .abnormalLogId(abnormalLogId)
+                .build();
 
         // Mock구현에 상관없이 saveNotifyLog에 대해서 expectedSaveLog가 반환된다고 가정.
         when(notifyLogRepoService.saveNotifyLog(any(NotifyLog.class))).thenReturn(expectedSavedLog);
 
         // Act (테스트 대상 메서드 호출)
         NotifyLog actualSavedLog = notifyLogService.saveNotifyLogFromWebsocket(
-            webSocketTopic, success, triggerType, triggerTime, abnormalLogId);
+                webSocketTopic, success, triggerType, triggerTime, abnormalLogId);
 
         // Assert (결과 검증)
         assertNotNull(actualSavedLog);
@@ -94,7 +94,7 @@ class NotifyLogServiceTest {
 
         // Act
         NotifyLog actualSavedLog = notifyLogService.saveNotifyLogFromWebsocket(
-            webSocketTopic, success, triggerType, triggerTime, abnormalLogId);
+                webSocketTopic, success, triggerType, triggerTime, abnormalLogId);
 
         // Assert
         assertNotNull(actualSavedLog);
@@ -127,20 +127,20 @@ class NotifyLogServiceTest {
         Long abnormalLogId = 3L;
 
         NotifyLog expectedSavedLog = NotifyLog.builder()
-            .id(200L)
-            .notifyType(NotifyType.Slack)
-            .target(slackUrl)
-            .status(success)
-            .triggerType(triggerType)
-            .notifiedAt(triggerTime)
-            .abnormalLogId(abnormalLogId)
-            .build();
+                .id(200L)
+                .notifyType(NotifyType.Slack)
+                .target(slackUrl)
+                .status(success)
+                .triggerType(triggerType)
+                .notifiedAt(triggerTime)
+                .abnormalLogId(abnormalLogId)
+                .build();
 
         when(notifyLogRepoService.saveNotifyLog(any(NotifyLog.class))).thenReturn(expectedSavedLog);
 
         // Act
         NotifyLog actualSavedLog = notifyLogService.saveNotifyLogFromSlack(
-            slackUrl, success, triggerType, triggerTime, abnormalLogId);
+                slackUrl, success, triggerType, triggerTime, abnormalLogId);
 
         // Assert
         assertNotNull(actualSavedLog);
@@ -172,20 +172,20 @@ class NotifyLogServiceTest {
         Long abnormalLogId = null;
 
         NotifyLog expectedSavedLog = NotifyLog.builder()
-            .id(300L)
-            .notifyType(NotifyType.AppPush)
-            .target(workerId)
-            .status(success)
-            .triggerType(triggerType)
-            .notifiedAt(triggerTime)
-            .abnormalLogId(abnormalLogId)
-            .build();
+                .id(300L)
+                .notifyType(NotifyType.AppPush)
+                .target(workerId)
+                .status(success)
+                .triggerType(triggerType)
+                .notifiedAt(triggerTime)
+                .abnormalLogId(abnormalLogId)
+                .build();
 
         when(notifyLogRepoService.saveNotifyLog(any(NotifyLog.class))).thenReturn(expectedSavedLog);
 
         // Act
         NotifyLog actualSavedLog = notifyLogService.saveNotifyLogFromFCM(
-            workerId, success, triggerType, triggerTime, abnormalLogId);
+                workerId, success, triggerType, triggerTime, abnormalLogId);
 
         // Assert
         assertNotNull(actualSavedLog);
@@ -221,7 +221,7 @@ class NotifyLogServiceTest {
 
         // Act
         NotifyLog actualSavedLog = notifyLogService.saveNotifyLogFromFCM(
-            workerId, success, triggerType, triggerTime, abnormalLogId);
+                workerId, success, triggerType, triggerTime, abnormalLogId);
 
         // Assert
         assertNotNull(actualSavedLog);

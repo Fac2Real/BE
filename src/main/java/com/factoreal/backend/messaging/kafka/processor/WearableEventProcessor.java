@@ -15,7 +15,7 @@ import com.factoreal.backend.messaging.kafka.strategy.enums.AlarmEventDto;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
 import com.factoreal.backend.messaging.kafka.strategy.enums.WearableDataType;
 import com.factoreal.backend.messaging.sender.WebSocketSender;
-import com.factoreal.backend.messaging.service.AlarmEventService;
+import com.factoreal.backend.messaging.api.AlarmEventService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

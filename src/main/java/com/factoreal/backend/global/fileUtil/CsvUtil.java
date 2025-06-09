@@ -22,27 +22,27 @@ public class CsvUtil {
         this.abnormalLogRepoService = abnormalLogRepoService;
     }
 
-    public Path writeReportAsCsv(PeriodDetailReport rpt, Map<Long, ControlLog> ctlMap) throws IOException {
+    public Path writeReportAsCsv(PeriodDetailReportResponse rpt, Map<Long, ControlLog> ctlMap) throws IOException {
         Path tmp = Files.createTempFile("PreviewMonthReport-", ".csv");
 
         try (CSVWriter w = new CSVWriter(new FileWriter(tmp.toFile()))) {
             // 헤더에 targetName 추가
             w.writeNext(new String[]{"공간Id", "공간 이름", "이상치 유형",
-                    "타겟 ID", "작업자/설비 이름","발생 시간", "이상치 내용",
-                    "위험 레벨", "이상치 값","제어 타입", "제어 값", "점검일", "제어여부"
+                    "타겟 ID", "작업자/설비 이름", "발생 시간", "이상치 내용",
+                    "위험 레벨", "이상치 값", "제어 타입", "제어 값", "점검일", "제어여부"
             });
 
 
-            for (ZoneBlock z : rpt.getZones()) {
-                for (AbnDetail d : z.getEnvAbnormals())
+            for (ZoneBlockResponse z : rpt.getZones()) {
+                for (AbnDetailResponse d : z.getEnvAbnormals())
                     write(z, d, w, "ENV", d.getAbnormalId(), ctlMap, "-");
 
-                for (WorkerBlock wb : z.getWorkers())
-                    for (AbnDetail d : wb.getWorkerAbnormals())
+                for (WorkerBlockResponse wb : z.getWorkers())
+                    for (AbnDetailResponse d : wb.getWorkerAbnormals())
                         write(z, d, w, "WORKER", d.getAbnormalId(), ctlMap, wb.getName());
 
-                for (EquipBlock eb : z.getEquips())
-                    for (AbnDetail d : eb.getFacAbnormals())
+                for (EquipBlockResponse eb : z.getEquips())
+                    for (AbnDetailResponse d : eb.getFacAbnormals())
                         write(z, d, w, "EQUIP", d.getAbnormalId(), ctlMap, eb.getEquipId());
             }
         }
@@ -51,7 +51,7 @@ public class CsvUtil {
     }
 
     private void write(
-            ZoneBlock z, AbnDetail d, CSVWriter w, String tp,
+            ZoneBlockResponse z, AbnDetailResponse d, CSVWriter w, String tp,
             Long abnId, Map<Long, ControlLog> ctlMap, String targetName
     ) {
         ControlLog ctl = ctlMap.get(abnId);

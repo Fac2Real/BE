@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ControlInfo {
+public class ControlInfoResponse {
     private LocalDateTime executedAt;
     private String controlType;
     private Double controlVal;

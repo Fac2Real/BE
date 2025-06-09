@@ -1,4 +1,4 @@
-package com.factoreal.backend.messaging.slack.service;
+package com.factoreal.backend.messaging.slack.api;
 
 import com.slack.api.Slack;
 import com.slack.api.model.block.Blocks;
@@ -18,7 +18,7 @@ import java.util.List;
 @Service
 public class SlackEquipAlarmService {
     private static final String NEW_LINE = "\n";
-    
+
     @Value("${webhook.slack.equip_url}")
     private String SLACK_WEBHOOK_EQUIP_URL;
 
@@ -27,15 +27,15 @@ public class SlackEquipAlarmService {
 
     // 설비 점검 알림 전송
     public void sendEquipmentMaintenanceAlert(String equipmentName, String zoneName, LocalDate expectedMaintenanceDate, long daysUntilMaintenance) throws IOException {
-        log.info("Sending Slack alert for equipment: {}, zone: {}, expected date: {}, days until: {}", 
-            equipmentName, zoneName, expectedMaintenanceDate, daysUntilMaintenance);
+        log.info("Sending Slack alert for equipment: {}, zone: {}, expected date: {}, days until: {}",
+                equipmentName, zoneName, expectedMaintenanceDate, daysUntilMaintenance);
         log.info("Using webhook URL: {}", SLACK_WEBHOOK_EQUIP_URL);
-        
+
         try {
             List<LayoutBlock> layoutBlocks = generateLayoutBlock(equipmentName, zoneName, expectedMaintenanceDate, daysUntilMaintenance);
 
             slackClient.send(SLACK_WEBHOOK_EQUIP_URL, WebhookPayloads
-                .payload(p -> p.blocks(layoutBlocks))
+                    .payload(p -> p.blocks(layoutBlocks))
             );
             log.info("Successfully sent Slack alert");
         } catch (Exception e) {
@@ -47,9 +47,9 @@ public class SlackEquipAlarmService {
     // 설비 점검 알림 레이아웃 블록 생성
     private List<LayoutBlock> generateLayoutBlock(String equipmentName, String zoneName, LocalDate expectedMaintenanceDate, long daysUntilMaintenance) {
         return Blocks.asBlocks(
-            getHeader("⚠️ 설비 점검 알림"),
-            Blocks.divider(),
-            getSection(generateMaintenanceMessage(equipmentName, zoneName, expectedMaintenanceDate, daysUntilMaintenance))
+                getHeader("⚠️ 설비 점검 알림"),
+                Blocks.divider(),
+                getSection(generateMaintenanceMessage(equipmentName, zoneName, expectedMaintenanceDate, daysUntilMaintenance))
         );
     }
 
@@ -57,13 +57,13 @@ public class SlackEquipAlarmService {
     private String generateMaintenanceMessage(String equipmentName, String zoneName, LocalDate expectedMaintenanceDate, long daysUntilMaintenance) {
         StringBuilder sb = new StringBuilder();
         sb.append("*[설비명]*").append(NEW_LINE)
-          .append(equipmentName).append(NEW_LINE).append(NEW_LINE)
-          .append("*[공간]*").append(NEW_LINE)
-          .append(zoneName).append(NEW_LINE).append(NEW_LINE)
-          .append("*[예상 점검일]*").append(NEW_LINE)
-          .append(expectedMaintenanceDate).append(NEW_LINE).append(NEW_LINE)
-          .append("*[남은 기간]*").append(NEW_LINE)
-          .append("🚨D-").append(daysUntilMaintenance).append(NEW_LINE);
+                .append(equipmentName).append(NEW_LINE).append(NEW_LINE)
+                .append("*[공간]*").append(NEW_LINE)
+                .append(zoneName).append(NEW_LINE).append(NEW_LINE)
+                .append("*[예상 점검일]*").append(NEW_LINE)
+                .append(expectedMaintenanceDate).append(NEW_LINE).append(NEW_LINE)
+                .append("*[남은 기간]*").append(NEW_LINE)
+                .append("🚨D-").append(daysUntilMaintenance).append(NEW_LINE);
 
         return sb.toString();
     }
@@ -71,14 +71,14 @@ public class SlackEquipAlarmService {
     // 설비 점검 알림 레이아웃 블록 헤더 생성
     private LayoutBlock getHeader(String text) {
         return Blocks.header(h -> h.text(
-            BlockCompositions.plainText(pt -> pt.emoji(true)
-                .text(text))));
+                BlockCompositions.plainText(pt -> pt.emoji(true)
+                        .text(text))));
     }
 
     // 설비 점검 알림 레이아웃 블록 섹션 생성
     private LayoutBlock getSection(String message) {
         return Blocks.section(s ->
-            s.text(BlockCompositions.markdownText(message)));
+                s.text(BlockCompositions.markdownText(message)));
     }
 
     // 설비 점검 알림 전송 조건 확인

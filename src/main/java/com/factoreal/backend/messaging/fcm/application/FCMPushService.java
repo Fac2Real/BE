@@ -1,6 +1,5 @@
-package com.factoreal.backend.messaging.fcm.service;
+package com.factoreal.backend.messaging.fcm.application;
 
-import com.factoreal.backend.messaging.config.FirebaseConfig;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
@@ -22,15 +21,15 @@ public class FCMPushService {
     public CompletableFuture<String> sendMessage(String token, String title, String body) throws FirebaseMessagingException {
         try {
             String message = firebaseMessaging.send(
-                Message.builder()
-                    .setNotification(
-                        Notification.builder()
-                            .setTitle(title)
-                            .setBody(body)
+                    Message.builder()
+                            .setNotification(
+                                    Notification.builder()
+                                            .setTitle(title)
+                                            .setBody(body)
+                                            .build()
+                            )
+                            .setToken(token)
                             .build()
-                    )
-                    .setToken(token)
-                    .build()
             );
             log.info("FCM 전송 성공: {}", message);
             return CompletableFuture.completedFuture(message);
