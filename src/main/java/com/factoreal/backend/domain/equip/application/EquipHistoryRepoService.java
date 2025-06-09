@@ -20,6 +20,15 @@ public class EquipHistoryRepoService {
         return equipHistoryRepository.save(history);
     }
 
+
+    /**
+     * SELECT *
+     * FROM equip_history
+     * WHERE equip_id = :equipId
+     *   AND check_date IS NULL
+     * ORDER BY id DESC
+     * LIMIT 1;
+     */
     // 설비의 점검 완료되지 않은(checkDate가 null인) 최신 이력 조회
     @Transactional(readOnly = true)
     public Optional<EquipHistory> findLatestUncheckedByEquipId(String equipId) {
