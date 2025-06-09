@@ -7,12 +7,9 @@ import com.factoreal.backend.domain.abnormalLog.application.ReportService;
 import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.dto.request.AbnormalPagingRequest;
 import com.factoreal.backend.domain.abnormalLog.dto.response.AbnormalLogResponse;
-import com.factoreal.backend.domain.abnormalLog.dto.response.GradeSummaryResponse;
-import com.factoreal.backend.domain.abnormalLog.dto.response.MonthlyDetailResponse;
 import com.factoreal.backend.domain.abnormalLog.dto.response.MonthlyGradeSummaryResponse;
-import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.PeriodDetailReport;
+import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.PeriodDetailReportResponse;
 import com.factoreal.backend.domain.abnormalLog.dto.response.reportGraphResponse.GraphSummaryResponse;
-import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.messaging.sender.WebSocketSender;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,8 +18,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Slf4j
 @RestController
@@ -77,6 +72,7 @@ public class AbnormalController {
         webSocketSender.sendUnreadCount(count);
         return success ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
     }
+
     // 웹 페이지 첫 렌더링 시 호출되는 api
     // 읽지 않은 알람 개수 반환 -> websocket으로 전부 보내주기
     @GetMapping("/unread-count")
@@ -102,7 +98,7 @@ public class AbnormalController {
 
     @GetMapping("/detail-report")
     @Operation(summary = "이전 한달치 상세 로그 데이터 조회", description = "이전 한달치 데이터의 로그를 조회합니다.")
-    public ResponseEntity<PeriodDetailReport> detail() {
+    public ResponseEntity<PeriodDetailReportResponse> detail() {
         return ResponseEntity.ok(reportService.buildLast30DaysReport());
     }
 

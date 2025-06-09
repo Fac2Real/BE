@@ -6,11 +6,11 @@ import com.factoreal.backend.domain.abnormalLog.dto.response.GradeSummaryRespons
 import com.factoreal.backend.domain.abnormalLog.dto.response.MonthlyDetailResponse;
 import com.factoreal.backend.domain.abnormalLog.dto.response.MonthlyGradeSummaryResponse;
 import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.*;
-import com.factoreal.backend.domain.abnormalLog.dto.response.reportGraphResponse.Bar;
+import com.factoreal.backend.domain.abnormalLog.dto.response.reportGraphResponse.BarResponse;
 import com.factoreal.backend.domain.abnormalLog.dto.response.reportGraphResponse.GraphSummaryResponse;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.domain.controlLog.entity.ControlLog;
-import com.factoreal.backend.domain.controlLog.service.ControlLogRepoService;
+import com.factoreal.backend.domain.controlLog.application.ControlLogRepoService;
 import com.factoreal.backend.domain.sensor.application.SensorRepoService;
 import com.factoreal.backend.domain.worker.application.WorkerRepoService;
 import com.factoreal.backend.domain.worker.entity.Worker;
@@ -41,7 +41,7 @@ public class ReportService {
      * 오늘로부터 한달 이전의 리포트의 상세 정보를 열람하기 위한 서비스입니다.
      * 각 타입별 경고 횟수, 위험 횟수를 반환합니다.
      */
-    public MonthlyDetailResponse getPrevMonth(){
+    public MonthlyDetailResponse getPrevMonth() {
 
         List<AbnormalLog> logs = abnLogRepoService.findPreview30daysLog();
 
@@ -49,16 +49,16 @@ public class ReportService {
                 logs.stream().collect(Collectors.groupingBy(AbnormalLog::getTargetType));
 
         List<DangerStatResponse> stats = Arrays.stream(TargetType.values()).map(
-                t -> {
-                    List<AbnormalLog> list = byType.getOrDefault(t, List.of());
-                    long warn   = list.stream().filter(l -> l.getDangerLevel() == 1).count();
-                    long danger = list.stream().filter(l -> l.getDangerLevel() == 2).count();
-                    return DangerStatResponse.builder()
-                            .type(koreanName(t)).warnCnt(warn).dangerCnt(danger).build();
-                })
+                        t -> {
+                            List<AbnormalLog> list = byType.getOrDefault(t, List.of());
+                            long warn = list.stream().filter(l -> l.getDangerLevel() == 1).count();
+                            long danger = list.stream().filter(l -> l.getDangerLevel() == 2).count();
+                            return DangerStatResponse.builder()
+                                    .type(koreanName(t)).warnCnt(warn).dangerCnt(danger).build();
+                        })
                 .toList();
 
-        LocalDate end   = LocalDate.now().minusDays(1);          // 오늘
+        LocalDate end = LocalDate.now().minusDays(1);          // 오늘
         LocalDate start = end.minusDays(30);        // 30일 전
 
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy.MM.dd");
@@ -71,18 +71,19 @@ public class ReportService {
 
     private String koreanName(TargetType t) {
         return switch (t) {
-            case Worker  -> "작업자";
-            case Sensor  -> "환경";
-            case Equip   -> "설비";
+            case Worker -> "작업자";
+            case Sensor -> "환경";
+            case Equip -> "설비";
         };
     }
+
     /**
      * 이전달 리포트의 요약 내용을 보여줍니다.
      * 이전달의 각 파트별 등급을 반환합니다.
      */
     /* 2) 전달 한 달치 A/B/C 등급 요약 */
     public MonthlyGradeSummaryResponse getPrevMonthGrade() {
-        LocalDate end   = LocalDate.now().minusDays(1);          // 오늘
+        LocalDate end = LocalDate.now().minusDays(1);          // 오늘
         LocalDate start = end.minusDays(30);        // 30일 전
 
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy.MM.dd");
@@ -109,15 +110,15 @@ public class ReportService {
 
     private String calcGrade(long warn, long danger) {
         long effective = danger + warn / 5;      // 경고 5회 = 위험 1회 환산
-        if (effective <= 2)  return "A";
-        if (effective <= 5)  return "B";
+        if (effective <= 2) return "A";
+        if (effective <= 5) return "B";
         return "C";
     }
 
     /**
      * 전날 기준 최근 30일 이상치 조회
      */
-    public PeriodDetailReport buildLast30DaysReport() {
+    public PeriodDetailReportResponse buildLast30DaysReport() {
         LocalDateTime end = LocalDateTime.now().minusDays(1);
         LocalDateTime start = end.minusDays(30);
 
@@ -129,20 +130,20 @@ public class ReportService {
     /**
      * 이전달 이상치 로그 조회
      */
-    public PeriodDetailReport buildLastMonthReport() {
+    public PeriodDetailReportResponse buildLastMonthReport() {
         LocalDate today = LocalDate.now();
         LocalDate firstDay = today.minusMonths(1).withDayOfMonth(1);
-        LocalDate lastDay  = firstDay.withDayOfMonth(firstDay.lengthOfMonth());
+        LocalDate lastDay = firstDay.withDayOfMonth(firstDay.lengthOfMonth());
 
         LocalDateTime start = firstDay.atStartOfDay();
-        LocalDateTime end   = lastDay.atTime(LocalTime.MAX);
+        LocalDateTime end = lastDay.atTime(LocalTime.MAX);
 
         List<AbnormalLog> logs = abnormalLogRepoService.findPreviousMonthLogs();
 
         return buildPeriodDetailReport(start, end, logs);
     }
 
-    private PeriodDetailReport buildPeriodDetailReport(LocalDateTime start, LocalDateTime end, List<AbnormalLog> logs) {
+    private PeriodDetailReportResponse buildPeriodDetailReport(LocalDateTime start, LocalDateTime end, List<AbnormalLog> logs) {
         List<ZoneDetailResponse> zoneMeta = zoneService.getZoneItems();
 
         List<Long> abnIds = logs.stream()
@@ -167,21 +168,21 @@ public class ReportService {
                         .toList()
         );
 
-        List<ZoneBlock> zones = zoneMeta.stream()
+        List<ZoneBlockResponse> zones = zoneMeta.stream()
                 .map(zm -> buildZoneBlock(zm, logs, ctlMap, sensorToEquip, workerMap))
                 .toList();
 
         DateTimeFormatter f = DateTimeFormatter.ofPattern("yyyy.MM.dd");
         String period = f.format(start.toLocalDate()) + " ~ " + f.format(end.toLocalDate());
 
-        return new PeriodDetailReport(period, zones);
+        return new PeriodDetailReportResponse(period, zones);
     }
 
-    private ZoneBlock buildZoneBlock(ZoneDetailResponse zm,
-                                     List<AbnormalLog> allLogs,
-                                     Map<Long,ControlLog> ctlMap,
-                                     Map<String,String> sensorToEquip,
-                                     Map<String, Worker> workerMap) {
+    private ZoneBlockResponse buildZoneBlock(ZoneDetailResponse zm,
+                                             List<AbnormalLog> allLogs,
+                                             Map<Long, ControlLog> ctlMap,
+                                             Map<String, String> sensorToEquip,
+                                             Map<String, Worker> workerMap) {
 
         String zid = zm.getZoneId();
         List<AbnormalLog> zLogs = allLogs.stream()
@@ -189,33 +190,33 @@ public class ReportService {
                 .toList();
 
         // ① 환경
-        List<AbnDetail> envAbn = zLogs.stream()
-                .filter(l -> l.getTargetType()==TargetType.Sensor)
+        List<AbnDetailResponse> envAbn = zLogs.stream()
+                .filter(l -> l.getTargetType() == TargetType.Sensor)
                 .map(l -> toDetail(l, ctlMap.get(l.getId())))
-                .sorted(Comparator.comparing(AbnDetail::getDetectedAt))
+                .sorted(Comparator.comparing(AbnDetailResponse::getDetectedAt))
                 .toList();
 
         // ② 작업자
-        List<AbnDetail> workerAbn = zLogs.stream()
-                .filter(l -> l.getTargetType()==TargetType.Worker)
+        List<AbnDetailResponse> workerAbn = zLogs.stream()
+                .filter(l -> l.getTargetType() == TargetType.Worker)
                 .map(l -> toDetail(l, ctlMap.get(l.getId())))
                 .toList();
 
         // ③ 설비별
-        Map<String,List<AbnormalLog>> byEquip = zLogs.stream()
-                .filter(l -> l.getTargetType()==TargetType.Equip)
+        Map<String, List<AbnormalLog>> byEquip = zLogs.stream()
+                .filter(l -> l.getTargetType() == TargetType.Equip)
                 .collect(Collectors.groupingBy(
-                        l -> sensorToEquip.getOrDefault(l.getTargetId(),"UNKNOWN")
+                        l -> sensorToEquip.getOrDefault(l.getTargetId(), "UNKNOWN")
                 ));
 
-        List<EquipBlock> equipBlocks = zm.getEquipList().stream()
+        List<EquipBlockResponse> equipBlockResponses = zm.getEquipList().stream()
                 .map(em -> {
-                    List<AbnormalLog> eLogs = byEquip.getOrDefault(em.getEquipId(),List.of());
-                    List<AbnDetail> fac = eLogs.stream()
+                    List<AbnormalLog> eLogs = byEquip.getOrDefault(em.getEquipId(), List.of());
+                    List<AbnDetailResponse> fac = eLogs.stream()
                             .map(l -> toDetail(l, ctlMap.get(l.getId())))
-                            .sorted(Comparator.comparing(AbnDetail::getDetectedAt))
+                            .sorted(Comparator.comparing(AbnDetailResponse::getDetectedAt))
                             .toList();
-                    return EquipBlock.builder()
+                    return EquipBlockResponse.builder()
                             .equipId(em.getEquipId())
                             .equipName(em.getEquipName())
                             .facCnt(fac.size())
@@ -228,32 +229,32 @@ public class ReportService {
                 .filter(l -> l.getTargetType() == TargetType.Worker)
                 .collect(Collectors.groupingBy(AbnormalLog::getTargetId)); // key = workerId
 
-        List<WorkerBlock> workerBlocks = byWorker.entrySet().stream()
+        List<WorkerBlockResponse> workerBlockResponses = byWorker.entrySet().stream()
                 .map(e -> {
                     String wid = e.getKey();
-                    Worker   w = workerMap.get(wid);        // null possible
+                    Worker w = workerMap.get(wid);        // null possible
 
-                    List<AbnDetail> workerDetails = e.getValue().stream()
+                    List<AbnDetailResponse> workerDetails = e.getValue().stream()
                             .map(l -> toDetail(l, ctlMap.get(l.getId())))
-                            .sorted(Comparator.comparing(AbnDetail::getDetectedAt))
+                            .sorted(Comparator.comparing(AbnDetailResponse::getDetectedAt))
                             .toList();
 
-                    return WorkerBlock.builder()
+                    return WorkerBlockResponse.builder()
                             .workerId(wid)
-                            .name(   w != null ? w.getName()         : null)
-                            .phone(  w != null ? w.getPhoneNumber()  : null)
+                            .name(w != null ? w.getName() : null)
+                            .phone(w != null ? w.getPhoneNumber() : null)
                             .workerCnt(workerDetails.size())
                             .workerAbnormals(workerDetails)
                             .build();
                 })
                 .toList();
 
-        int envCnt    = envAbn.size();
+        int envCnt = envAbn.size();
         int workerCnt = workerAbn.size();
-        int facCnt    = equipBlocks.stream().mapToInt(EquipBlock::getFacCnt).sum();
-        int total     = envCnt + workerCnt + facCnt;
+        int facCnt = equipBlockResponses.stream().mapToInt(EquipBlockResponse::getFacCnt).sum();
+        int total = envCnt + workerCnt + facCnt;
 
-        return ZoneBlock.builder()
+        return ZoneBlockResponse.builder()
                 .zoneId(zid)
                 .zoneName(zm.getZoneName())
                 .envCnt(envCnt)
@@ -261,16 +262,16 @@ public class ReportService {
                 .facCnt(facCnt)
                 .totalCnt(total)
                 .envAbnormals(envAbn)
-                .workers(workerBlocks)
-                .equips(equipBlocks)
+                .workers(workerBlockResponses)
+                .equips(equipBlockResponses)
                 .build();
     }
 
     // ────────────────────────────────────────────────
     // 2-4. AbnormalLog + ControlLog → AbnDetail 로 변환하는 헬퍼
     // ────────────────────────────────────────────────
-    private AbnDetail toDetail(AbnormalLog l, ControlLog c) {
-        return new AbnDetail(
+    private AbnDetailResponse toDetail(AbnormalLog l, ControlLog c) {
+        return new AbnDetailResponse(
                 l.getId(),
                 l.getDangerLevel(),
                 l.getAbnormalType(),
@@ -278,7 +279,7 @@ public class ReportService {
                 l.getDetectedAt(),
                 c == null
                         ? null
-                        : new ControlInfo(
+                        : new ControlInfoResponse(
                         c.getExecutedAt(),
                         c.getControlType(),
                         c.getControlVal(),
@@ -291,10 +292,10 @@ public class ReportService {
 
         /* ① 기간 계산 : 어제~30일 전 */
         LocalDate yesterday = LocalDate.now().minusDays(1);
-        LocalDate startDay  = yesterday.minusDays(30);     // 총 30일
+        LocalDate startDay = yesterday.minusDays(30);     // 총 30일
 
         LocalDateTime start = startDay.atStartOfDay();
-        LocalDateTime end   = yesterday.atTime(LocalTime.MAX);
+        LocalDateTime end = yesterday.atTime(LocalTime.MAX);
 
         /* ② 로그 조회 (dangerLevel 1 | 2 만) */
         List<AbnormalLog> logs = abnormalLogRepoService.findByDetectedAtBetweenAndDangerLevelIn(
@@ -305,26 +306,26 @@ public class ReportService {
                 .collect(Collectors.groupingBy(AbnormalLog::getTargetType, Collectors.counting()));
 
         /* ③ 그래프 1 : TargetType 별 */
-        List<Bar> typeStats = Arrays.stream(TargetType.values())
-                .map(tp -> new Bar(tp.name(), typeCntMap.getOrDefault(tp, 0L)))
-                .sorted(Comparator.comparingLong(Bar::getCnt).reversed())   // 큰 순서
+        List<BarResponse> typeStats = Arrays.stream(TargetType.values())
+                .map(tp -> new BarResponse(tp.name(), typeCntMap.getOrDefault(tp, 0L)))
+                .sorted(Comparator.comparingLong(BarResponse::getCnt).reversed())   // 큰 순서
                 .toList();
 
         /* ④ 그래프 2 : 날짜(월-일) 별 */
         DateTimeFormatter mmdd = DateTimeFormatter.ofPattern("MM-dd");
-        List<Bar> dateStats = logs.stream()
+        List<BarResponse> dateStats = logs.stream()
                 .collect(Collectors.groupingBy(l -> l.getDetectedAt().toLocalDate(), Collectors.counting()))
                 .entrySet().stream()
-                .map(e -> new Bar(mmdd.format(e.getKey()), e.getValue()))
-                .sorted(Comparator.comparing(Bar::getLabel))           // x축 순서 보장
+                .map(e -> new BarResponse(mmdd.format(e.getKey()), e.getValue()))
+                .sorted(Comparator.comparing(BarResponse::getLabel))           // x축 순서 보장
                 .toList();
 
         /* ⑤ 그래프 3 : Zone 별 */
-        List<Bar> zoneStats = logs.stream()
+        List<BarResponse> zoneStats = logs.stream()
                 .collect(Collectors.groupingBy(l -> l.getZone().getZoneName(), Collectors.counting()))
                 .entrySet().stream()
-                .map(e -> new Bar(e.getKey(), e.getValue()))
-                .sorted(Comparator.comparingLong(Bar::getCnt).reversed())
+                .map(e -> new BarResponse(e.getKey(), e.getValue()))
+                .sorted(Comparator.comparingLong(BarResponse::getCnt).reversed())
                 .toList();
 
         /* ⑥ 기간 문자열 */

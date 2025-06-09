@@ -8,11 +8,9 @@ import com.factoreal.backend.domain.sensor.application.SensorRepoService;
 import com.factoreal.backend.domain.sensor.dao.SensorRepository;
 import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
 import com.factoreal.backend.domain.sensor.entity.Sensor;
-import com.factoreal.backend.domain.stateStore.InMemoryZoneWorkerStateStore;
-import com.factoreal.backend.domain.zone.application.ZoneHistoryRepoService;
+import com.factoreal.backend.domain.state.store.InMemoryZoneWorkerStateStore;
 import com.factoreal.backend.domain.zone.application.ZoneRepoService;
 import com.factoreal.backend.domain.zone.entity.Zone;
-import com.factoreal.backend.domain.zone.entity.ZoneHist;
 import com.factoreal.backend.messaging.kafka.dto.WearableKafkaDto;
 import com.factoreal.backend.messaging.kafka.strategy.alarmMessage.RiskMessageProvider;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
@@ -203,8 +201,6 @@ public class AbnormalLogService {
                 abnormalPagingRequest.getPage(),
                 abnormalPagingRequest.getSize());
     }
-
-
 
 
 }

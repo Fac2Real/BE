@@ -13,12 +13,18 @@ public class GraphSummaryResponse {
 
     private String period;
 
-    /** SENSOR / EQUIP / WORKER 건수 */
-    private List<Bar> typeStats;
+    /**
+     * SENSOR / EQUIP / WORKER 건수
+     */
+    private List<BarResponse> typeStats;
 
-    /** 30 일 구간 MM-dd 별 건수 */
-    private List<Bar> dateStats;
+    /**
+     * 30 일 구간 MM-dd 별 건수
+     */
+    private List<BarResponse> dateStats;
 
-    /** Zone 별 건수 */
-    private List<Bar> zoneStats;
+    /**
+     * Zone 별 건수
+     */
+    private List<BarResponse> zoneStats;
 }

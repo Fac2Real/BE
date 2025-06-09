@@ -5,7 +5,7 @@ import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.domain.notifyLog.dto.TriggerType;
 import com.factoreal.backend.domain.worker.application.WorkerService;
 import com.factoreal.backend.domain.worker.dto.response.WorkerInfoResponse;
-import com.factoreal.backend.messaging.fcm.service.FCMService;
+import com.factoreal.backend.messaging.fcm.application.FCMService;
 import com.factoreal.backend.messaging.kafka.strategy.enums.AlarmEventDto;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
 import lombok.RequiredArgsConstructor;
@@ -31,11 +31,11 @@ public class AppPushNotificationStrategy implements NotificationStrategy {
         AbnormalLog abnormalLog = abnormalLogRepoService.findById(alarmEventDto.getEventId());
         workerList.forEach(worker -> {
             fcmService.sendZoneSafety(
-                alarmEventDto.getZoneId(),
-                alarmEventDto.getRiskLevel().getPriority(),
-                TriggerType.AUTOMATIC,
-                LocalDateTime.parse(alarmEventDto.getTime()),
-                abnormalLog
+                    alarmEventDto.getZoneId(),
+                    alarmEventDto.getRiskLevel().getPriority(),
+                    TriggerType.AUTOMATIC,
+                    LocalDateTime.parse(alarmEventDto.getTime()),
+                    abnormalLog
             );
         });
         // 2. notify 로그에 저장

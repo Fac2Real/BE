@@ -1,15 +1,15 @@
 package com.factoreal.backend.domain.abnormalLog.application;
 
-import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.AbnDetail;
-import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.PeriodDetailReport;
+import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.AbnDetailResponse;
+import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.PeriodDetailReportResponse;
 import com.factoreal.backend.domain.controlLog.entity.ControlLog;
-import com.factoreal.backend.domain.controlLog.service.ControlLogRepoService;
+import com.factoreal.backend.domain.controlLog.application.ControlLogRepoService;
 import com.factoreal.backend.domain.worker.application.WorkerManagerService;
 import com.factoreal.backend.domain.worker.dto.response.WorkerManagerResponse;
 import com.factoreal.backend.domain.zone.application.ZoneRepoService;
 import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.global.fileUtil.CsvUtil;
-//import com.factoreal.backend.global.fileUtil.Html2PdfUtil;
+// import com.factoreal.backend.global.fileUtil.Html2PdfUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -30,11 +30,11 @@ import java.util.stream.Stream;
 @Slf4j
 @RequiredArgsConstructor
 public class ReportMailService {
-    private final ZoneRepoService      zoneRepoService;
+    private final ZoneRepoService zoneRepoService;
     private final WorkerManagerService workerManagerService;
-    private final ReportService        reportService;
+    private final ReportService reportService;
     private final CsvUtil csvUtil;
-//    private final Html2PdfUtil pdfUtil;
+    //    private final Html2PdfUtil pdfUtil;
     private final JavaMailSender mailSender;
     private final ControlLogRepoService controlLogRepoService;
 
@@ -44,7 +44,7 @@ public class ReportMailService {
         // 전체 존 목록 추출
         List<Zone> zones = zoneRepoService.findAll();
 
-        for(Zone zone : zones) {
+        for (Zone zone : zones) {
             String zoneId = zone.getZoneId();
             String zoneName = zone.getZoneName();
 
@@ -63,7 +63,7 @@ public class ReportMailService {
 
 
             /* ── 1. 상세 API → CSV ───────────────────────────── */
-            PeriodDetailReport detail = reportService.buildLastMonthReport(/* …필요파라미터… */);
+            PeriodDetailReportResponse detail = reportService.buildLastMonthReport(/* …필요파라미터… */);
 
             List<Long> abnIds = detail.getZones().stream()
                     .flatMap(z -> Stream.concat(
@@ -73,7 +73,7 @@ public class ReportMailService {
                                     z.getEquips().stream().flatMap(e -> e.getFacAbnormals().stream())
                             )
                     ))
-                    .map(AbnDetail::getAbnormalId)
+                    .map(AbnDetailResponse::getAbnormalId)
                     .collect(Collectors.toList());
 
             Map<Long, ControlLog> ctlMap = controlLogRepoService.getControlLogs(abnIds);
@@ -96,12 +96,12 @@ public class ReportMailService {
             helper.setSubject("[모니토리 " + prevMonthStr + " 이상치 리포트] " + zoneName);
             helper.setTo(managerEmail.toArray(String[]::new));
             helper.setText("""
-                <p>%s - %s 담당자님, 안녕하세요. 모니토리 서비스입니다.</p>
-                <p>%s의 이상치 및 대응 현황을 첨부 드립니다.</p>
-                <ul>
-                  <li>CSV : %s 이상치 데이터</li>
-                </ul>
-                """.formatted(zoneName, manager.getName() ,prevMonthStr, prevMonthStr), true);
+                    <p>%s - %s 담당자님, 안녕하세요. 모니토리 서비스입니다.</p>
+                    <p>%s의 이상치 및 대응 현황을 첨부 드립니다.</p>
+                    <ul>
+                      <li>CSV : %s 이상치 데이터</li>
+                    </ul>
+                    """.formatted(zoneName, manager.getName(), prevMonthStr, prevMonthStr), true);
             helper.addAttachment(csv.getFileName().toString(), csv.toFile());
 
             mailSender.send(helper.getMimeMessage());

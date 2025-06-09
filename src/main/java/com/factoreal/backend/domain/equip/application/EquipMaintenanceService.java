@@ -5,7 +5,7 @@ import com.factoreal.backend.domain.equip.dto.response.MaintenancePredictionResp
 import com.factoreal.backend.domain.equip.dto.response.LatestMaintenancePredictionResponse;
 import com.factoreal.backend.domain.equip.entity.Equip;
 import com.factoreal.backend.domain.equip.entity.EquipHistory;
-import com.factoreal.backend.messaging.slack.service.SlackEquipAlarmService;
+import com.factoreal.backend.messaging.slack.api.SlackEquipAlarmService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -41,8 +41,9 @@ public class EquipMaintenanceService {
 
     /**
      * 특정 설비의 가장 최근 예상 점검일자 조회
+     *
      * @param equipId 설비 ID
-     * @param zoneId 공간 ID (검증용)
+     * @param zoneId  공간 ID (검증용)
      * @return 가장 최근 예상 점검일자 정보
      */
     @Transactional(readOnly = true)
@@ -55,11 +56,11 @@ public class EquipMaintenanceService {
 
         // 2. 해당 설비의 가장 최근 미점검 이력 조회
         Optional<EquipHistory> latestUncheckedHistory = equipHistoryRepoService.findLatestUncheckedByEquipId(equipId);
-        
+
         // 3. 미점검 이력이 없는 경우 가장 최근 이력 조회
         EquipHistory history = latestUncheckedHistory
-            .orElseGet(() -> equipHistoryRepoService.findLatestByEquipId(equipId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "최근 예상 점검일자를 찾을 수 없습니다.")));
+                .orElseGet(() -> equipHistoryRepoService.findLatestByEquipId(equipId)
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "최근 예상 점검일자를 찾을 수 없습니다.")));
 
         // 4. 예상 점검일까지 남은 일수 계산
         long daysUntilMaintenance = slackEquipAlarmService.getDaysUntilMaintenance(history.getAccidentDate());
@@ -70,6 +71,7 @@ public class EquipMaintenanceService {
 
     /**
      * 남은 일수를 기반으로 예상 점검일자 계산
+     *
      * @param remainingDays ML 모델이 예측한 잔존 수명 (남은 일수)
      * @return 예상 점검일자
      */
@@ -84,7 +86,7 @@ public class EquipMaintenanceService {
     public void processMaintenancePrediction(String equipId, LocalDate expectedMaintenanceDate) {
         Equip equip = equipRepoService.findById(equipId);
         Optional<EquipHistory> latestUncheckedHistory = equipHistoryRepoService.findLatestUncheckedByEquipId(equipId);
-        
+
         // 예상 점검일자와 현재 날짜와의 차이 계산
         long daysUntilMaintenance = slackEquipAlarmService.getDaysUntilMaintenance(expectedMaintenanceDate);
 
@@ -92,19 +94,19 @@ public class EquipMaintenanceService {
         if (latestUncheckedHistory.isEmpty()) {
             saveNewMaintenanceHistory(equip, expectedMaintenanceDate);
             log.info("설비 [{}] 첫 예상 점검일자 {}를 저장했습니다.", equip.getEquipName(), expectedMaintenanceDate);
-            
+
             // 첫 예측값에 대한 슬랙 알림 발송
             try {
                 slackEquipAlarmService.sendEquipmentMaintenanceAlert(
-                    equip.getEquipName(),
-                    equip.getZone().getZoneName(),
-                    expectedMaintenanceDate,
-                    daysUntilMaintenance
+                        equip.getEquipName(),
+                        equip.getZone().getZoneName(),
+                        expectedMaintenanceDate,
+                        daysUntilMaintenance
                 );
-                log.info("설비 [{}] (공간: {}) 첫 예상 점검일자에 대한 알림 발송 완료 (D-{})", 
-                    equip.getEquipName(), 
-                    equip.getZone().getZoneName(), 
-                    daysUntilMaintenance);
+                log.info("설비 [{}] (공간: {}) 첫 예상 점검일자에 대한 알림 발송 완료 (D-{})",
+                        equip.getEquipName(),
+                        equip.getZone().getZoneName(),
+                        daysUntilMaintenance);
             } catch (IOException e) {
                 log.error("설비 [{}] 첫 예상 점검일자 알림 발송 실패: {}", equip.getEquipName(), e.getMessage());
             }
@@ -116,8 +118,8 @@ public class EquipMaintenanceService {
         // Case 2: 기존 미점검 이력이 있는 경우
         // D-5보다 짧으면 새로운 예상 점검일자 무시
         if (daysUntilMaintenance < 5) {
-            log.info("설비 [{}] 새로운 예상 점검일자가 D-5 이내여서 기존 예상 점검일자 {}를 유지합니다.", 
-                equip.getEquipName(), currentHistory.getAccidentDate());
+            log.info("설비 [{}] 새로운 예상 점검일자가 D-5 이내여서 기존 예상 점검일자 {}를 유지합니다.",
+                    equip.getEquipName(), currentHistory.getAccidentDate());
             return;
         }
 
@@ -126,20 +128,20 @@ public class EquipMaintenanceService {
         if (daysUntilMaintenance < daysUntilCurrentMaintenance) {
             currentHistory.setAccidentDate(expectedMaintenanceDate);
             equipHistoryRepoService.save(currentHistory);
-            log.info("설비 [{}] 예상 점검일자를 {}에서 {}로 업데이트했습니다.", 
-                equip.getEquipName(), currentHistory.getAccidentDate(), expectedMaintenanceDate);
+            log.info("설비 [{}] 예상 점검일자를 {}에서 {}로 업데이트했습니다.",
+                    equip.getEquipName(), currentHistory.getAccidentDate(), expectedMaintenanceDate);
         } else {
-            log.info("설비 [{}] 새로운 예상 점검일자가 현재 예상일보다 더 멀어서 기존 예상 점검일자 {}를 유지합니다.", 
-                equip.getEquipName(), currentHistory.getAccidentDate());
+            log.info("설비 [{}] 새로운 예상 점검일자가 현재 예상일보다 더 멀어서 기존 예상 점검일자 {}를 유지합니다.",
+                    equip.getEquipName(), currentHistory.getAccidentDate());
         }
     }
 
     private void saveNewMaintenanceHistory(Equip equip, LocalDate accidentDate) {
         EquipHistory newHistory = EquipHistory.builder()
-            .equip(equip)
-            .accidentDate(accidentDate)
-            .checkDate(null)
-            .build();
+                .equip(equip)
+                .accidentDate(accidentDate)
+                .checkDate(null)
+                .build();
         equipHistoryRepoService.save(newHistory);
     }
 
@@ -153,47 +155,47 @@ public class EquipMaintenanceService {
             try {
                 // FastAPI URL 생성 (query parameter 방식)
                 String url = UriComponentsBuilder
-                    .fromUriString(fastApiBaseUrl)
-                    .path(predictEndpoint)
-                    .queryParam("equipId", equipment.getEquipId())
-                    .queryParam("zoneId", equipment.getZoneId())
-                    .toUriString();
+                        .fromUriString(fastApiBaseUrl)
+                        .path(predictEndpoint)
+                        .queryParam("equipId", equipment.getEquipId())
+                        .queryParam("zoneId", equipment.getZoneId())
+                        .toUriString();
 
                 log.info("FastAPI 호출 - URL: {}, 설비: [{}]", url, equipment.getEquipName());
 
                 // FastAPI로부터 예상 점검일 조회
-                ResponseEntity<MaintenancePredictionResponse> response = 
-                    restTemplate.getForEntity(url, MaintenancePredictionResponse.class);
+                ResponseEntity<MaintenancePredictionResponse> response =
+                        restTemplate.getForEntity(url, MaintenancePredictionResponse.class);
 
                 // 예상 점검일이 있는 경우
                 if (response.getBody() != null && response.getBody().getRemainingDays() != null) {
                     // 남은 일수를 예상 점검일자로 변환
                     LocalDate expectedMaintenanceDate = calculateExpectedMaintenanceDate(response.getBody().getRemainingDays());
-                    
+
                     // 예상 점검일자 처리 및 DB 저장
                     processMaintenancePrediction(equipment.getEquipId(), expectedMaintenanceDate);
-                    
+
                     // 예상 점검일과 현재 날짜의 차이 계산
                     long daysUntilMaintenance = slackEquipAlarmService.getDaysUntilMaintenance(expectedMaintenanceDate);
 
-                    log.info("설비 [{}] 예측 결과 수신 - 잔존 수명: {}일, 예상 점검일: {}, D-{}", 
-                        equipment.getEquipName(), 
-                        response.getBody().getRemainingDays(),
-                        expectedMaintenanceDate,
-                        daysUntilMaintenance);
+                    log.info("설비 [{}] 예측 결과 수신 - 잔존 수명: {}일, 예상 점검일: {}, D-{}",
+                            equipment.getEquipName(),
+                            response.getBody().getRemainingDays(),
+                            expectedMaintenanceDate,
+                            daysUntilMaintenance);
 
                     // 알림 전송 조건 확인
                     if (slackEquipAlarmService.shouldSendAlert(expectedMaintenanceDate)) {
                         slackEquipAlarmService.sendEquipmentMaintenanceAlert(
-                            equipment.getEquipName(),
-                            equipment.getZoneName(),
-                            expectedMaintenanceDate,
-                            daysUntilMaintenance
+                                equipment.getEquipName(),
+                                equipment.getZoneName(),
+                                expectedMaintenanceDate,
+                                daysUntilMaintenance
                         );
-                        log.info("설비 [{}] (공간: {}) 점검 알림 발송 완료 (D-{})", 
-                            equipment.getEquipName(), 
-                            equipment.getZoneName(), 
-                            daysUntilMaintenance);
+                        log.info("설비 [{}] (공간: {}) 점검 알림 발송 완료 (D-{})",
+                                equipment.getEquipName(),
+                                equipment.getZoneName(),
+                                daysUntilMaintenance);
                     }
                 }
             } catch (IOException e) {
@@ -202,7 +204,7 @@ public class EquipMaintenanceService {
                 log.error("설비 [{}] 예상 점검일 조회 실패: {}", equipment.getEquipName(), e.getMessage());
             }
         }
-        
+
         log.info("설비 점검일 예측 데이터 수집 완료");
     }
 }
