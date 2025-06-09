@@ -642,5 +642,138 @@ class EquipMaintenanceServiceTest {
                             equipMaintenanceService.getLatestMaintenancePrediction(equipId, zoneId),
                     "설비가 해당 공간에 속하지 않습니다.");
         }
+
+        // 경계값과 예외값에 대한 테스트 케이스
+        @Test
+        @DisplayName("설비 이름이 null인 필드를 포함할 때의 처리를 검증한다")
+        void whenEquipHasNullFields_handlesGracefully() {
+            // given
+            LocalDate expectedDate = LocalDate.now().plusDays(5);
+            Equip equipWithNulls = Equip.builder()
+                    .equipId(equipId)
+                    .equipName(null)  // null 이름
+                    .zone(Zone.builder()
+                            .zoneId(zoneId)
+                            .zoneName(null)  // null 구역 이름
+                            .build())
+                    .build();
+
+            EquipHistory uncheckedHistory = EquipHistory.builder()
+                    .equip(equipWithNulls)
+                    .accidentDate(expectedDate)
+                    .checkDate(null)
+                    .build();
+
+            given(equipRepoService.findById(equipId)).willReturn(equipWithNulls);
+            given(equipHistoryRepoService.findLatestUncheckedByEquipId(equipId))
+                    .willReturn(Optional.of(uncheckedHistory));
+            given(slackEquipAlarmService.getDaysUntilMaintenance(expectedDate))
+                    .willReturn(5L);
+
+            // when
+            LatestMaintenancePredictionResponse response =
+                    equipMaintenanceService.getLatestMaintenancePrediction(equipId, zoneId);
+
+            // then
+            assertThat(response.getEquipId()).isEqualTo(equipId);
+            assertThat(response.getEquipName()).isNull();
+            assertThat(response.getZoneId()).isEqualTo(zoneId);
+            assertThat(response.getZoneName()).isNull();
+            assertThat(response.getExpectedMaintenanceDate()).isEqualTo(expectedDate);
+            assertThat(response.getDaysUntilMaintenance()).isEqualTo(5L);
+        }
+
+        @Test
+        @DisplayName("과거 날짜의 점검 예정일이 입력된 경우를 검증한다")
+        void whenPastMaintenanceDate_handlesCorrectly() {
+            // given
+            LocalDate pastDate = LocalDate.now().minusDays(5);
+            EquipHistory historyWithPastDate = EquipHistory.builder()
+                    .equip(equip)
+                    .accidentDate(pastDate)
+                    .checkDate(null)
+                    .build();
+
+            given(equipRepoService.findById(equipId)).willReturn(equip);
+            given(equipHistoryRepoService.findLatestUncheckedByEquipId(equipId))
+                    .willReturn(Optional.of(historyWithPastDate));
+            given(slackEquipAlarmService.getDaysUntilMaintenance(pastDate))
+                    .willReturn(-5L);  // 과거 날짜는 음수 일수 반환
+
+            // when
+            LatestMaintenancePredictionResponse response =
+                    equipMaintenanceService.getLatestMaintenancePrediction(equipId, zoneId);
+
+            // then
+            assertThat(response.getEquipId()).isEqualTo(equipId);
+            assertThat(response.getEquipName()).isEqualTo(equipName);
+            assertThat(response.getZoneId()).isEqualTo(zoneId);
+            assertThat(response.getZoneName()).isEqualTo(zoneName);
+            assertThat(response.getExpectedMaintenanceDate()).isEqualTo(pastDate);
+            assertThat(response.getDaysUntilMaintenance()).isEqualTo(-5L);
+        }
+
+        @Test
+        @DisplayName("매우 먼 미래의 점검 예정일이 입력된 경우를 검증한다")
+        void whenFarFutureMaintenanceDate_handlesCorrectly() {
+            // given
+            LocalDate farFutureDate = LocalDate.now().plusYears(3);  // 3년 후
+            EquipHistory historyWithFarFutureDate = EquipHistory.builder()
+                    .equip(equip)
+                    .accidentDate(farFutureDate)
+                    .checkDate(null)
+                    .build();
+
+            given(equipRepoService.findById(equipId)).willReturn(equip);
+            given(equipHistoryRepoService.findLatestUncheckedByEquipId(equipId))
+                    .willReturn(Optional.of(historyWithFarFutureDate));
+            given(slackEquipAlarmService.getDaysUntilMaintenance(farFutureDate))
+                    .willReturn(365 * 3L);  // 약 365일
+
+            // when
+            LatestMaintenancePredictionResponse response =
+                    equipMaintenanceService.getLatestMaintenancePrediction(equipId, zoneId);
+
+            // then
+            assertThat(response.getEquipId()).isEqualTo(equipId);
+            assertThat(response.getEquipName()).isEqualTo(equipName);
+            assertThat(response.getZoneId()).isEqualTo(zoneId);
+            assertThat(response.getZoneName()).isEqualTo(zoneName);
+            assertThat(response.getExpectedMaintenanceDate()).isEqualTo(farFutureDate);
+            assertThat(response.getDaysUntilMaintenance()).isEqualTo(365 * 3L);
+        }
+
+        @Test
+        @DisplayName("checkDate가 accidentDate보다 이후인 경우를 검증한다")
+        void whenCheckDateAfterAccidentDate_handlesCorrectly() {
+            // given
+            LocalDate accidentDate = LocalDate.now().plusDays(5);
+            LocalDate checkDate = LocalDate.now().plusDays(10);  // 예상 점검일보다 늦게 실제 점검
+            EquipHistory historyWithLateCheck = EquipHistory.builder()
+                    .equip(equip)
+                    .accidentDate(accidentDate)
+                    .checkDate(checkDate)
+                    .build();
+
+            given(equipRepoService.findById(equipId)).willReturn(equip);
+            given(equipHistoryRepoService.findLatestUncheckedByEquipId(equipId))
+                    .willReturn(Optional.empty());
+            given(equipHistoryRepoService.findLatestByEquipId(equipId))
+                    .willReturn(Optional.of(historyWithLateCheck));
+            given(slackEquipAlarmService.getDaysUntilMaintenance(accidentDate))
+                    .willReturn(5L);
+
+            // when
+            LatestMaintenancePredictionResponse response =
+                    equipMaintenanceService.getLatestMaintenancePrediction(equipId, zoneId);
+
+            // then
+            assertThat(response.getEquipId()).isEqualTo(equipId);
+            assertThat(response.getEquipName()).isEqualTo(equipName);
+            assertThat(response.getZoneId()).isEqualTo(zoneId);
+            assertThat(response.getZoneName()).isEqualTo(zoneName);
+            assertThat(response.getExpectedMaintenanceDate()).isEqualTo(accidentDate);
+            assertThat(response.getDaysUntilMaintenance()).isEqualTo(5L);
+        }
     }
 } 
