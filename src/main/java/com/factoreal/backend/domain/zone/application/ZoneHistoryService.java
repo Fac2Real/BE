@@ -1,6 +1,6 @@
 package com.factoreal.backend.domain.zone.application;
 
-import com.factoreal.backend.domain.stateStore.InMemoryZoneWorkerStateStore;
+import com.factoreal.backend.domain.state.store.InMemoryZoneWorkerStateStore;
 import com.factoreal.backend.domain.worker.application.WorkerRepoService;
 import com.factoreal.backend.domain.worker.entity.Worker;
 import com.factoreal.backend.domain.zone.entity.Zone;

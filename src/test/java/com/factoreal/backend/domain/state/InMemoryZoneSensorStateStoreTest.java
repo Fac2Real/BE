@@ -1,5 +1,6 @@
-package com.factoreal.backend.domain.stateStore;
+package com.factoreal.backend.domain.state;
 
+import com.factoreal.backend.domain.state.store.InMemoryZoneSensorStateStore;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

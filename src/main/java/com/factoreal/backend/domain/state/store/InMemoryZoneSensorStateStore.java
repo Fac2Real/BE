@@ -1,4 +1,4 @@
-package com.factoreal.backend.domain.stateStore;
+package com.factoreal.backend.domain.state.store;
 
 import com.factoreal.backend.domain.sensor.application.SensorRepoService;
 import com.factoreal.backend.domain.sensor.entity.Sensor;

@@ -1,4 +1,4 @@
-package com.factoreal.backend.domain.stateStore;
+package com.factoreal.backend.domain.state.store;
 
 import com.factoreal.backend.domain.sensor.entity.Sensor;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
