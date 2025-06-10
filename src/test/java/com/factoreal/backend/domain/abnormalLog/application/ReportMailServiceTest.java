@@ -20,11 +20,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -53,9 +50,6 @@ class ReportMailServiceTest {
     private WorkerManagerResponse mgr(String email) {
         return WorkerManagerResponse.builder()
                 .workerId("W1").name("홍길동").email(email).isManager(true).build();
-    }
-    private PeriodDetailReportResponse rpt() {
-        return new PeriodDetailReportResponse("P", List.of());
     }
 
     /* 2-1. 하나라도 메일 발송되면 OK */
@@ -105,10 +99,6 @@ class ReportMailServiceTest {
                 new PeriodDetailReportResponse("기간", List.of(zb));
 
         when(reportService.buildLastMonthReport()).thenReturn(detail);
-//        when(detail.getZones()).thenReturn(List.of(zone));
-
-//        when(reportService.buildLastMonthReport()).thenReturn(detail);
-
         Path temp = Files.createTempFile("t", ".csv");
         when(csvUtil.writeReportAsCsv(eq(detail), anyMap()))
                 .thenReturn(temp);
