@@ -64,6 +64,9 @@ public class FCMService {
         String body = "%s의 %s설비 점검 요청합니다.".formatted(equip.getZone().getZoneName(), equip.getEquipName());
 
         try {
+            if (worker.getFcmToken() == null){
+                throw new Exception("fcm 토큰 없음");
+            }
             fcmService.sendMessage(worker.getFcmToken(), title, body).get();
             notifyLogService.saveNotifyLogFromFCM(
                     worker.getWorkerId(),
