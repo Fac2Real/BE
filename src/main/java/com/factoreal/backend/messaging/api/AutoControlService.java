@@ -6,7 +6,6 @@ import com.factoreal.backend.domain.sensor.entity.Sensor;
 
 import jakarta.transaction.Transactional;
 
-import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.domain.controlLog.application.ControlLogService;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +23,6 @@ public class AutoControlService {
 
     //    private final SensorService sensorService;
     private final ControlLogService controlLogService;
-    private final AbnormalLogService abnormalLogService;
     private final SensorRepoService sensorRepoService;
 
     /**
@@ -35,6 +33,12 @@ public class AutoControlService {
         if (dangerLevel == 0)
             return; // 정상 범위면 아무 처리 안 함
 
+        // dto나 sensorId가 null인 경우 처리
+        if (dto == null || dto.getSensorId() == null) {
+            log.warn("❌ 유효하지 않은 센서 데이터: dto={}", dto);
+            return;
+        }
+
         Sensor sensor = sensorRepoService.findById(dto.getSensorId())
                 .orElse(null);
 
@@ -42,9 +46,17 @@ public class AutoControlService {
             log.warn("❌ 센서 정보 조회 실패: sensorId={}", dto.getSensorId());
             return;
         }
+
+        // 센서값이 null인 경우 처리
+        Double sensorValue = dto.getVal();
+        if (sensorValue == null) {
+            log.warn("❌ 센서 측정값이 null입니다: sensorId={}", dto.getSensorId());
+            return;
+        }
+
         double threshold = sensor.getSensorThres();
         double tolerance = sensor.getAllowVal() != null ? sensor.getAllowVal() : 0.0;
-        double value = dto.getVal();
+        double value = sensorValue;
 
         // 센서 값이 허용 범위를 벗어났을 경우
         if (value < threshold - tolerance || value > threshold + tolerance) {
@@ -60,8 +72,6 @@ public class AutoControlService {
                     threshold, // controlVal: 임계값을 목표값으로 사용
                     1, // controlStat: 성공 상태로 설정
                     sensor.getZone());
-
-            // TODO: MQTT 퍼블리시 로직으로 대체
         } else {
             log.info("✅ 측정값은 허용 범위 내: sensorId={}, value={}", dto.getSensorId(), value);
         }
