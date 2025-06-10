@@ -7,7 +7,7 @@ spring:
   kafka:
     bootstrap-servers: ${KAFKA_HOST}:9092
     consumer:
-      group-id: default-consumer-group-1
+      group-id: ${KAFKA_CONSUMER_GROUP_ID}
 
   datasource:
     url: jdbc:mysql://127.0.0.1:3306/my_database
