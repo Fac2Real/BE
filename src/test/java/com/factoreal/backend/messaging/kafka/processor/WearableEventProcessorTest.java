@@ -4,13 +4,17 @@ import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogRepoServi
 import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
 import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
+import com.factoreal.backend.domain.sensor.application.SensorRepoService;
+import com.factoreal.backend.domain.sensor.entity.Sensor;
 import com.factoreal.backend.domain.state.store.InMemoryZoneSensorStateStore;
 import com.factoreal.backend.domain.state.store.InMemoryZoneWorkerStateStore;
 import com.factoreal.backend.domain.zone.application.ZoneHistoryRepoService;
 import com.factoreal.backend.domain.zone.application.ZoneHistoryService;
+import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.messaging.kafka.dto.WearableKafkaDto;
 import com.factoreal.backend.messaging.kafka.strategy.enums.AlarmEventDto;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
+import com.factoreal.backend.messaging.kafka.strategy.enums.SensorType;
 import com.factoreal.backend.messaging.kafka.strategy.enums.WearableDataType;
 import com.factoreal.backend.messaging.sender.WebSocketSender;
 import com.factoreal.backend.messaging.api.AlarmEventService;
@@ -44,10 +48,10 @@ class WearableEventProcessorTest {
     private AlarmEventService alarmSvc = mock(AlarmEventService.class);
     private ZoneHistoryService historySvc = mock(ZoneHistoryService.class);
     private ZoneHistoryRepoService historyRepo = mock(ZoneHistoryRepoService.class);
-
+    private SensorRepoService sensorRepoService = mock(SensorRepoService.class);
     // ── system under test ────────────────────────────────────
     private InMemoryZoneWorkerStateStore store = new InMemoryZoneWorkerStateStore();
-    private InMemoryZoneSensorStateStore sensorStateStore = new InMemoryZoneSensorStateStore(null);
+    private InMemoryZoneSensorStateStore sensorStateStore = new InMemoryZoneSensorStateStore(sensorRepoService);
     private WearableEventProcessor processor;
 
     // 공통 상수
@@ -168,6 +172,75 @@ class WearableEventProcessorTest {
                 // 이후 리스크가 CRITICAL로 업데이트됨
                 assertThat(store.getWorkerRiskLevel(WORKER_ID)).isEqualTo(RiskLevel.CRITICAL);
                 assertThat(store.getZoneRiskLevel(DEFAULT_ZONE)).isEqualTo(RiskLevel.CRITICAL);
+            }
+        }
+    }
+    @Nested
+    @DisplayName("분기문 체크")
+    class branchCheck{
+        @Test
+        @DisplayName("C) 현재 Worker 위험도가 낮다면 같은 공간에서 RiskLevel 높은 Worker 기반으로 DangerLevel 전송")
+        void test_sendDangerLevel_whenNowZoneRiskIsLowerThanPrevious() {
+            try (MockedStatic<WearableDataType> ignored = mockWearableType()) {
+                // Given
+                String zoneId = "test-zone";
+                String workerId = "worker-1";
+                String sensorId = "S1";
+
+                WearableKafkaDto dto = new WearableKafkaDto();
+                dto.setDangerLevel(0); // RiskLevel.NORMAL
+                dto.setSensorType("heartRate");
+                dto.setWorkerId(workerId);
+                Sensor sensor = Sensor.builder()
+                    .sensorId(sensorId)
+                    .sensorType(SensorType.humid)
+                    .build();
+                // 스토어 설정 (zoneId 연결)
+                // zone에 작업자가 Warning이고,
+                // sensor가 Info인 경우에,
+                when(sensorRepoService.findById(anyString())).thenReturn(sensor);
+                store.setWorkerRiskLevel(zoneId, workerId, RiskLevel.CRITICAL); // 이전 상태
+                sensorStateStore.setSensorRiskLevel(zoneId, sensorId, RiskLevel.WARNING);
+
+                // zoneId 매핑 설정
+                // setWorkerRiskLevel이 내부적으로 매핑하지 않으면 아래 직접 매핑 필요
+//                store.setWorkerRiskLevel(workerId, zoneId);
+
+                // When
+                processor.process(dto, "WEARABLE");
+
+                // Then
+                verify(ws).sendDangerLevel(eq(zoneId), eq(SensorType.humid.name()), eq(RiskLevel.WARNING.getPriority()));
+            }
+        }
+        @Test
+        @DisplayName("D) 과거 Worker 위험도 >= Sensor 위험도 && 현재 Worker 위험도 < Sensor 위험도 → Sensor 기준 DangerLevel 전송")
+        void test_sendDangerLevel_whenPrevWorkerWasHigherThanSensor() {
+            try (MockedStatic<WearableDataType> ignored = mockWearableType()) {
+                // Given
+                String zoneId = "test-zone";
+                String workerId = "worker-1";
+                String sensorId = "S1";
+
+                WearableKafkaDto dto = new WearableKafkaDto();
+                dto.setDangerLevel(1); // RiskLevel.NORMAL
+                dto.setSensorType("heartRate");
+                dto.setWorkerId(workerId);
+                // 스토어 설정 (zoneId 연결)
+                // zone에 작업자가 Warning이고,
+                // sensor가 Info인 경우에,
+                store.setWorkerRiskLevel(zoneId, workerId, RiskLevel.CRITICAL); // 이전 상태
+                sensorStateStore.setSensorRiskLevel(zoneId, sensorId, RiskLevel.WARNING);
+
+                // zoneId 매핑 설정
+                // setWorkerRiskLevel이 내부적으로 매핑하지 않으면 아래 직접 매핑 필요
+//                store.setWorkerRiskLevel(workerId, zoneId);
+
+                // When
+                processor.process(dto, "WEARABLE");
+
+                // Then
+                verify(ws).sendDangerLevel(eq(zoneId), eq(WearableDataType.heartRate.name()), eq(RiskLevel.WARNING.getPriority()));
             }
         }
     }
