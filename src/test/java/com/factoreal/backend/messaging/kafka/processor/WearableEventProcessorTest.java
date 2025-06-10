@@ -85,7 +85,7 @@ class WearableEventProcessorTest {
         );
         // 공통 stub
         when(repoSvc.countByIsReadFalse()).thenReturn(3L);
-        when(alarmSvc.generateAlarmDto(any(), any(), any()))
+        when(alarmSvc.generateAlarmDto((WearableKafkaDto) any(), any(), any()))
                 .thenReturn(mock(AlarmEventDto.class));
         when(abnormalSvc.saveAbnormalLogFromWearableKafkaDto(
                 any(), any(), any(), any()))
