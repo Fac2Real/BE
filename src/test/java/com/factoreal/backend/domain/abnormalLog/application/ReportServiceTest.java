@@ -141,11 +141,17 @@ class ReportServiceTest {
     void getPrevMonthGrade() {
         // given : Worker 위험 3 → effective 3 → Grade B
         List<AbnormalLog> fakeLogs = List.of(
+                createLog(TargetType.Worker, 2),  //Worker 경고 (B)
                 createLog(TargetType.Worker, 2),
-                createLog(TargetType.Worker, 2),
-                createLog(TargetType.Worker, 2),
+                createLog(TargetType.Worker, 2),  
                 createLog(TargetType.Sensor, 1),  // Sensor 경고 1 → effective 0 (A)
-                createLog(TargetType.Equip, 1)    // Equip 경고 1 → effective 0 (A)
+                createLog(TargetType.Equip, 2),    // Equip 경고 6개 → effective 5 (C)
+                createLog(TargetType.Equip, 2),
+                createLog(TargetType.Equip, 2),
+                createLog(TargetType.Equip, 2),
+                createLog(TargetType.Equip, 2),
+                createLog(TargetType.Equip, 2)
+
         );
         when(abnLogRepoService.findPreview30daysLog()).thenReturn(fakeLogs);
 
@@ -165,7 +171,7 @@ class ReportServiceTest {
 
         GradeSummaryResponse equip = grades.stream()
                 .filter(g -> g.getType().equals("설비")).findFirst().orElseThrow();
-        assertThat(equip.getGrade()).isEqualTo("A");
+        assertThat(equip.getGrade()).isEqualTo("C");
     }
 
     /* ------------- 헬퍼 ------------- */
@@ -246,6 +252,62 @@ class ReportServiceTest {
 
         /* 실행 */
         PeriodDetailReportResponse rpt = reportService.buildLast30DaysReport();
+
+        System.out.println();
+        /* 검증 */
+        assertThat(rpt.getZones()).hasSize(1);
+        ZoneBlockResponse zb = rpt.getZones().get(0);
+
+        assertThat(zb.getEnvCnt()).isEqualTo(1);  // Sensor 1
+        assertThat(zb.getWorkerCnt()).isEqualTo(1);  // Worker 1
+        assertThat(zb.getFacCnt()).isEqualTo(1);  // Equip 1
+        assertThat(zb.getTotalCnt()).isEqualTo(3);
+
+        EquipBlockResponse eb = zb.getEquips().get(0);
+        assertThat(eb.getEquipId()).isEqualTo("E1");
+        assertThat(eb.getFacCnt()).isEqualTo(1);
+
+        // ── 반환되는 객체 구조 확인 ───────────────────
+        ObjectMapper om = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+        System.out.println(om.writeValueAsString(rpt));
+    }
+
+    @Test
+    @DisplayName("buildLastMonthsReport() : 최근 30일에 대한 이상치 로그의 반환과 갯수를 잘 파악하는지 테스트")
+    void buildLastMonthsReport_basicCounts() throws JsonProcessingException {
+        /* 준비 : Zone 1개, Equip 1대  */
+        ZoneDetailResponse zm = zone("Z1", "생산 A",
+                List.of(equip("E1", "로봇암1")));
+        when(zoneSvc.getZoneItems()).thenReturn(List.of(zm));
+
+        /* 준비 : AbnormalLog – 1)Sensor 2)Worker 3)Equip */
+        AbnormalLog lg1 = log(1, TargetType.Sensor, "S-Tmp-1", "Z1", 1);
+        AbnormalLog lg2 = log(2, TargetType.Worker, "W-100", "Z1", 2);
+        AbnormalLog lg3 = log(3, TargetType.Equip, "S-E1-tmp", "Z1", 1);
+        when(abnLogRepoService.findPreviousMonthLogs()).thenReturn(List.of(lg1, lg2, lg3));
+
+        /* 준비 : ControlLog(없어도 됨) */
+        when(ctlRepo.getControlLogs(Mockito.anyList())).thenReturn(Map.of());
+
+        /* 준비 : Sensor→Equip 매핑 */
+        when(sensorRepo.sensorIdToEquipId(Mockito.anyList()))
+                .thenReturn(Map.of("S-E1-tmp", "E1"));
+
+        /* 준비 : Worker 상세 */
+        Worker w100 = Worker.builder()
+                .workerId("W-100").name("홍길동").phoneNumber("+82101").build();
+        when(workerRepo.findWorkersMap(anyList()))
+                .thenAnswer(inv -> {
+                    // 실제로 넘긴 id 목록
+                    List<String> ids = inv.getArgument(0);
+                    // ids 안에 존재하는 것만 골라서 Map 으로 돌려준다
+                    return ids.stream()
+                            .filter("W-100"::equals)
+                            .collect(Collectors.toMap(id -> id, id -> w100));
+                });
+
+        /* 실행 */
+        PeriodDetailReportResponse rpt = reportService.buildLastMonthReport();
 
         System.out.println();
         /* 검증 */

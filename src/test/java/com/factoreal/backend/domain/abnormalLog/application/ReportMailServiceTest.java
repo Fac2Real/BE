@@ -1,6 +1,6 @@
 package com.factoreal.backend.domain.abnormalLog.application;
 
-import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.PeriodDetailReportResponse;
+import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.*;
 import com.factoreal.backend.domain.controlLog.application.ControlLogRepoService;
 import com.factoreal.backend.domain.worker.application.WorkerManagerService;
 import com.factoreal.backend.domain.worker.dto.response.WorkerManagerResponse;
@@ -20,8 +20,12 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
@@ -46,9 +50,9 @@ class ReportMailServiceTest {
 
     /* ── 공용 더미 ───────────────────────── */
     private Zone z(String id) { return Zone.builder().zoneId(id).zoneName("Z" + id).build(); }
-    private WorkerManagerResponse mgr() {
+    private WorkerManagerResponse mgr(String email) {
         return WorkerManagerResponse.builder()
-                .workerId("W1").name("홍길동").email("test@x.com").isManager(true).build();
+                .workerId("W1").name("홍길동").email(email).isManager(true).build();
     }
     private PeriodDetailReportResponse rpt() {
         return new PeriodDetailReportResponse("P", List.of());
@@ -58,10 +62,15 @@ class ReportMailServiceTest {
     // 1. 매니징 관련 정보가 잘 체크되는지, 2. 빈 csv 파일이 생성되어 잘 전달되는지 체크
     @Test
     void sendReport_atLeastOneManager_success() throws Exception {
-        when(zoneRepoService.findAll()).thenReturn(List.of(z("A"), z("B")));
+        List <Zone> zoneList = List.of(z("A"), z("B"), z("C"));
+        when(zoneRepoService.findAll()).thenReturn(zoneList);
 
-        when(workerManagerService.getCurrentManager("A")).thenReturn(null);  // A는 담당자 없음
-        when(workerManagerService.getCurrentManager("B")).thenReturn(mgr()); // B는 있음
+        // A는 담당자 없는 경우
+        when(workerManagerService.getCurrentManager("A")).thenReturn(null);
+        // B는 담당자가 있고, 이메일도 갖는 경우
+        when(workerManagerService.getCurrentManager("B")).thenReturn(mgr("test@x.com"));
+        // C : 담당자 있으나 이메일은 갖고있지 않은 경우 → skip 분기
+        when(workerManagerService.getCurrentManager("C")).thenReturn(mgr("  "));
 
         // 해당 구간에서 eq(rpt())가 실행될 때 정상적인 로직이 작동한 게 아닌
         // 첫번째 rpt()인 report 와 두번째 rpt() 가 생성되려고 시도하다가
@@ -75,14 +84,46 @@ class ReportMailServiceTest {
 //        when(csvUtil.writeReportAsCsv(eq(rpt()), anyMap()))
 //                .thenReturn(temp);
 
-        PeriodDetailReportResponse report = rpt(); //@1234
-        when(reportService.buildLastMonthReport()).thenReturn(report);
+
+        /* ── 상세 리포트 mock (env 1·worker 1·equip 1) ───────── */
+        AbnDetailResponse env  = AbnDetailResponse.builder().abnormalId(1L).build();
+        AbnDetailResponse work = AbnDetailResponse.builder().abnormalId(2L).build();
+        AbnDetailResponse fac  = AbnDetailResponse.builder().abnormalId(3L).build();
+
+        WorkerBlockResponse wb = WorkerBlockResponse.builder()
+                .workerAbnormals(List.of(work)).build();
+        EquipBlockResponse  eb = EquipBlockResponse.builder()
+                .facAbnormals(List.of(fac)).build();
+
+        ZoneBlockResponse zb = ZoneBlockResponse.builder()
+                .envAbnormals(List.of(env))
+                .workers(List.of(wb))
+                .equips(List.of(eb))
+                .build();
+
+        PeriodDetailReportResponse detail =
+                new PeriodDetailReportResponse("기간", List.of(zb));
+
+        when(reportService.buildLastMonthReport()).thenReturn(detail);
+//        when(detail.getZones()).thenReturn(List.of(zone));
+
+//        when(reportService.buildLastMonthReport()).thenReturn(detail);
 
         Path temp = Files.createTempFile("t", ".csv");
-        when(csvUtil.writeReportAsCsv(eq(report), anyMap()))
+        when(csvUtil.writeReportAsCsv(eq(detail), anyMap()))
                 .thenReturn(temp);
+        List<Long> abnIds = detail.getZones().stream()
+                .flatMap(z -> Stream.concat(
+                        z.getEnvAbnormals().stream(),
+                        Stream.concat(
+                                z.getWorkers().stream().flatMap(w -> w.getWorkerAbnormals().stream()),
+                                z.getEquips().stream().flatMap(e -> e.getFacAbnormals().stream())
+                        )
+                ))
+                .map(AbnDetailResponse::getAbnormalId)
+                .toList();
 
-        when(controlLogRepoService.getControlLogs(anyList())).thenReturn(Map.of());
+        when(controlLogRepoService.getControlLogs(abnIds)).thenReturn(Map.of());
         when(mailSender.createMimeMessage())
                 .thenReturn(new MimeMessage((Session) null));
 

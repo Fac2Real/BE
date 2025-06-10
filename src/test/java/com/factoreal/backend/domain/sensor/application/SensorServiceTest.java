@@ -83,7 +83,7 @@ class SensorServiceTest {
     @Test
     void saveSensor_zoneNotFound_throws404() {
         SensorCreateRequest dto =
-                new SensorCreateRequest("S-2","TEMP","Z999","E1",null,null,0);
+                new SensorCreateRequest("S-2","temp","Z999","E1",null,null,0);
 
         when(zoneRepo.findById("Z999"))
                 .thenThrow(new NotFoundException("Zone 없음"));
@@ -121,5 +121,43 @@ class SensorServiceTest {
         assertThat(origin.getSensorThres()).isEqualTo(30.0);
         assertThat(origin.getAllowVal()).isEqualTo(0.5);
         verify(sensorRepo).save(origin);
+    }
+
+    @Test
+    void findSensorsByEquipId_success() {
+        // Z1 이라는 공간에 E1 설비, empty, E2 설비를 세팅해줌
+        SensorInfoResponse matched = SensorInfoResponse.builder()
+                .sensorId("S-MATCH")
+                .equipId("E1")
+                .zoneId("Z1")
+                .sensorType("temp")
+                .isZone(0)
+                .build(); // ✅ 조건: equipId == "E1" && equipId ≠ zoneId
+
+        SensorInfoResponse excludedBySameZoneAndEquip = SensorInfoResponse.builder()
+                .sensorId("S-ENV")
+                .equipId("Z1")
+                .zoneId("Z1")  // ❌ zoneId == equipId → 필터링됨
+                .sensorType("temp")
+                .isZone(1)
+                .build();
+
+        SensorInfoResponse excludedByDifferentEquip = SensorInfoResponse.builder()
+                .sensorId("S-DIFF")
+                .equipId("E2")
+                .zoneId("Z1")  // ❌ equipId != "E1"
+                .sensorType("temp")
+                .isZone(0)
+                .build();
+
+        when(sensorRepo.findAll())
+                .thenReturn(List.of(matched, excludedBySameZoneAndEquip, excludedByDifferentEquip));
+
+        // E1설비는 S-Match 라는 센서를 가지고 있음
+        List<SensorInfoResponse> result = sensorService.findSensorsByEquipId("E1");
+
+        // 정답 갯수 1개 SensorId == S-Match
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getSensorId()).isEqualTo("S-MATCH");
     }
 }

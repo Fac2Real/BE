@@ -6,7 +6,6 @@ import com.factoreal.backend.domain.controlLog.entity.ControlLog;
 import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.messaging.mqtt.MqttPublishService;
 import com.factoreal.backend.messaging.sender.WebSocketSender;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,7 +40,8 @@ class ControlLogServiceTest {
     }
     private Zone zone() { return Zone.builder().zoneId("Z1").zoneName("대기실").build(); }
 
-    /* ────────────────────────────────────────────────── */
+    /* 자동 제어 로직을 거쳐 전달된 데이터들을 저장하고 조회하는 서비스 */
+    /* 1. 제어로그 저장하는 서비스  */
 
     @Test
     @DisplayName("saveControlLog() : 제어-로그 저장 + 발행 성공")
@@ -82,7 +82,7 @@ class ControlLogServiceTest {
         System.out.println(om.writeValueAsString(saved));
     }
 
-    /* ── getControlLogs()  ───────────────────────────── */
+    /* 2. 제어로그 조회를 위한 getControlLogs() */
 
     @Test
     @DisplayName("getControlLogs() : ID-목록으로 Map 조회")
@@ -113,5 +113,59 @@ class ControlLogServiceTest {
 
         // 개별 객체 확인도 가능
         map.values().forEach(System.out::println);
+    }
+    /* ========== 3) MQTT 발행 실패 → WebSocket 호출 & mqttDelivered=false ========== */
+    @Test
+    void saveControl_mqttFail_socketStillCalled() {
+        // given
+        AbnormalLog src = abn(20L);
+        Zone z = zone();
+
+        when(repo.save(any(ControlLog.class))).thenAnswer(inv -> {
+            ControlLog cl = inv.getArgument(0, ControlLog.class);
+            cl.setId(200L);
+            return cl;
+        });
+        doThrow(new RuntimeException("MQTT DOWN"))
+                .when(mqtt).publishControlMessage(any());
+
+        // when
+        ControlLog saved = service.saveControlLog(src, "PUMP", 50D, 0, z);
+
+        // then
+        ArgumentCaptor<Map<String, Boolean>> mapCap = ArgumentCaptor.forClass(Map.class);
+
+        verify(mqtt).publishControlMessage(saved);
+        verify(socket).sendControlStatus(eq(saved), mapCap.capture());
+
+        Map<String, Boolean> status = mapCap.getValue();
+        assertThat(status).containsEntry("mqttDelivered", false);
+    }
+
+    /* ========== 4) WebSocket 전송 실패해도 서비스는 정상 반환 ========== */
+    @Test
+    void saveControl_socketFail_stillReturns() {
+        // given
+        AbnormalLog src = abn(30L);
+        Zone z = zone();
+
+        when(repo.save(any(ControlLog.class))).thenAnswer(inv -> {
+            ControlLog cl = inv.getArgument(0, ControlLog.class);
+            cl.setId(300L);
+            return cl;
+        });
+
+        // WebSocket 쪽에서 예외 발생
+        doThrow(new RuntimeException("WS CLOSED"))
+                .when(socket).sendControlStatus(any(), anyMap());
+
+        // when
+        ControlLog saved = service.saveControlLog(src, "LIGHT", 1D, 1, z);
+
+        // then (예외 없이 정상 반환)
+        assertThat(saved.getId()).isEqualTo(300L);
+
+        verify(mqtt).publishControlMessage(saved);
+        verify(socket).sendControlStatus(eq(saved), anyMap());
     }
 }

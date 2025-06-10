@@ -15,6 +15,7 @@ import com.factoreal.backend.domain.zone.dto.response.ZoneDetailResponse;
 import com.factoreal.backend.domain.zone.dto.response.ZoneInfoResponse;
 import com.factoreal.backend.domain.zone.dto.response.ZoneLogResponse;
 import com.factoreal.backend.domain.zone.entity.Zone;
+import com.factoreal.backend.global.exception.dto.DuplicateResourceException;
 import com.factoreal.backend.global.exception.dto.NotFoundException;
 import com.factoreal.backend.global.util.IdGenerator;
 import jakarta.transaction.Transactional;
@@ -65,6 +66,9 @@ public class ZoneService {
         // 2. 새로운 공간명이 이미 존재하는지 확인
         if (!zone.getZoneName().equals(dto.getZoneName())) {
             zoneRepoService.validateZoneName(dto.getZoneName());
+        }else{
+            log.info("중복되는 공간 이름이 존재합니다.");
+            throw new DuplicateResourceException("중복되는 공간 이름이 존재합니다.");
         }
 
         zone.setZoneName(dto.getZoneName());
@@ -193,13 +197,6 @@ public class ZoneService {
                 .filter(e -> e.getEquipName() != null &&
                         !"empty".equalsIgnoreCase(e.getEquipName()))
                 .toList();
-    }
-
-    /**
-     * getZoneItems 서비스를 위한 레포지토리 접근 서비스 3
-     */
-    private String findEquipNameByEquipId(String equipId) {
-        return equipRepoService.findEquipNameByEquipId(equipId);
     }
 
 //    /**

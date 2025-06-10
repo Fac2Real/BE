@@ -87,7 +87,7 @@ public class MqttService {
                         retryCount + 1, MAX_RETRY_ATTEMPTS, e.getMessage());
                 retryCount++;
                 if (retryCount >= MAX_RETRY_ATTEMPTS) {
-                    throw new MqttException(e.getReasonCode());
+                    log.error(e.getMessage());
                 }
                 try {
                     Thread.sleep(RETRY_DELAY_MS);
