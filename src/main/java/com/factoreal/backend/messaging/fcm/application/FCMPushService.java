@@ -17,6 +17,7 @@ import java.util.concurrent.CompletableFuture;
 public class FCMPushService {
     private final FirebaseMessaging firebaseMessaging;
 
+//   TODO 트러블 슈팅 -> 비동기에서 예외처리 방법
     @Async
     public CompletableFuture<String> sendMessage(String token, String title, String body) throws FirebaseMessagingException {
         try {

@@ -4,7 +4,11 @@ import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogRepoServi
 import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
 import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
+import com.factoreal.backend.domain.sensor.application.SensorRepoService;
 import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
+import com.factoreal.backend.domain.sensor.entity.Sensor;
+import com.factoreal.backend.domain.zone.application.ZoneRepoService;
+import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
 import com.factoreal.backend.messaging.kafka.strategy.enums.SensorType;
 import com.factoreal.backend.domain.state.store.ZoneSensorStateStore;
@@ -32,7 +36,8 @@ public class SensorEventProcessor {
     private final WebSocketSender webSocketSender;
     private final ZoneSensorStateStore zoneSensorStateStore;
     private final ZoneWorkerStateStore zoneWorkerStateStore;
-
+    private final ZoneRepoService zoneRepoService;
+    private final SensorRepoService sensorRepoService;
     /**
      * 센서 Kafka 메시지 처리
      *
@@ -53,6 +58,8 @@ public class SensorEventProcessor {
                 log.warn("⚠️ 유효하지 않은 sensorId: null 또는 빈 문자열");
                 return;
             }
+            Zone zone = zoneRepoService.findById(zoneId);
+            Sensor sensor = sensorRepoService.findById(sensorId);
 
             // ENVIRONMENT 토픽인 경우에만 아래 처리 로직 수행
             if ("ENVIRONMENT".equalsIgnoreCase(topic)) {
@@ -132,29 +139,6 @@ public class SensorEventProcessor {
             log.error("❌ 센서 이벤트 처리 실패: sensorId={}, zoneId={}", dto.getSensorId(), dto.getZoneId(), e);
         }
     }
-
-    // 공간에 위험도 분기 로직
-    // Flink에서 적용으로 변경되어 사용안함
-    @Deprecated
-    private int getDangerLevel(String sensorType, double val) {
-        switch (sensorType.toLowerCase()) {
-            case "temp":
-                return val > 40 || val < -35 ? 2 : (val > 30 || val < 25 ? 1 : 0);
-            case "humid":
-                return val >= 80 ? 2 : (val >= 60 ? 1 : 0);
-            case "vibration":
-                return val > 7.1 ? 2 : (val > 2.8 ? 1 : 0);
-            case "current":
-                return val >= 30 ? 2 : (val >= 7 ? 1 : 0);
-            case "dust":
-                return val >= 150 ? 2 : (val >= 75 ? 1 : 0);
-            case "voc":
-                return val >= 1000 ? 2 : (val >= 300 ? 1 : 0);
-            default:
-                return 0;
-        }
-    }
-
     // topic enum 변경하기
     private TargetType topicToLogType(String topic) {
         return switch (topic.toUpperCase()) {

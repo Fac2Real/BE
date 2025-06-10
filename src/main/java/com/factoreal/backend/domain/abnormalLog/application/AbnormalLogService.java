@@ -60,7 +60,7 @@ public class AbnormalLogService {
             RiskLevel riskLevel,
             TargetType targetType
     ) throws Exception {
-        Zone zone = zoneRepoService.findByZoneId(sensorKafkaDto.getZoneId());
+        Zone zone = zoneRepoService.findById(sensorKafkaDto.getZoneId());
 
         if (zone == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 공간 ID: " + sensorKafkaDto.getZoneId());
@@ -102,7 +102,7 @@ public class AbnormalLogService {
             TargetType targetType
     ) {
         // workerId에 해당되는 사람이 제일 최근에 있던 공간 조회
-        Zone zone = zoneRepoService.findByZoneId(zoneWorkerStateStore.getZoneId(wearableKafkaDto.getWorkerId()));
+        Zone zone = zoneRepoService.findById(zoneWorkerStateStore.getZoneId(wearableKafkaDto.getWorkerId()));
 
         AbnormalLog abnormalLog = AbnormalLog.builder()
                 .targetId(wearableKafkaDto.getWorkerId())
