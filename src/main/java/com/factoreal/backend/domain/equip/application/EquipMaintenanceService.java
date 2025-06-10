@@ -151,7 +151,7 @@ public class EquipMaintenanceService {
         equipHistoryRepoService.save(newHistory);
     }
 
-    @Scheduled(cron = "6 0 13/1 * * *") // 매일 13:00:06부터 1시간 간격으로 실행
+//    @Scheduled(cron = "6 0 13/1 * * *") // 매일 13:00:06부터 1시간 간격으로 실행
     public void fetchAndProcessMaintenancePredictions() {
         log.info("🔄 설비 점검일 예측 데이터 수집 시작");
 

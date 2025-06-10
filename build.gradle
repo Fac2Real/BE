@@ -60,6 +60,9 @@ dependencies {
     implementation 'software.amazon.awssdk:regions'
     implementation 'software.amazon.awssdk:iotdataplane'
     implementation 'software.amazon.awssdk:sns'
+    implementation "software.amazon.awssdk:sqs"
+    implementation "io.awspring.cloud:spring-cloud-aws-starter-sqs:3.3.0" //SQS Starter
+    implementation "com.amazonaws:aws-lambda-java-events:3.15.0" // S3 이벤트 JSON 파싱
 
     // AWS 테스트용 LocalStack
     testImplementation 'org.testcontainers:junit-jupiter'
