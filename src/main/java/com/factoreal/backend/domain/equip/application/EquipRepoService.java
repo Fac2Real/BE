@@ -61,4 +61,10 @@ public class EquipRepoService {
                 })
                 .collect(Collectors.toList());
     }
+
+
+    // equipId와 zoneId가 다른 설비 엔티티 리스트 반환
+    public List<Equip> findEquipsWhereEquipIdNotEqualsZoneId() {
+        return equipRepo.findAllWhereEquipIdNotEqualsZoneId();
+    }
 }
