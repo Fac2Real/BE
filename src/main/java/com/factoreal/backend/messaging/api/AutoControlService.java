@@ -35,8 +35,7 @@ public class AutoControlService {
         if (dangerLevel == 0)
             return; // 정상 범위면 아무 처리 안 함
 
-        Sensor sensor = sensorRepoService.findById(dto.getSensorId())
-                .orElse(null);
+        Sensor sensor = sensorRepoService.findById(dto.getSensorId());
 
         if (sensor == null) {
             log.warn("❌ 센서 정보 조회 실패: sensorId={}", dto.getSensorId());

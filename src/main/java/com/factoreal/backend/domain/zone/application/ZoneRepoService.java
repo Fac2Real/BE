@@ -62,8 +62,4 @@ public class ZoneRepoService {
         return zoneRepository.findByZoneName(zoneName)
                 .orElseThrow(() -> new BadRequestException("존재하지 않는 공간명: " + zoneName));
     }
-
-    public Zone findByZoneId(String zoneId) {
-        return zoneRepository.findByZoneId(zoneId);
-    }
 }

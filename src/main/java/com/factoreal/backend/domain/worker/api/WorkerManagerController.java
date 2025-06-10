@@ -32,12 +32,17 @@ public class WorkerManagerController {
 
   @Operation(summary = "공간 담당자 지정", description = "특정 공간의 담당자를 지정합니다.")
   @PostMapping("/{zoneId}/assign/{workerId}")
-  public ResponseEntity<Void> assignManager(
+  public ResponseEntity<String> assignManager(
       @Parameter(description = "공간 ID", required = true) @PathVariable String zoneId,
       @Parameter(description = "작업자 ID", required = true) @PathVariable String workerId) {
     log.info("공간 ID: {}의 담당자를 작업자 ID: {}로 지정 요청", zoneId, workerId);
-    workerManagerService.assignManager(zoneId, workerId);
-    return ResponseEntity.ok().build();
+    List<WorkerManagerResponse> temp = workerManagerService.getManagerCandidates(zoneId);
+    boolean isCandidate = temp.stream().anyMatch(w -> w.getWorkerId().equals(workerId));
+    if (!isCandidate) {
+      workerManagerService.assignManager(zoneId, workerId);
+      return ResponseEntity.ok().build();
+    }
+    return ResponseEntity.badRequest().body("공간 후보자가 아닙니다.");
   }
 
   @Operation(summary = "현재 공간 담당자 정보 조회", description = "특정 공간의 현재 담당자 정보를 조회합니다.")
