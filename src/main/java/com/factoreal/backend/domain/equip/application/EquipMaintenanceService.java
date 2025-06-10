@@ -1,11 +1,14 @@
 package com.factoreal.backend.domain.equip.application;
 
-import com.factoreal.backend.domain.equip.dto.response.EquipInfoResponse;
+import com.factoreal.backend.domain.equip.dto.response.EquipPredTargetResponse;
 import com.factoreal.backend.domain.equip.dto.response.MaintenancePredictionResponse;
 import com.factoreal.backend.domain.equip.dto.response.LatestMaintenancePredictionResponse;
 import com.factoreal.backend.domain.equip.entity.Equip;
 import com.factoreal.backend.domain.equip.entity.EquipHistory;
 import com.factoreal.backend.messaging.slack.api.SlackEquipAlarmService;
+import com.factoreal.backend.domain.zone.application.ZoneRepoService;
+import com.factoreal.backend.domain.zone.entity.Zone;
+import com.factoreal.backend.global.exception.dto.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,7 +24,9 @@ import org.springframework.web.server.ResponseStatusException;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -29,6 +34,7 @@ import java.util.Optional;
 public class EquipMaintenanceService {
 
     private final EquipRepoService equipRepoService;
+    private final ZoneRepoService  zoneRepoService;
     private final EquipHistoryRepoService equipHistoryRepoService;
     private final SlackEquipAlarmService slackEquipAlarmService;
     private final RestTemplate restTemplate;
@@ -147,11 +153,34 @@ public class EquipMaintenanceService {
 
     @Scheduled(cron = "6 0 13/1 * * *") // 매일 13:00:06부터 1시간 간격으로 실행
     public void fetchAndProcessMaintenancePredictions() {
-        log.info("설비 점검일 예측 데이터 수집 시작");
+        log.info("🔄 설비 점검일 예측 데이터 수집 시작");
 
-        List<EquipInfoResponse> equipments = equipRepoService.findAll();
+        // 1. 엔티티 리스트 조회
+        List<Equip> equips = equipRepoService.findEquipsWhereEquipIdNotEqualsZoneId();
 
-        for (EquipInfoResponse equipment : equipments) {
+        // 2. DTO로 변환
+        List<EquipPredTargetResponse> inferenceTargets = equips.stream().map(equip -> {
+            try{
+                // zone 정보가 없으면 예외 발생 (NPE)
+                Zone zone = zoneRepoService.findById(equip.getZone().getZoneId());
+                return EquipPredTargetResponse.fromEntity(equip, zone);
+            }catch (NotFoundException e){
+                // 존재하지 않는 zoneId: 로그만 남기고 null 반환
+                log.warn("📌 존재하지 않는 zoneId: {} (설비: {})", equip.getZone().getZoneId(), equip.getEquipId());
+                return null;
+            }
+        })
+        .filter(Objects::nonNull)
+        .collect(Collectors.toList());
+
+
+        log.info("🐤 추론 시작할 설비 : {}", inferenceTargets.stream().toList());
+
+        for (EquipPredTargetResponse equipment : inferenceTargets) {
+            // 개별 설비 정보 로그
+            log.info("=========================");
+            log.info("🔍 [{}] 설비 추론 시작 - [equipId: {}]",equipment.getEquipName(),equipment.getEquipId());
+
             try {
                 // FastAPI URL 생성 (query parameter 방식)
                 String url = UriComponentsBuilder
@@ -161,16 +190,22 @@ public class EquipMaintenanceService {
                         .queryParam("zoneId", equipment.getZoneId())
                         .toUriString();
 
-                log.info("FastAPI 호출 - URL: {}, 설비: [{}]", url, equipment.getEquipName());
+                log.info("💡FastAPI 호출 - URL: {}, 설비: [{}]", url, equipment.getEquipName());
 
                 // FastAPI로부터 예상 점검일 조회
                 ResponseEntity<MaintenancePredictionResponse> response =
                         restTemplate.getForEntity(url, MaintenancePredictionResponse.class);
 
+                log.info("➡️설비 점검 일자 추론 호출 결과 (FastAPI) : {}" , response);
+                log.info("➡️설비 점검 일자 추론 결과 (FastAPI) : {}" , response.getBody().getPredictions().get(0));
+
+                Integer remainDays = response.getBody().getPredictions().get(0).intValue();
+
+
                 // 예상 점검일이 있는 경우
-                if (response.getBody() != null && response.getBody().getRemainingDays() != null) {
+                if (response.getBody() != null && remainDays != null) {
                     // 남은 일수를 예상 점검일자로 변환
-                    LocalDate expectedMaintenanceDate = calculateExpectedMaintenanceDate(response.getBody().getRemainingDays());
+                    LocalDate expectedMaintenanceDate = calculateExpectedMaintenanceDate(remainDays);
 
                     // 예상 점검일자 처리 및 DB 저장
                     processMaintenancePrediction(equipment.getEquipId(), expectedMaintenanceDate);
@@ -180,7 +215,7 @@ public class EquipMaintenanceService {
 
                     log.info("설비 [{}] 예측 결과 수신 - 잔존 수명: {}일, 예상 점검일: {}, D-{}",
                             equipment.getEquipName(),
-                            response.getBody().getRemainingDays(),
+                            remainDays,
                             expectedMaintenanceDate,
                             daysUntilMaintenance);
 

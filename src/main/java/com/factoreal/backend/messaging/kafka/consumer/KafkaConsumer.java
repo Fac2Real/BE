@@ -34,13 +34,13 @@ public class KafkaConsumer {
     }
 
     // 공간 센서 관련 Kafka 메시지 처리
-    @KafkaListener(topics = "ENVIRONMENT", groupId = "environment-consumer-group-msk-2")
+    @KafkaListener(topics = "ENVIRONMENT", groupId = "${spring.kafka.consumer.group-id:env-group}")
     public void consumeEnvironment(String message) {
         log.info("📩 [ENVIRONMENT] Kafka 메시지 수신: {}", message);
         handleMessage(message, "ENVIRONMENT");
     }
 
-    @KafkaListener(topics = "WEARABLE", groupId = "environment-consumer-group-msk-1")
+    @KafkaListener(topics = "WEARABLE", groupId = "${spring.kafka.consumer.group-id:env-group}")
     public void consumeWearable(String message) {
         log.info("📩 [WEARABLE] Kafka 메시지 수신: {}", message);
         handleWearableMessage(message, "WEARABLE");

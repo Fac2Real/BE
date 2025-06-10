@@ -12,10 +12,12 @@ import com.factoreal.backend.global.fileUtil.CsvUtil;
 // import com.factoreal.backend.global.fileUtil.Html2PdfUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.nio.file.Path;
 import java.time.LocalDate;
@@ -44,6 +46,8 @@ public class ReportMailService {
         // 전체 존 목록 추출
         List<Zone> zones = zoneRepoService.findAll();
 
+        boolean hasManager = false;
+
         for (Zone zone : zones) {
             String zoneId = zone.getZoneId();
             String zoneName = zone.getZoneName();
@@ -56,6 +60,8 @@ public class ReportMailService {
                 log.info("[{}] 담당자 없음 → 메일 발송 생략", zoneName);
                 continue;
             }
+
+            hasManager = true;
 
             // for문으로 공간마다 한명인 매니저를 탐색하므로 List of를 사용함
             List<String> managerEmail = List.of(manager.getEmail());
@@ -79,12 +85,6 @@ public class ReportMailService {
             Map<Long, ControlLog> ctlMap = controlLogRepoService.getControlLogs(abnIds);
             Path csv = csvUtil.writeReportAsCsv(detail, ctlMap);
 
-            /* ── 2. 화면 캡처 → PDF ─────────────────────────── */
-            //   프론트·URL 예: https://monitoring.mycorp.com/#/report-detail?zoneId=...
-//            String url = "https://www.monitory.space/";
-//            Path pdf = pdfUtil.captureReportPageToPdf(url);
-
-
             LocalDate now = LocalDate.now();
             String prevMonthStr = now.minusMonths(1)
                     .getMonth()
@@ -106,6 +106,12 @@ public class ReportMailService {
 
             mailSender.send(helper.getMimeMessage());
             log.info("[{}] 리포트 메일 발송 완료 → {}", zoneName, managerEmail);
+        }
+
+        // 모든 Zone 에서 한 번도 메일을 못 보냈다면 404
+        if (!hasManager) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "모든 공간에 담당자가 존재하지 않습니다.");
         }
     }
 }
