@@ -5,10 +5,9 @@ import com.factoreal.backend.domain.abnormalLog.dto.response.DangerStatResponse;
 import com.factoreal.backend.domain.abnormalLog.dto.response.GradeSummaryResponse;
 import com.factoreal.backend.domain.abnormalLog.dto.response.MonthlyDetailResponse;
 import com.factoreal.backend.domain.abnormalLog.dto.response.MonthlyGradeSummaryResponse;
-import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.AbnDetailResponse;
-import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.EquipBlockResponse;
-import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.PeriodDetailReportResponse;
-import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.ZoneBlockResponse;
+import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.*;
+import com.factoreal.backend.domain.abnormalLog.dto.response.reportGraphResponse.BarResponse;
+import com.factoreal.backend.domain.abnormalLog.dto.response.reportGraphResponse.GraphSummaryResponse;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.domain.controlLog.entity.ControlLog;
 import com.factoreal.backend.domain.controlLog.application.ControlLogRepoService;
@@ -35,12 +34,14 @@ import java.lang.reflect.Method;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.when;
 
@@ -141,11 +142,17 @@ class ReportServiceTest {
     void getPrevMonthGrade() {
         // given : Worker 위험 3 → effective 3 → Grade B
         List<AbnormalLog> fakeLogs = List.of(
+                createLog(TargetType.Worker, 2),  //Worker 경고 (B)
                 createLog(TargetType.Worker, 2),
-                createLog(TargetType.Worker, 2),
-                createLog(TargetType.Worker, 2),
+                createLog(TargetType.Worker, 2),  
                 createLog(TargetType.Sensor, 1),  // Sensor 경고 1 → effective 0 (A)
-                createLog(TargetType.Equip, 1)    // Equip 경고 1 → effective 0 (A)
+                createLog(TargetType.Equip, 2),    // Equip 경고 6개 → effective 5 (C)
+                createLog(TargetType.Equip, 2),
+                createLog(TargetType.Equip, 2),
+                createLog(TargetType.Equip, 2),
+                createLog(TargetType.Equip, 2),
+                createLog(TargetType.Equip, 2)
+
         );
         when(abnLogRepoService.findPreview30daysLog()).thenReturn(fakeLogs);
 
@@ -165,7 +172,7 @@ class ReportServiceTest {
 
         GradeSummaryResponse equip = grades.stream()
                 .filter(g -> g.getType().equals("설비")).findFirst().orElseThrow();
-        assertThat(equip.getGrade()).isEqualTo("A");
+        assertThat(equip.getGrade()).isEqualTo("C");
     }
 
     /* ------------- 헬퍼 ------------- */
@@ -184,10 +191,13 @@ class ReportServiceTest {
 
     /* ── ③ 공통 헬퍼 ────────────────────────────── */
     private AbnormalLog log(long id, TargetType tp, String tgtId,
-                            String zoneId, int danger) {
+                            String zoneId, String zoneName, int danger) {
         return AbnormalLog.builder()
                 .id(id).targetType(tp).targetId(tgtId)
-                .zone(Zone.builder().zoneId(zoneId).build())
+                .zone(Zone.builder()
+                        .zoneId(zoneId)
+                        .zoneName(zoneName)
+                        .build())
                 .dangerLevel(danger)
                 .detectedAt(LocalDateTime.now())
                 .build();
@@ -219,9 +229,9 @@ class ReportServiceTest {
         when(zoneSvc.getZoneItems()).thenReturn(List.of(zm));
 
         /* 준비 : AbnormalLog – 1)Sensor 2)Worker 3)Equip */
-        AbnormalLog lg1 = log(1, TargetType.Sensor, "S-Tmp-1", "Z1", 1);
-        AbnormalLog lg2 = log(2, TargetType.Worker, "W-100", "Z1", 2);
-        AbnormalLog lg3 = log(3, TargetType.Equip, "S-E1-tmp", "Z1", 1);
+        AbnormalLog lg1 = log(1, TargetType.Sensor, "S-Tmp-1", "Z1","Z-1", 1);
+        AbnormalLog lg2 = log(2, TargetType.Worker, "W-100", "Z1", "Z-1" ,2);
+        AbnormalLog lg3 = log(3, TargetType.Equip, "S-E1-tmp", "Z1", "Z-1", 1);
         when(abnLogRepoService.findPreview30daysLog()).thenReturn(List.of(lg1, lg2, lg3));
 
         /* 준비 : ControlLog(없어도 됨) */
@@ -266,12 +276,68 @@ class ReportServiceTest {
         System.out.println(om.writeValueAsString(rpt));
     }
 
+    @Test
+    @DisplayName("buildLastMonthsReport() : 최근 30일에 대한 이상치 로그의 반환과 갯수를 잘 파악하는지 테스트")
+    void buildLastMonthsReport_basicCounts() throws JsonProcessingException {
+        /* 준비 : Zone 1개, Equip 1대  */
+        ZoneDetailResponse zm = zone("Z1", "생산 A",
+                List.of(equip("E1", "로봇암1")));
+        when(zoneSvc.getZoneItems()).thenReturn(List.of(zm));
+
+        /* 준비 : AbnormalLog – 1)Sensor 2)Worker 3)Equip */
+        AbnormalLog lg1 = log(1, TargetType.Sensor, "S-Tmp-1", "Z1", "Z-1", 1);
+        AbnormalLog lg2 = log(2, TargetType.Worker, "W-100", "Z1", "Z-1", 2);
+        AbnormalLog lg3 = log(3, TargetType.Equip, "S-E1-tmp", "Z1", "Z-1", 1);
+        when(abnLogRepoService.findPreviousMonthLogs()).thenReturn(List.of(lg1, lg2, lg3));
+
+        /* 준비 : ControlLog(없어도 됨) */
+        when(ctlRepo.getControlLogs(Mockito.anyList())).thenReturn(Map.of());
+
+        /* 준비 : Sensor→Equip 매핑 */
+        when(sensorRepo.sensorIdToEquipId(Mockito.anyList()))
+                .thenReturn(Map.of("S-E1-tmp", "E1"));
+
+        /* 준비 : Worker 상세 */
+        Worker w100 = Worker.builder()
+                .workerId("W-100").name("홍길동").phoneNumber("+82101").build();
+        when(workerRepo.findWorkersMap(anyList()))
+                .thenAnswer(inv -> {
+                    // 실제로 넘긴 id 목록
+                    List<String> ids = inv.getArgument(0);
+                    // ids 안에 존재하는 것만 골라서 Map 으로 돌려준다
+                    return ids.stream()
+                            .filter("W-100"::equals)
+                            .collect(Collectors.toMap(id -> id, id -> w100));
+                });
+
+        /* 실행 */
+        PeriodDetailReportResponse rpt = reportService.buildLastMonthReport();
+
+        System.out.println();
+        /* 검증 */
+        assertThat(rpt.getZones()).hasSize(1);
+        ZoneBlockResponse zb = rpt.getZones().get(0);
+
+        assertThat(zb.getEnvCnt()).isEqualTo(1);  // Sensor 1
+        assertThat(zb.getWorkerCnt()).isEqualTo(1);  // Worker 1
+        assertThat(zb.getFacCnt()).isEqualTo(1);  // Equip 1
+        assertThat(zb.getTotalCnt()).isEqualTo(3);
+
+        EquipBlockResponse eb = zb.getEquips().get(0);
+        assertThat(eb.getEquipId()).isEqualTo("E1");
+        assertThat(eb.getFacCnt()).isEqualTo(1);
+
+        // ── 반환되는 객체 구조 확인 ───────────────────
+        ObjectMapper om = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+        System.out.println(om.writeValueAsString(rpt));
+    }
+
     /* buildZoneBlock() 을 따로 검증하고 싶다면
        - ZoneDetailResponse 1개와 그 Zone 에 속하는 로그 리스트만 넘긴다
        - private → package 로 열어두거나 @Testable 로 감싸서 호출 */
     @Test
     void toDetail_mapping() throws Exception {
-        AbnormalLog src = log(10, TargetType.Sensor, "S-1", "Z1", 2);
+        AbnormalLog src = log(10, TargetType.Sensor, "S-1", "Z1", "Z-1", 2);
         ControlLog ctl = ControlLog.builder()
                 .abnormalLog(src).controlType("에어컨")
                 .controlVal(25D).controlStat(1)
@@ -290,6 +356,112 @@ class ReportServiceTest {
 
         assertThat(dt.getAbnormalId()).isEqualTo(10L);
         assertThat(dt.getControl().getControlType()).isEqualTo("에어컨");
+    }
+
+    /* 테스트 케이스 확장 */
+    /* ========== Worker 정보가 조회되지 않을 때 name·phone 이 null 인지 검증 ========== */
+    @Test
+    @DisplayName("buildLast30DaysReport : workerMap 에 없는 작업자 로그 → name, phone = null")
+    void buildReport_workerUnknown_setsNullFields() {
+
+        /* ① Zone · Equip 세팅 */
+        ZoneDetailResponse zm = zone("Z1", "포장실",
+                List.of(equip("E1", "로봇암1")));
+        when(zoneSvc.getZoneItems()).thenReturn(List.of(zm));
+
+        /* ② AbnormalLog – Worker 로그만 하나 (workerId = W-999) */
+        AbnormalLog wLog = log(10, TargetType.Worker, "W-999", "Z1", "Z-1", 1);
+        when(abnLogRepoService.findPreview30daysLog()).thenReturn(List.of(wLog));
+
+        /* ③ ControlLog, Sensor→Equip 매핑은 없어도 OK */
+        when(ctlRepo.getControlLogs(anyList())).thenReturn(Map.of());
+        when(sensorRepo.sensorIdToEquipId(anyList())).thenReturn(Map.of());
+
+        /* ④ WorkerRepo 에서 “빈 Map” 반환 → W-999 정보를 찾지 못하는 상황 */
+        when(workerRepo.findWorkersMap(anyList())).thenReturn(Map.of());
+
+        /* ⑤ 실행 */
+        PeriodDetailReportResponse rpt = reportService.buildLast30DaysReport();
+
+        /* ⑥ 검증 */
+        ZoneBlockResponse zb = rpt.getZones().get(0);
+        assertThat(zb.getWorkerCnt()).isEqualTo(1);
+
+        WorkerBlockResponse wb = zb.getWorkers().get(0);
+        assertThat(wb.getWorkerId()).isEqualTo("W-999");
+        assertThat(wb.getName()).isNull();          // ← w == null 분기
+        assertThat(wb.getPhone()).isNull();
+    }
+    @Test
+    @DisplayName("buildLast30DaysGraph : 집계·정렬·기간 문자열 검증")
+    void buildLast30DaysGraph_countsAndOrder() {
+        /* ── 1. 테스트용 날짜 계산 ───────────────── */
+        LocalDate today      = LocalDate.now();
+        LocalDate yesterday  = today.minusDays(1);
+        LocalDate d1         = yesterday.minusDays(5);   // 그래프용 날짜①
+        LocalDate d2         = yesterday.minusDays(10);  // 그래프용 날짜②
+
+        /* ── 2. AbnormalLog 4건 준비 ──────────────── */
+        AbnormalLog s1 = log(1, TargetType.Sensor, "S-1", "Z-A", "Z-A", 1); // SENSOR
+        s1.setDetectedAt(d1.atTime(12, 0));
+
+        AbnormalLog s2 = log(2, TargetType.Sensor, "S-2", "Z-A", "Z-A",2); // SENSOR
+        s2.setDetectedAt(d1.atTime(13, 0));
+
+        AbnormalLog e1 = log(3, TargetType.Equip , "S-3", "Z-B","Z-B", 1); // EQUIP
+        e1.setDetectedAt(d2.atTime( 9, 0));
+
+        AbnormalLog w1 = log(4, TargetType.Worker, "W-1", "Z-A", "Z-A", 1); // WORKER
+        w1.setDetectedAt(d2.atTime(10, 0));
+
+        List<AbnormalLog> fake = List.of(s1, s2, e1, w1);
+
+        when(abnLogRepoService.findByDetectedAtBetweenAndDangerLevelIn(
+                any(), any(), Mockito.eq(List.of(1, 2))))
+                .thenReturn(fake);
+
+        /* ── 3. 실행 ──────────────────────────────── */
+        GraphSummaryResponse res = reportService.buildLast30DaysGraph();
+
+        /* ── 4-1. 기간 문자열 검증 ────────────────── */
+        String expPeriod = yesterday.minusDays(30).format(DateTimeFormatter.ofPattern("yyyy.MM.dd"))
+                + " ~ " +
+                yesterday.format(DateTimeFormatter.ofPattern("yyyy.MM.dd"));
+        assertThat(res.getPeriod()).isEqualTo(expPeriod);
+
+        /* ── 4-2. typeStats (카운트 내림차순) ──────── */
+        List<BarResponse> typeStats = res.getTypeStats();
+        assertThat(typeStats).hasSize(3);                      // SENSOR/EQUIP/WORKER 3종
+        assertThat(typeStats.get(0)).satisfies(b -> {         // 1) SENSOR 2건
+            assertThat(b.getLabel()).isEqualTo("Sensor");
+            assertThat(b.getCnt()).isEqualTo(2);
+        });
+        Map<String, Long> typeMap = typeStats.stream()
+                .collect(Collectors.toMap(BarResponse::getLabel, BarResponse::getCnt));
+        assertThat(typeMap).containsEntry("Equip",   1L)
+                .containsEntry("Worker",  1L);
+
+        /* ── 4-3. dateStats (‘MM-dd’ 오름차순) ─────── */
+        List<BarResponse> dateStats = res.getDateStats();
+        DateTimeFormatter mmdd = DateTimeFormatter.ofPattern("MM-dd");
+        assertThat(dateStats).extracting(BarResponse::getLabel)
+                .containsExactly(mmdd.format(d2), mmdd.format(d1));    // 오름차순
+
+        Map<String, Long> dateMap = dateStats.stream()
+                .collect(Collectors.toMap(BarResponse::getLabel, BarResponse::getCnt));
+        assertThat(dateMap.get(mmdd.format(d1))).isEqualTo(2L);
+        assertThat(dateMap.get(mmdd.format(d2))).isEqualTo(2L);
+
+        /* ── 4-4. zoneStats (카운트 내림차순) ──────── */
+        List<BarResponse> zoneStats = res.getZoneStats();
+        assertThat(zoneStats.get(0)).satisfies(b -> {
+            assertThat(b.getLabel()).isEqualTo("Z-A");
+            assertThat(b.getCnt()).isEqualTo(3L);              // Z-A 3건
+        });
+        assertThat(zoneStats.get(1)).satisfies(b -> {
+            assertThat(b.getLabel()).isEqualTo("Z-B");
+            assertThat(b.getCnt()).isEqualTo(1L);
+        });
     }
 
 }

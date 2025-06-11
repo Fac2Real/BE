@@ -5,6 +5,7 @@ import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.dto.request.AbnormalPagingRequest;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.domain.equip.application.EquipRepoService;
+import com.factoreal.backend.domain.equip.dto.response.EquipDetailResponse;
 import com.factoreal.backend.domain.equip.entity.Equip;
 import com.factoreal.backend.domain.sensor.application.SensorRepoService;
 import com.factoreal.backend.domain.sensor.entity.Sensor;
@@ -15,17 +16,22 @@ import com.factoreal.backend.domain.zone.dto.response.ZoneInfoResponse;
 import com.factoreal.backend.domain.zone.dto.response.ZoneLogResponse;
 import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.global.exception.dto.BadRequestException;
+import com.factoreal.backend.global.exception.dto.DuplicateResourceException;
 import com.factoreal.backend.global.exception.dto.NotFoundException;
 import com.factoreal.backend.messaging.kafka.strategy.enums.SensorType;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.testcontainers.shaded.com.fasterxml.jackson.core.JsonProcessingException;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.SerializationFeature;
 
+import java.lang.reflect.Method;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -55,6 +61,10 @@ class ZoneServiceTest {
     private Zone zone(String id, String name) {
         return Zone.builder().zoneId(id).zoneName(name).build();
     }
+
+    /* ===== 공용 더미 ===== update, create 등등에 쓰임 */
+    private Zone zone() { return new Zone("Z1", "대기실"); }
+
 
     /* 1. createZone_success ------------------------------------ */
     @Test
@@ -90,7 +100,7 @@ class ZoneServiceTest {
         assertThrows(BadRequestException.class, () -> zoneService.createZone(req));
     }
 
-    // 2. updateZone
+    // 2 - 1. updateZone 성공
     @Test
     void updateZone_success() {
         ZoneUpdateRequest dto = new ZoneUpdateRequest("수정된이름");
@@ -102,6 +112,44 @@ class ZoneServiceTest {
 
         assertThat(res.getZoneName()).isEqualTo("수정된이름");
         assertThat(res.getZoneId()).isEqualTo("zone-1");
+    }
+    // 2 - 2. updateZone 이미 존재하는 중복공간이 있을 경우 예외 발생
+    @Test
+    void updateZone_duplicateOtherName_throwsConflict() {
+        Zone origin = zone();
+        when(zoneRepoService.getZoneByName("대기실")).thenReturn(origin);
+
+        // 이미 존재하는 이름이라서 validate 단계에서 예외 발생하도록
+        doThrow(new DuplicateResourceException("중복"))
+                .when(zoneRepoService).validateZoneName("포장구역");
+
+        ZoneUpdateRequest dto = new ZoneUpdateRequest("포장구역");
+
+        assertThrows(DuplicateResourceException.class,
+                () -> zoneService.updateZone("대기실", dto));
+
+        // validateZoneName 은 1회 호출되고 save() 는 호출되지 않아야 함
+        verify(zoneRepoService).validateZoneName("포장구역");
+        verify(zoneRepoService, never()).save(any());
+    }
+
+    /* ------------------------------------------------------------------
+     * case ②  ( else 분기 ) : 새 이름이 기존 이름과 완전히 같음 → 즉시 예외
+     * ------------------------------------------------------------------ */
+    // 2-3. 공간 이름 수정을 하는데 이름이 변경된 점이 없을경우
+    @Test
+    void updateZone_sameName_throwsConflict() {
+        Zone origin = zone();
+        when(zoneRepoService.getZoneByName("대기실")).thenReturn(origin);
+
+        ZoneUpdateRequest dto = new ZoneUpdateRequest("대기실"); // ← 기존 이름과 동일
+
+        assertThrows(DuplicateResourceException.class,
+                () -> zoneService.updateZone("대기실", dto));
+
+        // 같은 이름이므로 validateZoneName() 호출조차 하지 않는다
+        verify(zoneRepoService, never()).validateZoneName(anyString());
+        verify(zoneRepoService, never()).save(any());
     }
 
     // 3. getAllZones
@@ -135,15 +183,25 @@ class ZoneServiceTest {
         Zone zone = new Zone("zone-1", "대기실");
         when(zoneRepoService.findAll()).thenReturn(List.of(zone));
 
-        // ── 2. [환경] 센서가 참조할 더미 Equip  (equipId = zoneId)
-        Equip envEquip = mock(Equip.class);
-        when(envEquip.getEquipId()).thenReturn(zone.getZoneId());   // ★ zoneId == equipId
-        lenient().when(envEquip.getEquipName()).thenReturn("ENV-DUMMY");
-
         // 설비 mock 데이터 추가
         Equip facEquip = mock(Equip.class);
         when(facEquip.getEquipId()).thenReturn("equip-1");
         when(facEquip.getEquipName()).thenReturn("포장기");
+
+        // ── 2. 이름이 "empty"인 설비 → 환경 센서가 들어오는 곳은 설비 이름이 empty가 됨
+        Equip emptyEquip = mock(Equip.class);
+        lenient().when(emptyEquip.getEquipId()).thenReturn("equip-2");
+        when(emptyEquip.getEquipName()).thenReturn("empty"); // ❌ 필터링 대상
+
+        // ── 3. 이름이 null인 설비 → 설비가 아얘 존재하지 않는 문제 구간
+        Equip nullEquip = mock(Equip.class);
+        lenient().when(nullEquip.getEquipId()).thenReturn("equip-3");
+        when(nullEquip.getEquipName()).thenReturn(null);     // ❌ 필터링 대상
+
+        // ── [환경] 센서가 참조할 더미 Equip  (equipId = zoneId)
+        Equip envEquip = mock(Equip.class);
+        when(envEquip.getEquipId()).thenReturn(zone.getZoneId());   // ★ zoneId == equipId
+        lenient().when(envEquip.getEquipName()).thenReturn("ENV-DUMMY");
 
         // 환경센서를 위한 데이터
         Sensor envSensor = mock(Sensor.class);
@@ -160,7 +218,8 @@ class ZoneServiceTest {
         when(facSensor.getSensorId()).thenReturn("S-2");
 
         when(sensorRepoService.findByZone(zone)).thenReturn(List.of(envSensor, facSensor));
-        when(equipRepoService.findEquipsByZone(zone)).thenReturn(List.of(facEquip));
+        // 각 경우의 수에 모든 설비 데이터를 조회 요소로 넣어줌
+        when(equipRepoService.findEquipsByZone(zone)).thenReturn(List.of(facEquip, emptyEquip, nullEquip));
 
         List<ZoneDetailResponse> res = zoneService.getZoneItems();
 
@@ -179,6 +238,59 @@ class ZoneServiceTest {
         assertThat(res.get(0).getEquipList()).hasSize(1);
         assertThat(res.get(0).getEquipList().get(0).getFacSensor()).hasSize(1);
     }
+
+    // 공간에 대한 설비들의 상세정보를 보내주는 메서드
+    @SuppressWarnings("unchecked")
+    private List<EquipDetailResponse> invokeEquipDetails(Zone zone) throws Exception {
+        Method m = ZoneService.class.getDeclaredMethod("getEquipDetailDtos", Zone.class);
+        m.setAccessible(true);                    // private 접근 허용
+        return (List<EquipDetailResponse>) m.invoke(zoneService, zone);
+    }
+
+//    // 환경 센서만 존재하는 경우 체크
+//    @Test
+//    void equipName_empty_filteredOut() throws Exception {
+//        Zone zone = new Zone("Z-empty", "테스트존");
+//
+//        Equip emptyEquip = mock(Equip.class);
+//        when(emptyEquip.getEquipName()).thenReturn("empty"); // ← "empty" 이름
+//
+//        when(equipRepoService.findEquipsByZone(zone))
+//                .thenReturn(List.of(emptyEquip));
+//        when(sensorRepoService.findByZone(zone))
+//                .thenReturn(List.of());
+//
+//        List<EquipDetailResponse> list = invokeEquipDetails(zone);
+//
+//        assertThat(list).isEmpty();                          // false 분기 실행 확인
+//        // 환경센서를 위한 데이터
+//        Sensor envSensor = mock(Sensor.class);
+//        when(envSensor.getZone()).thenReturn(zone);
+//        when(envSensor.getEquip()).thenReturn(emptyEquip);
+//        when(envSensor.getSensorType()).thenReturn(SensorType.temp);
+//        when(envSensor.getSensorId()).thenReturn("S-1");
+//
+//        when(sensorRepoService.findByZone(zone)).thenReturn(List.of(envSensor));
+//        // 각 경우의 수에 모든 설비 데이터를 조회 요소로 넣어줌
+//        when(equipRepoService.findEquipsByZone(zone)).thenReturn(List.of(emptyEquip));
+//
+//        List<ZoneDetailResponse> res = zoneService.getZoneItems();
+//
+//        // 객체 확인
+//        ObjectMapper om = new ObjectMapper();   // LocalDateTime 등 지원
+//        String resObj = om.writerWithDefaultPrettyPrinter()
+//                .writeValueAsString(res);
+//
+//        System.out.println(resObj);
+//
+//        assertThat(res.get(0).getZoneName()).isEqualTo("대기실");
+//
+//        // 환경-센서 1개, 설비-센서 1개까지 확인하고 싶다면
+//        assertThat(res.get(0).getEnvList()).hasSize(1);
+//        assertThat(res.get(0).getEquipList()).hasSize(1);
+//        assertThat(res.get(0).getEquipList().get(0).getFacSensor()).hasSize(1);
+//
+//    }
 
     @Test
     void findSystemLogsByZoneId_success() throws JsonProcessingException {
