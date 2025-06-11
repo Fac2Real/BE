@@ -19,18 +19,16 @@ public class FCMPushService {
 
 //   TODO 트러블 슈팅 -> 비동기에서 예외처리 방법
     @Async
-    public CompletableFuture<String> sendMessage(String token, String title, String body) throws FirebaseMessagingException {
+    public CompletableFuture<String> sendMessage(String token, String title, String body) {
+        if (token == null) {
+            return CompletableFuture.failedFuture(new IllegalArgumentException("fcm 토큰 없음"));
+        }
         try {
             String message = firebaseMessaging.send(
-                    Message.builder()
-                            .setNotification(
-                                    Notification.builder()
-                                            .setTitle(title)
-                                            .setBody(body)
-                                            .build()
-                            )
-                            .setToken(token)
-                            .build()
+                Message.builder()
+                    .setNotification(Notification.builder().setTitle(title).setBody(body).build())
+                    .setToken(token)
+                    .build()
             );
             log.info("FCM 전송 성공: {}", message);
             return CompletableFuture.completedFuture(message);

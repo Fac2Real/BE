@@ -114,11 +114,11 @@ class ZoneHistoryServiceTest {
                 .willReturn(RiskLevel.INFO);
 
         // 작업자의 현재 위치 정보 반환 (zone1에 있음)
-        given(zoneHistoryRepoService.getCurrentWorkerLocation(workerId))
+        given(zoneHistoryRepoService.findByWorkerLocateForUpdate(workerId))
                 .willReturn(currentLocation);
 
         // 작업자 정보 조회 시 미리 생성한 worker 객체 반환
-        given(workerRepoService.findById(workerId))
+        given(workerRepoService.lockWorkerRow(workerId))
                 .willReturn(worker);
 
         // 새로운 위치(zone2) 정보 조회 시 미리 생성한 zone2 객체 반환
@@ -168,12 +168,8 @@ class ZoneHistoryServiceTest {
         given(zoneWorkerStateStore.getWorkerRiskLevel(workerId))
                 .willReturn(RiskLevel.INFO);
 
-        // 작업자의 현재 위치 정보가 없음을 설정 (최초 입장 상황)
-        given(zoneHistoryRepoService.getCurrentWorkerLocation(workerId))
-                .willReturn(null);
-
         // 작업자 정보 조회 시 미리 생성한 worker 객체 반환
-        given(workerRepoService.findById(workerId))
+        given(workerRepoService.lockWorkerRow(workerId))
                 .willReturn(worker);
 
         // 새로운 위치(zone1) 정보 조회 시 미리 생성한 zone1 객체 반환
@@ -213,15 +209,15 @@ class ZoneHistoryServiceTest {
 
 
         // 작업자의 현재 위험 수준을 INFO로 설정 (정상 상태)
-        given(zoneWorkerStateStore.getWorkerRiskLevel(workerId))
-                .willReturn(RiskLevel.INFO);
+//        given(zoneWorkerStateStore.getWorkerRiskLevel(workerId))
+//                .willReturn(RiskLevel.INFO);
 
         // 작업자의 현재 위치 정보가 없음을 설정
-        given(zoneHistoryRepoService.getCurrentWorkerLocation(workerId))
-                .willReturn(null);
+//        given(zoneHistoryRepoService.getCurrentWorkerLocation(workerId))
+//                .willReturn(null);
 
         // 작업자 정보 조회 시 미리 생성한 worker 객체 반환
-        given(workerRepoService.findById(workerId))
+        given(workerRepoService.lockWorkerRow(workerId))
                 .willReturn(worker);
 
         // 새로운 위치(zone1) 정보 조회 시 미리 생성한 zone1 객체 반환
@@ -267,11 +263,11 @@ class ZoneHistoryServiceTest {
                 .willReturn(RiskLevel.WARNING);
 
         // 작업자의 현재 위치 정보가 없음을 설정
-        given(zoneHistoryRepoService.getCurrentWorkerLocation(workerId))
-                .willReturn(null);
+//        given(zoneHistoryRepoService.getCurrentWorkerLocation(workerId))
+//                .willReturn(null);
 
         // 작업자 정보 조회 시 미리 생성한 worker 객체 반환
-        given(workerRepoService.findById(workerId))
+        given(workerRepoService.lockWorkerRow(workerId))
                 .willReturn(worker);
 
         // 새로운 위치(zone1) 정보 조회 시 미리 생성한 zone1 객체 반환
@@ -301,7 +297,6 @@ class ZoneHistoryServiceTest {
         String workerId = "20250001";
         String newZoneId = "20250507165751-826";  // zone3의 ID
         LocalDateTime newTimestamp = timestamp;
-        given(workerZoneRepoService.findByWorker_WorkerId(workerId)).willReturn(List.of(workerZone1, workerZone2));
 
         // 작업자의 현재 위험 수준을 INFO로 설정 (정상 상태)
         given(zoneWorkerStateStore.getWorkerRiskLevel(workerId))
