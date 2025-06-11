@@ -38,7 +38,7 @@ public class WorkerManagerController {
     log.info("공간 ID: {}의 담당자를 작업자 ID: {}로 지정 요청", zoneId, workerId);
     List<WorkerManagerResponse> temp = workerManagerService.getManagerCandidates(zoneId);
     boolean isCandidate = temp.stream().anyMatch(w -> w.getWorkerId().equals(workerId));
-    if (!isCandidate) {
+    if (isCandidate) {
       workerManagerService.assignManager(zoneId, workerId);
       return ResponseEntity.ok().build();
     }
