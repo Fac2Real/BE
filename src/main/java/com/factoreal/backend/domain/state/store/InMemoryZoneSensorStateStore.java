@@ -57,11 +57,10 @@ public class InMemoryZoneSensorStateStore implements ZoneSensorStateStore {
         if (sensorStates == null || sensorStates.isEmpty()) {
             return null;
         }
-
         return sensorStates.entrySet().stream()
                 .max(Comparator.comparingInt(e -> e.getValue().getPriority()))
-                .flatMap(e -> sensorRepoService.findById(e.getKey())) // Optional<Sensor>
-                .orElse(null);
+                .map(e -> sensorRepoService.findById(e.getKey())) // Optional<Sensor>
+                .orElseThrow();
     }
 
     @Override

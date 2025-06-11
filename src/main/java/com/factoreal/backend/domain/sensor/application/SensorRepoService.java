@@ -4,16 +4,14 @@ import com.factoreal.backend.domain.sensor.dao.SensorRepository;
 import com.factoreal.backend.domain.sensor.dto.response.SensorInfoResponse;
 import com.factoreal.backend.domain.sensor.entity.Sensor;
 import com.factoreal.backend.domain.zone.entity.Zone;
+import com.factoreal.backend.global.exception.dto.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -56,8 +54,9 @@ public class SensorRepoService {
         return sensorRepository.save(sensor);
     }
 
-    public Optional<Sensor> findById(String sensorId) {
-        return sensorRepository.findById(sensorId);
+    public Sensor findById(String sensorId) {
+        return sensorRepository.findById(sensorId)
+            .orElseThrow(() -> new NotFoundException("존재하지 않는 센서 ID: "+ sensorId));
     }
 
     public List<Sensor> findByZone_ZoneId(String zoneId) {
@@ -69,8 +68,7 @@ public class SensorRepoService {
      */
     public Sensor getSensorById(String sensorId) {
         return sensorRepository.findById(sensorId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "존재하지 않는 센서 ID: " + sensorId));
+                .orElseThrow(() -> new NotFoundException("존재하지 않는 센서 ID: " + sensorId));
     }
 
 

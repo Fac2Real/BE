@@ -15,6 +15,7 @@ import com.factoreal.backend.domain.zone.dto.response.ZoneDetailResponse;
 import com.factoreal.backend.domain.zone.dto.response.ZoneInfoResponse;
 import com.factoreal.backend.domain.zone.dto.response.ZoneLogResponse;
 import com.factoreal.backend.domain.zone.entity.Zone;
+import com.factoreal.backend.global.exception.dto.NotFoundException;
 import com.factoreal.backend.global.util.IdGenerator;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -83,7 +84,15 @@ public class ZoneService {
 //        return zoneRepository.save(zone);
 //    }
 
+    /**
+     * 모든 공간을 조회하는 서비스
+     */
     public List<ZoneInfoResponse> getAllZones() {
+        List<Zone> zones = zoneRepoService.findAll();
+        if (zones.isEmpty()) {
+            // 공간 없을 시 예외 처리 추가
+            throw new NotFoundException("등록된 공간이 없습니다.");
+        }
         return zoneRepoService.findAll().stream()
                 .map(ZoneInfoResponse::fromEntity)
                 .collect(Collectors.toList());

@@ -7,6 +7,7 @@ import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
 import com.factoreal.backend.domain.sensor.entity.Sensor;
 import com.factoreal.backend.messaging.kafka.strategy.enums.SensorType;
 import com.factoreal.backend.domain.zone.entity.Zone;
+import com.factoreal.backend.global.exception.dto.NotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,13 +17,10 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * AutoControlService 테스트 클래스
@@ -91,16 +89,22 @@ class AutoControlServiceTest {
     }
 
     @Test
-    @DisplayName("센서가 존재하지 않는 경우 제어 로직이 실행되지 않음")
+    @DisplayName("센서를 찾을 수 없을 때 제어하지 않음")
     void whenSensorNotFound_thenNoControl() {
-        // given - 센서 조회 시 빈 Optional 반환하도록 설정
-        given(sensorRepoService.findById(any())).willReturn(Optional.empty());
+        // given
+        SensorKafkaDto dto = new SensorKafkaDto();
+        dto.setSensorId("nonexistent");
+        dto.setVal(25.0);
 
-        // when - 위험 수준 1로 평가 실행
-        autoControlService.evaluate(sensorKafkaDto, abnormalLog, 1);
+        AbnormalLog abnormalLog = mock(AbnormalLog.class);
+        when(sensorRepoService.findById(anyString())).thenThrow(new NotFoundException("존재하지 않는 센서 ID: nonexistent"));
 
-        // then - 제어 로직이 실행되지 않음을 검증
-        verify(controlLogService, never()).saveControlLog(any(), any(), any(), any(), any());
+        // when & then
+        assertThatThrownBy(() -> autoControlService.evaluate(dto, abnormalLog, 1))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("존재하지 않는 센서 ID: nonexistent");
+
+        verify(controlLogService, never()).saveControlLog(any(), any(), anyDouble(), anyInt(), any());
     }
 
     @Test
@@ -108,7 +112,7 @@ class AutoControlServiceTest {
     void whenValueInRange_thenNoControl() {
         // given - 허용 범위 내의 값으로 설정
         sensorKafkaDto.setVal(26.0);  // 허용 범위 내 (25 ± 2)
-        given(sensorRepoService.findById(any())).willReturn(Optional.of(sensor));
+        given(sensorRepoService.findById(any())).willReturn(sensor);
 
         // when - 위험 수준 1로 평가 실행
         autoControlService.evaluate(sensorKafkaDto, abnormalLog, 1);
@@ -122,7 +126,7 @@ class AutoControlServiceTest {
     void whenValueOutOfRange_thenControl() {
         // given - 허용 범위를 초과하는 값으로 설정
         sensorKafkaDto.setVal(28.0);  // 허용 범위 초과 (25 ± 2)
-        given(sensorRepoService.findById(any())).willReturn(Optional.of(sensor));
+        given(sensorRepoService.findById(any())).willReturn(sensor);
 
         // when - 위험 수준 1로 평가 실행
         autoControlService.evaluate(sensorKafkaDto, abnormalLog, 1);
@@ -137,7 +141,7 @@ class AutoControlServiceTest {
     void whenValueBelowRange_thenControl() {
         // given - 허용 범위 미만의 값으로 설정
         sensorKafkaDto.setVal(22.0);  // 허용 범위 미만 (25 ± 2)
-        given(sensorRepoService.findById(any())).willReturn(Optional.of(sensor));
+        given(sensorRepoService.findById(any())).willReturn(sensor);
 
         // when - 위험 수준 1로 평가 실행
         autoControlService.evaluate(sensorKafkaDto, abnormalLog, 1);
@@ -151,7 +155,7 @@ class AutoControlServiceTest {
     @DisplayName("극단적인 측정값에 대한 처리 테스트")
     void testExtremeValues() {
         // given - 센서 조회 시 미리 생성한 센서 반환하도록 설정
-        given(sensorRepoService.findById(any())).willReturn(Optional.of(sensor));
+        given(sensorRepoService.findById(any())).willReturn(sensor);
 
         // 1. 매우 큰 값 테스트
         sensorKafkaDto.setVal(Double.MAX_VALUE);
@@ -176,7 +180,7 @@ class AutoControlServiceTest {
         // given - sensorId만 설정하고 나머지 필드는 null인 DTO 생성
         SensorKafkaDto nullDto = new SensorKafkaDto();
         nullDto.setSensorId("SENSOR001");  // sensorId만 설정
-        given(sensorRepoService.findById(any())).willReturn(Optional.of(sensor));
+        given(sensorRepoService.findById(any())).willReturn(sensor);
 
         // when - 대부분의 필드가 null인 DTO로 평가 실행
         autoControlService.evaluate(nullDto, abnormalLog, 1);
@@ -189,7 +193,7 @@ class AutoControlServiceTest {
     @DisplayName("다양한 센서 타입에 대한 제어 타입 매핑 테스트")
     void testDifferentSensorTypeControlMapping() {
         // given - 센서 조회 시 미리 생성한 센서 반환하도록 설정
-        given(sensorRepoService.findById(any())).willReturn(Optional.of(sensor));
+        given(sensorRepoService.findById(any())).willReturn(sensor);
 
         // 1. 온도 센서 테스트
         sensor.setSensorType(SensorType.temp);

@@ -73,7 +73,7 @@ public class AlarmEventService {
 
         String source = data.getZoneId().equals(data.getEquipId()) ? "공간 센서" : "설비 센서";
         SensorType sensorType = SensorType.valueOf(data.getSensorType());
-        String zoneName = zoneRepoService.findByZoneId(data.getZoneId()).getZoneName();
+        String zoneName = zoneRepoService.findById(data.getZoneId()).getZoneName();
         // 알람 이벤트 객체 반환
         return AlarmEventDto.builder()
                 .eventId(abnormalLog.getId())

@@ -30,8 +30,6 @@ import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
-import java.util.List;
 import java.util.Optional;
 
 @ExtendWith(MockitoExtension.class)
@@ -218,12 +216,12 @@ class EquipMaintenanceServiceTest {
             // then
             verify(equipHistoryRepoService, times(1)).save(currentHistory);
             assertThat(currentHistory.getAccidentDate()).isEqualTo(newDate);
-    }
+        }
 
-    @Test
+        @Test
         @DisplayName("Case 2: 기존 이력이 있고 D-5보다 길며 현재 시점과 더 먼 경우 - 기존 이력 유지")
         void existingPrediction_moreThanD5AndFurther_shouldKeepExisting() throws IOException {
-        // given
+            // given
             LocalDate currentDate = LocalDate.now().plusDays(7);
             LocalDate newDate = LocalDate.now().plusDays(10);
 
@@ -256,45 +254,51 @@ class EquipMaintenanceServiceTest {
         void whenD5_shouldSendAlert() throws IOException {
             // given
             LocalDate expectedDate = LocalDate.now().plusDays(5);
-        EquipInfoResponse equipInfo = new EquipInfoResponse();
-        equipInfo.setEquipId(equipId);
-        equipInfo.setEquipName(equipName);
-        equipInfo.setZoneId(zoneId);
-        equipInfo.setZoneName(zoneName);
-
-            MaintenancePredictionResponse predictionResponse = new MaintenancePredictionResponse();
-            predictionResponse.setRemainingDays(5);
-
-            // 기존 이력이 있는 상태로 설정 (첫 예측값이 아님)
-            EquipHistory existingHistory = EquipHistory.builder()
-                    .equip(equip)
-                    .accidentDate(LocalDate.now().plusDays(10))
-                    .build();
-
-        given(equipRepoService.findAll()).willReturn(List.of(equipInfo));
-            given(equipRepoService.findById(equipId)).willReturn(equip);
-            given(equipHistoryRepoService.findLatestUncheckedByEquipId(equipId))
-                    .willReturn(Optional.of(existingHistory));  // 기존 이력 있음
-            given(restTemplate.getForEntity(anyString(), eq(MaintenancePredictionResponse.class)))
-                    .willReturn(ResponseEntity.ok(predictionResponse));
-            given(slackEquipAlarmService.shouldSendAlert(expectedDate)).willReturn(true);
-            given(slackEquipAlarmService.getDaysUntilMaintenance(any(LocalDate.class)))
-                    .willAnswer(invocation -> {
-                        LocalDate date = invocation.getArgument(0);
-                        return ChronoUnit.DAYS.between(LocalDate.now(), date);
-                    });
+            lenient().when(equipRepoService.findById(equipId)).thenReturn(equip);
+            lenient().when(slackEquipAlarmService.shouldSendAlert(expectedDate)).thenReturn(true);
+            lenient().when(slackEquipAlarmService.getDaysUntilMaintenance(expectedDate)).thenReturn(5L);
+            lenient().when(equipHistoryRepoService.findLatestUncheckedByEquipId(equipId))
+                    .thenReturn(Optional.empty());
 
             // when
-            equipMaintenanceService.fetchAndProcessMaintenancePredictions();
+            equipMaintenanceService.processMaintenancePrediction(equipId, expectedDate);
 
             // then
-            verify(slackEquipAlarmService, times(1))
-                    .sendEquipmentMaintenanceAlert(
-                            eq(equipName),
-                            eq(zoneName),
-                            eq(expectedDate),
-                            eq(5L)
-                    );
+            verify(slackEquipAlarmService).sendEquipmentMaintenanceAlert(
+                    equip.getEquipName(),
+                    equip.getZone().getZoneName(),
+                    expectedDate,
+                    5L
+            );
+        }
+
+        @Test
+        @DisplayName("D-4일 때 알림 미발송")
+        void whenD4_shouldNotSendAlert() throws IOException {
+            // given
+            LocalDate expectedDate = LocalDate.now().plusDays(4);
+            EquipHistory existingHistory = EquipHistory.builder()
+                    .equip(equip)
+                    .accidentDate(expectedDate)
+                    .build();
+
+            lenient().when(equipRepoService.findById(equipId)).thenReturn(equip);
+            lenient().when(slackEquipAlarmService.shouldSendAlert(expectedDate)).thenReturn(false);
+            lenient().when(slackEquipAlarmService.getDaysUntilMaintenance(expectedDate)).thenReturn(4L);
+            lenient().when(equipHistoryRepoService.findLatestUncheckedByEquipId(equipId))
+                    .thenReturn(Optional.of(existingHistory));
+
+            // when
+            equipMaintenanceService.processMaintenancePrediction(equipId, expectedDate);
+
+            // then
+            verify(slackEquipAlarmService, never()).sendEquipmentMaintenanceAlert(
+                    eq(equip.getEquipName()),
+                    eq(equip.getZone().getZoneName()),
+                    eq(expectedDate),
+                    eq(4L)
+            );
+            verify(equipHistoryRepoService, never()).save(any(EquipHistory.class));
         }
 
         @Test
@@ -302,91 +306,22 @@ class EquipMaintenanceServiceTest {
         void whenD3_shouldSendAlert() throws IOException {
             // given
             LocalDate expectedDate = LocalDate.now().plusDays(3);
-            EquipInfoResponse equipInfo = new EquipInfoResponse();
-            equipInfo.setEquipId(equipId);
-            equipInfo.setEquipName(equipName);
-            equipInfo.setZoneId(zoneId);
-            equipInfo.setZoneName(zoneName);
-
-        MaintenancePredictionResponse predictionResponse = new MaintenancePredictionResponse();
-            predictionResponse.setRemainingDays(3);
-
-            // 기존 이력이 있는 상태로 설정
-            EquipHistory existingHistory = EquipHistory.builder()
-                    .equip(equip)
-                    .accidentDate(LocalDate.now().plusDays(10))
-                    .build();
-
-            given(equipRepoService.findAll()).willReturn(List.of(equipInfo));
-            given(equipRepoService.findById(equipId)).willReturn(equip);
-            given(equipHistoryRepoService.findLatestUncheckedByEquipId(equipId))
-                    .willReturn(Optional.of(existingHistory));
-            given(restTemplate.getForEntity(anyString(), eq(MaintenancePredictionResponse.class)))
-            .willReturn(ResponseEntity.ok(predictionResponse));
-        given(slackEquipAlarmService.shouldSendAlert(expectedDate)).willReturn(true);
-            given(slackEquipAlarmService.getDaysUntilMaintenance(any(LocalDate.class)))
-                    .willAnswer(invocation -> {
-                        LocalDate date = invocation.getArgument(0);
-                        return ChronoUnit.DAYS.between(LocalDate.now(), date);
-                    });
-
-        // when
-            equipMaintenanceService.fetchAndProcessMaintenancePredictions();
-
-        // then
-        verify(slackEquipAlarmService, times(1))
-                    .sendEquipmentMaintenanceAlert(
-                            eq(equipName),
-                            eq(zoneName),
-                            eq(expectedDate),
-                            eq(3L)
-                    );
-    }
-
-    @Test
-        @DisplayName("D-4일 때 알림 미발송")
-        void whenD4_shouldNotSendAlert() throws IOException {
-        // given
-            LocalDate expectedDate = LocalDate.now().plusDays(4);
-            EquipInfoResponse equipInfo = new EquipInfoResponse();
-            equipInfo.setEquipId(equipId);
-            equipInfo.setEquipName(equipName);
-            equipInfo.setZoneId(zoneId);
-            equipInfo.setZoneName(zoneName);
-
-            MaintenancePredictionResponse predictionResponse = new MaintenancePredictionResponse();
-            predictionResponse.setRemainingDays(4);
-
-            // 기존 이력이 있는 상태로 설정
-            EquipHistory existingHistory = EquipHistory.builder()
-                    .equip(equip)
-                    .accidentDate(LocalDate.now().plusDays(10))
-                    .build();
-
-            given(equipRepoService.findAll()).willReturn(List.of(equipInfo));
-            given(equipRepoService.findById(equipId)).willReturn(equip);
-            given(equipHistoryRepoService.findLatestUncheckedByEquipId(equipId))
-                    .willReturn(Optional.of(existingHistory));
-            given(restTemplate.getForEntity(anyString(), eq(MaintenancePredictionResponse.class)))
-                    .willReturn(ResponseEntity.ok(predictionResponse));
-            given(slackEquipAlarmService.shouldSendAlert(expectedDate)).willReturn(false);
-            given(slackEquipAlarmService.getDaysUntilMaintenance(any(LocalDate.class)))
-                    .willAnswer(invocation -> {
-                        LocalDate date = invocation.getArgument(0);
-                        return ChronoUnit.DAYS.between(LocalDate.now(), date);
-                    });
+            lenient().when(equipRepoService.findById(equipId)).thenReturn(equip);
+            lenient().when(slackEquipAlarmService.shouldSendAlert(expectedDate)).thenReturn(true);
+            lenient().when(slackEquipAlarmService.getDaysUntilMaintenance(expectedDate)).thenReturn(3L);
+            lenient().when(equipHistoryRepoService.findLatestUncheckedByEquipId(equipId))
+                    .thenReturn(Optional.empty());
 
             // when
-            equipMaintenanceService.fetchAndProcessMaintenancePredictions();
+            equipMaintenanceService.processMaintenancePrediction(equipId, expectedDate);
 
             // then
-            verify(slackEquipAlarmService, never())
-                    .sendEquipmentMaintenanceAlert(
-                            anyString(),
-                            anyString(),
-                            any(LocalDate.class),
-                            anyLong()
-                    );
+            verify(slackEquipAlarmService).sendEquipmentMaintenanceAlert(
+                    equip.getEquipName(),
+                    equip.getZone().getZoneName(),
+                    expectedDate,
+                    3L
+            );
         }
 
         @Test
@@ -394,53 +329,31 @@ class EquipMaintenanceServiceTest {
         void whenRegularAlertFails_shouldHandleException() throws IOException {
             // given
             LocalDate expectedDate = LocalDate.now().plusDays(5);
-        EquipInfoResponse equipInfo = new EquipInfoResponse();
-        equipInfo.setEquipId(equipId);
-        equipInfo.setEquipName(equipName);
-        equipInfo.setZoneId(zoneId);
-        equipInfo.setZoneName(zoneName);
-
-        MaintenancePredictionResponse predictionResponse = new MaintenancePredictionResponse();
-            predictionResponse.setRemainingDays(5);
-
-            // 기존 이력이 있는 상태로 설정
-            EquipHistory existingHistory = EquipHistory.builder()
-                    .equip(equip)
-                    .accidentDate(LocalDate.now().plusDays(10))
-                    .build();
-
-            given(equipRepoService.findAll()).willReturn(List.of(equipInfo));
-            given(equipRepoService.findById(equipId)).willReturn(equip);
-            given(equipHistoryRepoService.findLatestUncheckedByEquipId(equipId))
-                    .willReturn(Optional.of(existingHistory));
-            given(restTemplate.getForEntity(anyString(), eq(MaintenancePredictionResponse.class)))
-            .willReturn(ResponseEntity.ok(predictionResponse));
-        given(slackEquipAlarmService.shouldSendAlert(expectedDate)).willReturn(true);
-            given(slackEquipAlarmService.getDaysUntilMaintenance(any(LocalDate.class)))
-                    .willAnswer(invocation -> {
-                        LocalDate date = invocation.getArgument(0);
-                        return ChronoUnit.DAYS.between(LocalDate.now(), date);
-                    });
-            doThrow(new IOException("Slack API 호출 실패"))
+            lenient().when(equipRepoService.findById(equipId)).thenReturn(equip);
+            lenient().when(slackEquipAlarmService.shouldSendAlert(expectedDate)).thenReturn(true);
+            lenient().when(slackEquipAlarmService.getDaysUntilMaintenance(expectedDate)).thenReturn(5L);
+            lenient().when(equipHistoryRepoService.findLatestUncheckedByEquipId(equipId))
+                    .thenReturn(Optional.empty());
+            lenient().doThrow(new IOException("Slack API 호출 실패"))
                     .when(slackEquipAlarmService)
                     .sendEquipmentMaintenanceAlert(
-                            eq(equipName),
-                            eq(zoneName),
+                            eq(equip.getEquipName()),
+                            eq(equip.getZone().getZoneName()),
                             eq(expectedDate),
                             eq(5L)
                     );
 
-        // when
-            equipMaintenanceService.fetchAndProcessMaintenancePredictions();
+            // when
+            equipMaintenanceService.processMaintenancePrediction(equipId, expectedDate);
 
-        // then
-        verify(slackEquipAlarmService, times(1))
-                    .sendEquipmentMaintenanceAlert(
-                            eq(equipName),
-                            eq(zoneName),
-                            eq(expectedDate),
-                            eq(5L)
-                    );
+            // then
+            verify(equipHistoryRepoService).save(any(EquipHistory.class));
+            verify(slackEquipAlarmService).sendEquipmentMaintenanceAlert(
+                    equip.getEquipName(),
+                    equip.getZone().getZoneName(),
+                    expectedDate,
+                    5L
+            );
         }
     }
 
@@ -448,73 +361,53 @@ class EquipMaintenanceServiceTest {
     @DisplayName("FastAPI 연동 테스트")
     class FastApiTest {
 
-    @Test
-        @DisplayName("FastAPI 응답 실패 시 예외 처리")
-        void whenFastApiFailure_shouldHandleException() throws IOException {
-        // given
-            EquipInfoResponse equipInfo = new EquipInfoResponse();
-            equipInfo.setEquipId(equipId);
-            equipInfo.setEquipName(equipName);
-            equipInfo.setZoneId(zoneId);
-            equipInfo.setZoneName(zoneName);
+        @Test
+        @DisplayName("FastAPI 응답 body는 있지만 remainingDays가 null인 경우")
+        void whenFastApiResponseRemainingDaysNull_shouldHandleGracefully() {
+            // given
+            MaintenancePredictionResponse predictionResponse = new MaintenancePredictionResponse();
+            predictionResponse.setStatus("ok");
+            predictionResponse.setPredictions(null);
 
-            given(equipRepoService.findAll()).willReturn(List.of(equipInfo));
-            given(restTemplate.getForEntity(anyString(), eq(MaintenancePredictionResponse.class)))
-                    .willThrow(new RuntimeException("API 호출 실패"));
+            lenient().when(equipRepoService.findById(anyString())).thenReturn(equip);
+            lenient().when(restTemplate.getForEntity(anyString(), eq(MaintenancePredictionResponse.class)))
+                    .thenReturn(ResponseEntity.ok(predictionResponse));
 
             // when
             equipMaintenanceService.fetchAndProcessMaintenancePredictions();
 
             // then
-            verify(slackEquipAlarmService, never())
-                    .sendEquipmentMaintenanceAlert(anyString(), anyString(), any(LocalDate.class), anyLong());
+            verify(equipHistoryRepoService, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("FastAPI 응답 실패 시 예외 처리")
+        void whenFastApiFailure_shouldHandleException() {
+            // given
+            lenient().when(equipRepoService.findById(anyString())).thenReturn(equip);
+            lenient().when(restTemplate.getForEntity(anyString(), eq(MaintenancePredictionResponse.class)))
+                    .thenThrow(new RuntimeException("API 호출 실패"));
+
+            // when
+            equipMaintenanceService.fetchAndProcessMaintenancePredictions();
+
+            // then
+            verify(equipHistoryRepoService, never()).save(any());
         }
 
         @Test
         @DisplayName("FastAPI 응답이 null인 경우")
-        void whenFastApiResponseNull_shouldHandleGracefully() throws IOException {
+        void whenFastApiResponseNull_shouldHandleGracefully() {
             // given
-        EquipInfoResponse equipInfo = new EquipInfoResponse();
-        equipInfo.setEquipId(equipId);
-        equipInfo.setEquipName(equipName);
-        equipInfo.setZoneId(zoneId);
-        equipInfo.setZoneName(zoneName);
-
-        given(equipRepoService.findAll()).willReturn(List.of(equipInfo));
-            given(restTemplate.getForEntity(anyString(), eq(MaintenancePredictionResponse.class)))
-                    .willReturn(ResponseEntity.ok(null));
+            lenient().when(equipRepoService.findById(anyString())).thenReturn(equip);
+            lenient().when(restTemplate.getForEntity(anyString(), eq(MaintenancePredictionResponse.class)))
+                    .thenReturn(ResponseEntity.ok(null));
 
             // when
             equipMaintenanceService.fetchAndProcessMaintenancePredictions();
 
             // then
-            verify(slackEquipAlarmService, never())
-                    .sendEquipmentMaintenanceAlert(anyString(), anyString(), any(LocalDate.class), anyLong());
-        }
-
-        @Test
-        @DisplayName("FastAPI 응답 body는 있지만 remainingDays가 null인 경우")
-        void whenFastApiResponseRemainingDaysNull_shouldHandleGracefully() throws IOException {
-            // given
-            EquipInfoResponse equipInfo = new EquipInfoResponse();
-            equipInfo.setEquipId(equipId);
-            equipInfo.setEquipName(equipName);
-            equipInfo.setZoneId(zoneId);
-            equipInfo.setZoneName(zoneName);
-
-        MaintenancePredictionResponse predictionResponse = new MaintenancePredictionResponse();
-            predictionResponse.setRemainingDays(null);
-
-            given(equipRepoService.findAll()).willReturn(List.of(equipInfo));
-            given(restTemplate.getForEntity(anyString(), eq(MaintenancePredictionResponse.class)))
-            .willReturn(ResponseEntity.ok(predictionResponse));
-
-        // when
-            equipMaintenanceService.fetchAndProcessMaintenancePredictions();
-
-        // then
-        verify(slackEquipAlarmService, never())
-                    .sendEquipmentMaintenanceAlert(anyString(), anyString(), any(LocalDate.class), anyLong());
+            verify(equipHistoryRepoService, never()).save(any());
         }
     }
 
