@@ -3,7 +3,9 @@ package com.factoreal.backend.domain.zone.application;
 import com.factoreal.backend.domain.worker.entity.Worker;
 import com.factoreal.backend.domain.zone.dao.ZoneHistoryRepository;
 import com.factoreal.backend.domain.zone.entity.ZoneHist;
+import jakarta.persistence.LockModeType;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +42,7 @@ public class ZoneHistoryRepoService {
      * 공간에 대한 히스토리 저장하는 레포 접근 메서드
      */
     @Transactional
+
     protected ZoneHist save(ZoneHist zoneHist) {
         return zoneHistoryRepository.save(zoneHist);
     }
@@ -52,6 +55,10 @@ public class ZoneHistoryRepoService {
         return zoneHistoryRepository.findByWorker_WorkerIdAndExistFlag(worker.getWorkerId(), existFlag);
     }
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    public ZoneHist findByWorkerLocateForUpdate(String workerId) {
+        return zoneHistoryRepository.findByWorker_WorkerIdAndExistFlag(workerId, 1);
+    }
     /**
      * 작업자가 존재하는 존재하는 공간 히스토리들을 조회
      * existFlag는 boolean 타입과 같은 개념으로 0 혹은 1이 들어옵니다.

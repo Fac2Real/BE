@@ -60,4 +60,9 @@ public class WorkerRepoService {
     public boolean existsByEmail(String email){
         return workerRepository.existsByEmail(email);
     }
+
+    public Worker lockWorkerRow(String workerId){
+        return workerRepository.findWorkersByWorkerId(workerId);
+    }
+
 }
