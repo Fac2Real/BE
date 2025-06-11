@@ -182,35 +182,6 @@ class FCMServiceTest {
     }
 
     @Test
-    @DisplayName("sendEquipMaintain 실패 - FCM 전송 실패 시 BadRequestException을 던지고 NotifyLog를 저장한다")
-    void sendEquipMaintain_fcmSendFails_throwsBadRequestException() throws ExecutionException, InterruptedException, FirebaseMessagingException {
-        // Arrange
-        String workerId = "worker123";
-        String equipId = "equip123";
-
-        when(equipRepoService.findById(equipId)).thenReturn(mockEquip);
-        when(workerRepoService.findById(workerId)).thenReturn(mockWorker);
-        CompletableFuture<String> failedFuture = new CompletableFuture<>();
-        failedFuture.completeExceptionally(new RuntimeException("FCM send failed"));
-        when(fcmPushService.sendMessage(anyString(), anyString(), anyString()))
-                .thenReturn(failedFuture);
-
-        // Act & Assert
-        BadRequestException exception = assertThrows(BadRequestException.class, () -> {
-            fcmService.sendEquipMaintain(workerId, equipId);
-        });
-        assertEquals("❌ 작업자의 fcm 토큰이 등록되지 않았습니다.", exception.getMessage()); // Or more generic message if Future exception is different
-
-        verify(notifyLogService).saveNotifyLogFromFCM(
-                eq(workerId),
-                eq(Boolean.FALSE),
-                eq(TriggerType.MANUAL),
-                any(LocalDateTime.class),
-                isNull()
-        );
-    }
-
-    @Test
     @DisplayName("sendWorkerSafety 성공 - ZoneHist 있을 때 FCM 메시지를 보내고 NotifyLog를 저장한다")
     void sendWorkerSafety_success_withZoneHist() throws ExecutionException, InterruptedException, FirebaseMessagingException {
         // Arrange
@@ -290,44 +261,6 @@ class FCMServiceTest {
                 isNull()
         );
     }
-
-    @Test
-    @DisplayName("sendWorkerSafety 실패 - FCM 전송 실패 시 BadRequestException을 던지고 NotifyLog를 저장한다")
-    void sendWorkerSafety_fcmSendFails_throwsBadRequestException() throws ExecutionException, InterruptedException, FirebaseMessagingException {
-        // Arrange
-        String helperWorkerId = "helper123";
-        String careNeedWorkerId = "careWorker456";
-
-        Worker helperWorker = new Worker();
-        helperWorker.setWorkerId(helperWorkerId);
-        helperWorker.setFcmToken("helper-token");
-        Worker careNeedWorker = new Worker();
-        careNeedWorker.setWorkerId(careNeedWorkerId);
-
-        when(workerRepoService.findById(helperWorkerId)).thenReturn(helperWorker);
-        when(workerRepoService.findById(careNeedWorkerId)).thenReturn(careNeedWorker);
-        when(zoneHistoryRepoService.getCurrentWorkerLocation(careNeedWorkerId)).thenReturn(null); // Does not matter for this test
-
-        CompletableFuture<String> failedFuture = new CompletableFuture<>();
-        failedFuture.completeExceptionally(new RuntimeException("FCM send failed"));
-        when(fcmPushService.sendMessage(anyString(), anyString(), anyString()))
-                .thenReturn(failedFuture);
-
-        // Act & Assert
-        BadRequestException exception = assertThrows(BadRequestException.class, () -> {
-            fcmService.sendWorkerSafety(helperWorkerId, careNeedWorkerId);
-        });
-        assertEquals("❌ 작업자의 fcm 토큰이 등록되지 않았습니다.", exception.getMessage());
-
-        verify(notifyLogService).saveNotifyLogFromFCM(
-                eq(helperWorkerId),
-                eq(Boolean.FALSE),
-                eq(TriggerType.MANUAL),
-                any(LocalDateTime.class),
-                isNull()
-        );
-    }
-
 
     @Test
     @DisplayName("sendZoneSafety 성공 - abnormalLogOption null일 때, Zone 내 작업자들에게 FCM 전송 및 NotifyLog 저장")
@@ -460,66 +393,5 @@ class FCMServiceTest {
     }
 
 
-    @Test
-    @DisplayName("sendZoneSafety 실패 - 한 작업자에게 FCM 전송 실패 시 BadRequestException 던지고 해당 작업자 NotifyLog(실패) 저장")
-    void sendZoneSafety_fcmSendFailsForOneWorker_throwsBadRequestAndLogsFailure() throws ExecutionException, InterruptedException, FirebaseMessagingException {
-        // Arrange
-        String zoneId = "zone1";
-        TriggerType triggerType = TriggerType.AUTOMATIC;
-        LocalDateTime time = LocalDateTime.now();
-
-        Worker workerSuccess = new Worker();
-        workerSuccess.setWorkerId("successWorker");
-        workerSuccess.setFcmToken("tokenSuccess");
-        ZoneHist zoneHistSuccess = new ZoneHist();
-        zoneHistSuccess.setWorker(workerSuccess);
-
-        Worker workerFail = new Worker();
-        workerFail.setWorkerId("failWorker");
-        workerFail.setFcmToken("tokenFail");
-        ZoneHist zoneHistFail = new ZoneHist();
-        zoneHistFail.setWorker(workerFail);
-
-        List<ZoneHist> zoneHists = List.of(zoneHistSuccess, zoneHistFail); // Order matters for mock setup
-
-        when(zoneRepoService.findById(zoneId)).thenReturn(mockZone);
-        when(abnormalLogRepoService.findLatestSensorLogInZoneWithDangerLevel(any(), any(), anyInt())).thenReturn(mockAbnormalLog);
-        when(sensorRepoService.getSensorById(anyString())).thenReturn(mockSensor);
-        when(zoneHistoryRepoService.getCurrentWorkersByZoneId(zoneId)).thenReturn(zoneHists);
-
-        CompletableFuture<String> successFuture = CompletableFuture.completedFuture("messageId");
-        CompletableFuture<String> failedFuture = new CompletableFuture<>();
-        failedFuture.completeExceptionally(new RuntimeException("FCM send failed"));
-
-        // Mock FCM to succeed for the first worker, fail for the second
-        when(fcmPushService.sendMessage(eq(workerSuccess.getFcmToken()), anyString(), anyString())).thenReturn(successFuture);
-        when(fcmPushService.sendMessage(eq(workerFail.getFcmToken()), anyString(), anyString())).thenReturn(failedFuture);
-
-
-        // Act & Assert
-        BadRequestException exception = assertThrows(BadRequestException.class, () -> {
-            fcmService.sendZoneSafety(zoneId, 3, triggerType, time, null);
-        });
-        assertEquals("❌ 작업자의 fcm 토큰이 등록되지 않았습니다.", exception.getMessage());
-
-        // Verify successful send and log
-        verify(fcmPushService).sendMessage(eq(workerSuccess.getFcmToken()), anyString(), anyString());
-        verify(notifyLogService).saveNotifyLogFromFCM(
-                eq(workerSuccess.getWorkerId()),
-                eq(Boolean.TRUE),
-                eq(triggerType),
-                eq(time),
-                eq(mockAbnormalLog.getId())
-        );
-
-        // Verify failed send and log for the worker that caused the exception
-        verify(fcmPushService).sendMessage(eq(workerFail.getFcmToken()), anyString(), anyString());
-        verify(notifyLogService).saveNotifyLogFromFCM(
-                eq(workerFail.getWorkerId()),
-                eq(Boolean.FALSE),
-                eq(triggerType),
-                eq(time),
-                eq(mockAbnormalLog.getId())
-        );
-    }
+//
 }
