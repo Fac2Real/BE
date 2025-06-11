@@ -11,7 +11,7 @@ import lombok.Data;
 @Builder
 @Data
 @Schema(description = "Kafka 알람 이벤트 DTO. 센서 및 시스템 이벤트에 대한 경보 정보를 포함합니다.")
-public class AlarmEventDto {
+public class AlarmEventResponse {
 
     // 1. 필수 공통 정보
 

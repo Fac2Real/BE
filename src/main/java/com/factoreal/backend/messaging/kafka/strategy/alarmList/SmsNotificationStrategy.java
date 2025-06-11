@@ -2,15 +2,12 @@ package com.factoreal.backend.messaging.kafka.strategy.alarmList;
 
 import com.factoreal.backend.domain.worker.application.WorkerRepoService;
 import com.factoreal.backend.domain.worker.application.WorkerService;
-import com.factoreal.backend.domain.worker.entity.Worker;
-import com.factoreal.backend.messaging.kafka.strategy.enums.AlarmEventDto;
+import com.factoreal.backend.messaging.kafka.strategy.enums.AlarmEventResponse;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.services.sns.SnsClient;
-import software.amazon.awssdk.services.sns.model.PublishRequest;
-import software.amazon.awssdk.services.sns.model.PublishResponse;
 
 @Slf4j
 @Component("SMS")
@@ -23,7 +20,7 @@ public class SmsNotificationStrategy implements NotificationStrategy {
     private static final String userId = "alarm-test";
     // TODO Seoul 리전에 SMS 지원이 안되기에 Slack으로 변경
     @Override
-    public void send(AlarmEventDto alarmEventDto) {
+    public void send(AlarmEventResponse alarmEventResponse) {
         // 서울리전에서 SMS 로 문자 보내기 사용불가
 //        log.info("📬 SMS Notification Strategy.");
 //        // Wearable 앱이 선행되어야함...

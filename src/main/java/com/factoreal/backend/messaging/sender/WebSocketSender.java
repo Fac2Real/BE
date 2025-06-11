@@ -3,7 +3,7 @@ package com.factoreal.backend.messaging.sender;
 import com.factoreal.backend.domain.controlLog.entity.ControlLog;
 import com.factoreal.backend.messaging.common.dto.SystemLogDto;
 import com.factoreal.backend.messaging.common.dto.ZoneDangerDto;
-import com.factoreal.backend.messaging.kafka.strategy.enums.AlarmEventDto;
+import com.factoreal.backend.messaging.kafka.strategy.enums.AlarmEventResponse;
 import lombok.RequiredArgsConstructor;
 
 import java.util.HashMap;
@@ -36,8 +36,8 @@ public class WebSocketSender { // 실제로 프론트에 메시지를 전송하�
     /**
      * 알람 이벤트를 WebSocket으로 전송
      */
-    public void sendDangerAlarm(AlarmEventDto alarmEventDto) {
-        messagingTemplate.convertAndSend("/topic/alarm", alarmEventDto);
+    public void sendDangerAlarm(AlarmEventResponse alarmEventResponse) {
+        messagingTemplate.convertAndSend("/topic/alarm", alarmEventResponse);
     }
 
     /**

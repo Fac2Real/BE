@@ -11,7 +11,7 @@ import com.factoreal.backend.domain.zone.application.ZoneHistoryService;
 import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.domain.zone.entity.ZoneHist;
 import com.factoreal.backend.messaging.kafka.dto.WearableKafkaDto;
-import com.factoreal.backend.messaging.kafka.strategy.enums.AlarmEventDto;
+import com.factoreal.backend.messaging.kafka.strategy.enums.AlarmEventResponse;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
 import com.factoreal.backend.messaging.kafka.strategy.enums.WearableDataType;
 import com.factoreal.backend.messaging.sender.WebSocketSender;
@@ -111,8 +111,8 @@ public class WearableEventProcessor {
 
                 // 2-2. 상세 화면으로 웹소켓 보내는 것을 생략
                 // 3. 위험 알림 전송 -> 팝업으로 알려주기
-                AlarmEventDto alarmEventDto = alarmEventService.generateAlarmDto(dto, abnormalLog, riskLevel);
-                webSocketSender.sendDangerAlarm(alarmEventDto);
+                AlarmEventResponse alarmEventResponse = alarmEventService.generateAlarmDto(dto, abnormalLog, riskLevel);
+                webSocketSender.sendDangerAlarm(alarmEventResponse);
             }
 
             // 4. 읽지 않은 알림 전송
