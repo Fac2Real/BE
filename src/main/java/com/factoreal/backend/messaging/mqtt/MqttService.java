@@ -62,7 +62,7 @@ public class MqttService {
                         String equipIdVal = reported.path("equipId").asText(null);   // 키가 없으면 null
                         String equipId = (equipIdVal == null || equipIdVal.isBlank()) ? null : equipIdVal;
 
-                        if (zoneId == null || zoneId.isBlank()) {
+                        if (zoneId.isBlank()) {
                             log.error("❌ 유효하지 않은 zoneId: {}", zoneId);
                             return;
                         }
@@ -87,7 +87,7 @@ public class MqttService {
                         retryCount + 1, MAX_RETRY_ATTEMPTS, e.getMessage());
                 retryCount++;
                 if (retryCount >= MAX_RETRY_ATTEMPTS) {
-                    throw new MqttException(e.getReasonCode());
+                    log.error(e.getMessage());
                 }
                 try {
                     Thread.sleep(RETRY_DELAY_MS);

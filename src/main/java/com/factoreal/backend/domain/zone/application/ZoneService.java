@@ -15,6 +15,7 @@ import com.factoreal.backend.domain.zone.dto.response.ZoneDetailResponse;
 import com.factoreal.backend.domain.zone.dto.response.ZoneInfoResponse;
 import com.factoreal.backend.domain.zone.dto.response.ZoneLogResponse;
 import com.factoreal.backend.domain.zone.entity.Zone;
+import com.factoreal.backend.global.exception.dto.DuplicateResourceException;
 import com.factoreal.backend.global.exception.dto.NotFoundException;
 import com.factoreal.backend.global.util.IdGenerator;
 import jakarta.transaction.Transactional;
@@ -65,6 +66,8 @@ public class ZoneService {
         // 2. 새로운 공간명이 이미 존재하는지 확인
         if (!zone.getZoneName().equals(dto.getZoneName())) {
             zoneRepoService.validateZoneName(dto.getZoneName());
+        }else{
+            throw new DuplicateResourceException("중복되는 공간 이름이 존재합니다.");
         }
 
         zone.setZoneName(dto.getZoneName());
@@ -144,9 +147,9 @@ public class ZoneService {
      * ③-2 설비 + 설비센서 DTO 목록 생성
      */
     private List<EquipDetailResponse> getEquipDetailDtos(Zone zone) {
-        // 1) 설비 조회
+        // 1) 설비 조회 (환경센서 empty 인 경우는 제외한다)
         List<Equip> equips = findEquipsByZone(zone).stream()
-                .filter(e -> e.getEquipName() != null && !e.getEquipName().equalsIgnoreCase("empty"))
+                .filter(e -> !e.getEquipName().equalsIgnoreCase("empty"))
                 .toList();   // empty이름을 가진 설비(환경센서)는 설비 목록에서 제외하기
 
         // 2) 설비센서 그룹핑
@@ -177,13 +180,6 @@ public class ZoneService {
         Page<AbnormalLog> logs = abnormalLogRepoService.findByZone_ZoneIdOrderByDetectedAtDesc(zoneId, pageable);
         return logs.map(ZoneLogResponse::fromEntity);
     }
-//
-//    /**
-//     * 모든 zone을 조회하는 레포지토리 접근 서비스
-//     */
-//    private List<Zone> findAll() {
-//        return zoneRepository.findAll();
-//    }
 
     /**
      * getZoneItems 서비스를 위한 레포지토리 접근 서비스 2
@@ -195,47 +191,10 @@ public class ZoneService {
                 .toList();
     }
 
-    /**
-     * getZoneItems 서비스를 위한 레포지토리 접근 서비스 3
-     */
-    private String findEquipNameByEquipId(String equipId) {
-        return equipRepoService.findEquipNameByEquipId(equipId);
-    }
-
-//    /**
-//     * 공간 이름으로 공간 조회
-//     */
-//    private Zone getZoneByName(String zoneName) {
-//        return zoneRepository.findByZoneName(zoneName)
-//                .orElseThrow(() -> new ResponseStatusException(
-//                        HttpStatus.NOT_FOUND, "존재하지 않는 공간: " + zoneName));
-//    }
-
-//    /**
-//     * 이름으로 공간이 존재하는지 체크
-//     */
-//    private void validateZoneName(String zoneName) {
-//        if (zoneRepository.findByZoneName(zoneName).isPresent()) {
-//            throw new ResponseStatusException(
-//                    HttpStatus.BAD_REQUEST, "이미 존재하는 공간명: " + zoneName);
-//        }
-//    }
-
     private Pageable getPageable(AbnormalPagingRequest abnormalPagingDto) {
         return PageRequest.of(
                 abnormalPagingDto.getPage(),
                 abnormalPagingDto.getSize()
         );
     }
-
-//    public Zone findById(String zoneId) {
-//        return zoneRepository.findById(zoneId)
-//                .orElseThrow(() -> new IllegalArgumentException("공간을 찾을 수 없습니다: " + zoneId));
-//    }
-//
-//    public Zone findByZoneName(String zoneName) {
-//        return zoneRepository.findByZoneName(zoneName)
-//                .orElseThrow(() -> new ResponseStatusException(
-//                        HttpStatus.BAD_REQUEST, "존재하지 않는 공간명: " + zoneName));
-//    }
 }
