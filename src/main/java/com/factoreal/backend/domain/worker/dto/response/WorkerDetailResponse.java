@@ -15,7 +15,6 @@ import java.util.List;
 @NoArgsConstructor
 @SuperBuilder
 public class WorkerDetailResponse extends WorkerInfoResponse{
-  private String status; // 작업자 상태
   private String currentZoneId; // 현재 위치한 공간 ID
   private String currentZoneName; // 현재 위치한 공간 이름
 
@@ -33,7 +32,7 @@ public class WorkerDetailResponse extends WorkerInfoResponse{
         .phoneNumber(worker.getPhoneNumber())
         .email(worker.getEmail())
         .isManager(isManager)
-        .status(status != null ? status.toString() : null)
+        .status(status)
         .currentZoneId(currentZoneId)
         .currentZoneName(currentZoneName)
         .accessZones(accessZones)
