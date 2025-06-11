@@ -28,6 +28,9 @@ public class AppPushNotificationStrategy implements NotificationStrategy {
         log.info("📲 App Push Notification Strategy.");
         // 1. 같은 공간에 있는 작업자에게 FCM 푸시 알람 전송
         List<WorkerInfoResponse> workerList = workerService.getWorkersByZoneId(alarmEventResponse.getZoneId());
+        if(workerList.isEmpty()){
+            return;
+        }
         AbnormalLog abnormalLog = abnormalLogRepoService.findById(alarmEventResponse.getEventId());
         workerList.forEach(worker -> {
             fcmService.sendZoneSafety(
@@ -38,7 +41,6 @@ public class AppPushNotificationStrategy implements NotificationStrategy {
                     abnormalLog
             );
         });
-        // 2. notify 로그에 저장
     }
 
     @Override
