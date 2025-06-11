@@ -7,6 +7,7 @@ import com.factoreal.backend.domain.worker.entity.Worker;
 import com.factoreal.backend.domain.worker.entity.WorkerZone;
 import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.domain.zone.entity.ZoneHist;
+import com.factoreal.backend.global.exception.dto.BadRequestException;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -22,6 +23,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
@@ -292,4 +294,25 @@ class ZoneHistoryServiceTest {
                 .setWorkerRiskLevel(newZoneId, workerId, RiskLevel.WARNING);
     }
 
+    @Test
+    @DisplayName("작업자 위치 변경 - 권한이 없는 경우 예외 반환")
+    void updateWorkerLocation_WithoutAuthorization() {
+        // given
+        String workerId = "20250001";
+        String newZoneId = "20250507165751-826";  // zone3의 ID
+        LocalDateTime newTimestamp = timestamp;
+        given(workerZoneRepoService.findByWorker_WorkerId(workerId)).willReturn(List.of(workerZone1, workerZone2));
+
+        // 작업자의 현재 위험 수준을 INFO로 설정 (정상 상태)
+        given(zoneWorkerStateStore.getWorkerRiskLevel(workerId))
+                .willReturn(RiskLevel.INFO);
+
+        // when & then
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
+                () -> zoneHistoryService.updateWorkerLocation(workerId, newZoneId, newTimestamp)
+        );
+        assertThat(exception.getMessage())
+                .isEqualTo("작업자 ID: 20250001는 공간 ID: 20250507165751-826에 대한 접근 권한이 없습니다.");
+    }
 } 
