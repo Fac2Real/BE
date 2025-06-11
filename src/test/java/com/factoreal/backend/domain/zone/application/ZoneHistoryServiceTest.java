@@ -2,7 +2,9 @@ package com.factoreal.backend.domain.zone.application;
 
 import com.factoreal.backend.domain.state.store.InMemoryZoneWorkerStateStore;
 import com.factoreal.backend.domain.worker.application.WorkerRepoService;
+import com.factoreal.backend.domain.worker.application.WorkerZoneRepoService;
 import com.factoreal.backend.domain.worker.entity.Worker;
+import com.factoreal.backend.domain.worker.entity.WorkerZone;
 import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.domain.zone.entity.ZoneHist;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
@@ -45,8 +47,12 @@ class ZoneHistoryServiceTest {
     @Captor
     private ArgumentCaptor<ZoneHist> zoneHistCaptor;
 
+    @Mock
+    private WorkerZoneRepoService workerZoneRepoService;
+
     private Worker worker;
-    private Zone zone1, zone2;
+    private Zone zone1, zone2, zone3;
+    private WorkerZone workerZone1, workerZone2;
     private ZoneHist currentLocation;
     private LocalDateTime timestamp;
 
@@ -71,6 +77,15 @@ class ZoneHistoryServiceTest {
                 .zoneName("B구역")
                 .build();
 
+        zone3 = Zone.builder()
+                .zoneId("20250507165751-826")
+                .zoneName("C구역")
+                .build();
+
+        // 테스트용 WorkerZone 데이터 생성: zone1, zone2에 대해 권한 부여
+        workerZone1 = WorkerZone.builder().worker(worker).zone(zone1).manageYn(false).build();
+        workerZone2 = WorkerZone.builder().worker(worker).zone(zone2).manageYn(false).build();
+
         // 테스트용 현재 위치 데이터 생성
         timestamp = LocalDateTime.of(2025, 5, 7, 16, 57, 50);
         currentLocation = ZoneHist.builder()
@@ -90,6 +105,7 @@ class ZoneHistoryServiceTest {
         String workerId = "20250001";
         String newZoneId = "20250507165751-828";  // zone2의 ID
         LocalDateTime newTimestamp = timestamp;
+        given(workerZoneRepoService.findByWorker_WorkerId(workerId)).willReturn(List.of(workerZone1, workerZone2));
 
         // 작업자의 현재 위험 수준을 INFO로 설정 (정상 상태)
         given(zoneWorkerStateStore.getWorkerRiskLevel(workerId))
@@ -143,6 +159,8 @@ class ZoneHistoryServiceTest {
         String workerId = "20250001";
         String newZoneId = "20250507165750-827";  // zone1의 ID
         LocalDateTime newTimestamp = timestamp;
+        given(workerZoneRepoService.findByWorker_WorkerId(workerId)).willReturn(List.of(workerZone1, workerZone2));
+
 
         // 작업자의 현재 위험 수준을 INFO로 설정 (정상 상태)
         given(zoneWorkerStateStore.getWorkerRiskLevel(workerId))
@@ -189,6 +207,8 @@ class ZoneHistoryServiceTest {
         // given
         String workerId = "20250001";
         String newZoneId = "20250507165750-827";  // zone1의 ID
+        given(workerZoneRepoService.findByWorker_WorkerId(workerId)).willReturn(List.of(workerZone1, workerZone2));
+
 
         // 작업자의 현재 위험 수준을 INFO로 설정 (정상 상태)
         given(zoneWorkerStateStore.getWorkerRiskLevel(workerId))
@@ -237,6 +257,8 @@ class ZoneHistoryServiceTest {
         String workerId = "20250001";
         String newZoneId = "20250507165750-827";  // zone1의 ID
         LocalDateTime newTimestamp = timestamp;
+        given(workerZoneRepoService.findByWorker_WorkerId(workerId)).willReturn(List.of(workerZone1, workerZone2));
+
 
         // 작업자의 현재 위험 수준을 WARNING으로 설정 (경고 상태)
         given(zoneWorkerStateStore.getWorkerRiskLevel(workerId))
@@ -269,4 +291,5 @@ class ZoneHistoryServiceTest {
         verify(zoneWorkerStateStore, times(1))
                 .setWorkerRiskLevel(newZoneId, workerId, RiskLevel.WARNING);
     }
+
 } 
