@@ -22,11 +22,30 @@ public class SlackEquipAlarmService {
     @Value("${webhook.slack.equip_url}")
     private String SLACK_WEBHOOK_EQUIP_URL;
 
-    // Slack 클라이언트 인스턴스 생성
-    private final Slack slackClient = Slack.getInstance();
+    private final Slack slackClient;
+
+    public SlackEquipAlarmService() {
+        this.slackClient = Slack.getInstance();
+    }
+
+    // For testing purposes
+    SlackEquipAlarmService(Slack slackClient) {
+        this.slackClient = slackClient;
+    }
 
     // 설비 점검 알림 전송
     public void sendEquipmentMaintenanceAlert(String equipmentName, String zoneName, LocalDate expectedMaintenanceDate, long daysUntilMaintenance) throws IOException {
+        // Null checks
+        if (equipmentName == null) {
+            throw new IllegalArgumentException("Equipment name cannot be null");
+        }
+        if (zoneName == null) {
+            throw new IllegalArgumentException("Zone name cannot be null");
+        }
+        if (expectedMaintenanceDate == null) {
+            throw new IllegalArgumentException("Expected date cannot be null");
+        }
+
         log.info("Sending Slack alert for equipment: {}, zone: {}, expected date: {}, days until: {}",
                 equipmentName, zoneName, expectedMaintenanceDate, daysUntilMaintenance);
         log.info("Using webhook URL: {}", SLACK_WEBHOOK_EQUIP_URL);
@@ -83,12 +102,18 @@ public class SlackEquipAlarmService {
 
     // 설비 점검 알림 전송 조건 확인
     public boolean shouldSendAlert(LocalDate expectedMaintenanceDate) {
+        if (expectedMaintenanceDate == null) {
+            throw new NullPointerException("Expected maintenance date cannot be null");
+        }
         long daysUntilMaintenance = ChronoUnit.DAYS.between(LocalDate.now(), expectedMaintenanceDate);
         return daysUntilMaintenance == 5 || daysUntilMaintenance == 3;
     }
 
     // 설비 점검 알림 남은 기간 계산 (예상 점검일자 - 오늘 날짜)
     public long getDaysUntilMaintenance(LocalDate expectedMaintenanceDate) {
+        if (expectedMaintenanceDate == null) {
+            throw new NullPointerException("Expected maintenance date cannot be null");
+        }
         return ChronoUnit.DAYS.between(LocalDate.now(), expectedMaintenanceDate);
     }
 } 
