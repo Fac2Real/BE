@@ -10,7 +10,7 @@ import com.factoreal.backend.domain.zone.application.ZoneService;
 import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
 import com.factoreal.backend.messaging.kafka.strategy.alarmList.NotificationStrategy;
 import com.factoreal.backend.messaging.kafka.strategy.NotificationStrategyFactory;
-import com.factoreal.backend.messaging.kafka.strategy.enums.AlarmEventDto;
+import com.factoreal.backend.messaging.kafka.strategy.enums.AlarmEventResponse;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
 import com.factoreal.backend.messaging.kafka.strategy.enums.SensorType;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -113,10 +113,10 @@ public class KafkaConsumerD {
 
     @Async
     public void startAlarm(SensorKafkaDto sensorData, AbnormalLog abnormalLog, RiskLevel riskLevel) {
-        AlarmEventDto alarmEventDto;
+        AlarmEventDto alarmEventResponse;
         try {
             // 1. dangerLevel기준으로 alarmEvent 객체 생성.
-            alarmEventDto = generateAlarmDto(sensorData, abnormalLog, riskLevel);
+            alarmEventResponse = generateAlarmDto(sensorData, abnormalLog, riskLevel);
         } catch (Exception e) {
             log.error("Error converting Kafka message: {}", e);
             return;
@@ -124,8 +124,8 @@ public class KafkaConsumerD {
         // 1-1. AbnormalLog 기록.
         try {
             // 2. 생성된 AlarmEvent DTO 객체를 사용하여 알람 처리
-            log.info("alarmEvent: {}", alarmEventDto.toString());
-            processAlarmEvent(alarmEventDto, riskLevel);
+            log.info("alarmEvent: {}", alarmEventResponse.toString());
+            processAlarmEvent(alarmEventResponse, riskLevel);
         } catch (Exception e) {
             log.error("Error converting Kafka message: {}", e);
             // TODO: 기타 처리 오류 처리
@@ -254,8 +254,8 @@ public class KafkaConsumerD {
                 .build();
     }
 
-    private void processAlarmEvent(AlarmEventDto alarmEventDto, RiskLevel riskLevel) {
-        if (alarmEventDto == null || alarmEventDto.getRiskLevel() == null) {
+    private void processAlarmEvent(AlarmEventDto alarmEventResponse, RiskLevel riskLevel) {
+        if (alarmEventResponse == null || alarmEventResponse.getRiskLevel() == null) {
             log.warn("Received null AlarmEvent DTO or DTO with null severity. Skipping notification.");
             return;
         }
@@ -263,7 +263,7 @@ public class KafkaConsumerD {
         try {
             if (riskLevel == null) {
                 log.warn("Could not map DTO severity '{}' to Entity RiskLevel. Skipping notification.",
-                        alarmEventDto.getRiskLevel());
+                        alarmEventResponse.getRiskLevel());
 
                 // TODO: 매핑 실패 시 처리 로직 추가
                 return;
@@ -274,12 +274,12 @@ public class KafkaConsumerD {
             // 3. Factory를 사용하여 매핑된 Entity RiskLevel에 해당하는 NotificationStrategy를 가져와 실행
             List<NotificationStrategy> notificationStrategyList = factory.getStrategiesForLevel(riskLevel);
 
-            log.info("💡Notification strategy executed for AlarmEvent. \n{}", alarmEventDto.toString());
+            log.info("💡Notification strategy executed for AlarmEvent. \n{}", alarmEventResponse.toString());
             // 4. 알람 객체의 값으로 전략별 알람 송신.
-            notificationStrategyList.forEach(notificationStrategy -> notificationStrategy.send(alarmEventDto));
+            notificationStrategyList.forEach(notificationStrategy -> notificationStrategy.send(alarmEventResponse));
 
         } catch (Exception e) {
-            log.error("Failed to execute notification strategy for AlarmEvent DTO: {}", alarmEventDto, e);
+            log.error("Failed to execute notification strategy for AlarmEvent DTO: {}", alarmEventResponse, e);
             // TODO: 전략 실행 중 오류 처리
         }
     }

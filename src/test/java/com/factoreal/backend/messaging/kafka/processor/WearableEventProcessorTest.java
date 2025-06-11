@@ -10,9 +10,8 @@ import com.factoreal.backend.domain.state.store.InMemoryZoneSensorStateStore;
 import com.factoreal.backend.domain.state.store.InMemoryZoneWorkerStateStore;
 import com.factoreal.backend.domain.zone.application.ZoneHistoryRepoService;
 import com.factoreal.backend.domain.zone.application.ZoneHistoryService;
-import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.messaging.kafka.dto.WearableKafkaDto;
-import com.factoreal.backend.messaging.kafka.strategy.enums.AlarmEventDto;
+import com.factoreal.backend.messaging.kafka.strategy.enums.AlarmEventResponse;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
 import com.factoreal.backend.messaging.kafka.strategy.enums.SensorType;
 import com.factoreal.backend.messaging.kafka.strategy.enums.WearableDataType;
@@ -86,7 +85,7 @@ class WearableEventProcessorTest {
         // 공통 stub
         when(repoSvc.countByIsReadFalse()).thenReturn(3L);
         when(alarmSvc.generateAlarmDto((WearableKafkaDto) any(), any(), any()))
-                .thenReturn(mock(AlarmEventDto.class));
+                .thenReturn(mock(AlarmEventResponse.class));
         when(abnormalSvc.saveAbnormalLogFromWearableKafkaDto(
                 any(), any(), any(), any()))
                 .thenReturn(mock(AbnormalLog.class));

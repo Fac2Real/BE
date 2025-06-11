@@ -1,6 +1,5 @@
 package com.factoreal.backend.messaging.api;
 
-import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.domain.zone.application.ZoneRepoService;
 import com.factoreal.backend.domain.zone.application.ZoneService;
@@ -9,7 +8,7 @@ import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
 import com.factoreal.backend.messaging.kafka.dto.WearableKafkaDto;
 import com.factoreal.backend.messaging.kafka.strategy.NotificationStrategyFactory;
 import com.factoreal.backend.messaging.kafka.strategy.alarmList.NotificationStrategy;
-import com.factoreal.backend.messaging.kafka.strategy.enums.AlarmEventDto;
+import com.factoreal.backend.messaging.kafka.strategy.enums.AlarmEventResponse;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
 import com.factoreal.backend.messaging.kafka.strategy.enums.WearableDataType;
 import org.junit.jupiter.api.BeforeEach;
@@ -78,7 +77,7 @@ class AlarmEventServiceTest {
         alarmEventService.startAlarm(sensorKafkaDto, abnormalLog, 1);
 
         // then
-        verify(mockStrategy, times(1)).send(any(AlarmEventDto.class));
+        verify(mockStrategy, times(1)).send(any(AlarmEventResponse.class));
     }
 
     @Test
@@ -106,7 +105,7 @@ class AlarmEventServiceTest {
             "temp", 30.0, "EQUIPMENT", LocalDateTime.now().toString(), 2);
 
         // when
-        AlarmEventDto result = alarmEventService.generateAlarmDto(dto, abnormalLog, RiskLevel.CRITICAL);
+        AlarmEventResponse result = alarmEventService.generateAlarmDto(dto, abnormalLog, RiskLevel.CRITICAL);
 
         // then
         assertNotNull(result);
@@ -131,7 +130,7 @@ class AlarmEventServiceTest {
             130L, 2, LocalDateTime.now().toString());
 
         // when
-        AlarmEventDto result = alarmEventService.generateAlarmDto(dto, abnormalLog, RiskLevel.CRITICAL);
+        AlarmEventResponse result = alarmEventService.generateAlarmDto(dto, abnormalLog, RiskLevel.CRITICAL);
 
         // then
         assertNotNull(result);

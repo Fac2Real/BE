@@ -6,7 +6,7 @@ import com.factoreal.backend.domain.notifyLog.dto.TriggerType;
 import com.factoreal.backend.domain.worker.application.WorkerService;
 import com.factoreal.backend.domain.worker.dto.response.WorkerInfoResponse;
 import com.factoreal.backend.messaging.fcm.application.FCMService;
-import com.factoreal.backend.messaging.kafka.strategy.enums.AlarmEventDto;
+import com.factoreal.backend.messaging.kafka.strategy.enums.AlarmEventResponse;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,17 +24,17 @@ public class AppPushNotificationStrategy implements NotificationStrategy {
     private final AbnormalLogRepoService abnormalLogRepoService;
 
     @Override
-    public void send(AlarmEventDto alarmEventDto) {
+    public void send(AlarmEventResponse alarmEventResponse) {
         log.info("📲 App Push Notification Strategy.");
         // 1. 같은 공간에 있는 작업자에게 FCM 푸시 알람 전송
-        List<WorkerInfoResponse> workerList = workerService.getWorkersByZoneId(alarmEventDto.getZoneId());
-        AbnormalLog abnormalLog = abnormalLogRepoService.findById(alarmEventDto.getEventId());
+        List<WorkerInfoResponse> workerList = workerService.getWorkersByZoneId(alarmEventResponse.getZoneId());
+        AbnormalLog abnormalLog = abnormalLogRepoService.findById(alarmEventResponse.getEventId());
         workerList.forEach(worker -> {
             fcmService.sendZoneSafety(
-                    alarmEventDto.getZoneId(),
-                    alarmEventDto.getRiskLevel().getPriority(),
+                    alarmEventResponse.getZoneId(),
+                    alarmEventResponse.getRiskLevel().getPriority(),
                     TriggerType.AUTOMATIC,
-                    LocalDateTime.parse(alarmEventDto.getTime()),
+                    LocalDateTime.parse(alarmEventResponse.getTime()),
                     abnormalLog
             );
         });

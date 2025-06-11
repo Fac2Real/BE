@@ -6,10 +6,7 @@ import com.factoreal.backend.domain.controlLog.entity.ControlLog;
 import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.messaging.common.dto.SystemLogDto;
 import com.factoreal.backend.messaging.common.dto.ZoneDangerDto;
-import com.factoreal.backend.messaging.kafka.strategy.enums.AlarmEventDto;
-import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
+import com.factoreal.backend.messaging.kafka.strategy.enums.AlarmEventResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -33,7 +30,7 @@ class WebSocketSenderTest {
     SimpMessagingTemplate messagingTemplate;
 
     @Mock
-    AlarmEventDto alarmEventDto;
+    AlarmEventResponse alarmEventResponse;
     @InjectMocks
     WebSocketSender webSocketSender;
 
@@ -86,10 +83,10 @@ class WebSocketSenderTest {
 //            null);
 
         // When
-        webSocketSender.sendDangerAlarm(alarmEventDto);
+        webSocketSender.sendDangerAlarm(alarmEventResponse);
 
         // Then
-        verify(messagingTemplate).convertAndSend("/topic/alarm", alarmEventDto);
+        verify(messagingTemplate).convertAndSend("/topic/alarm", alarmEventResponse);
     }
 
     @Test
