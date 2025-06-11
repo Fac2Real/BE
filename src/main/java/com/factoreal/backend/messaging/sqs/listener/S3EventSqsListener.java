@@ -1,6 +1,6 @@
-package com.factoreal.backend.messaging.sqs;
+package com.factoreal.backend.messaging.sqs.listener;
 
-import com.factoreal.backend.domain.equip.application.EquipMaintenanceService;
+import com.factoreal.backend.messaging.sqs.processor.EquipPredictProcessor;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.awspring.cloud.sqs.annotation.SqsListener;
@@ -18,7 +18,7 @@ import java.nio.charset.StandardCharsets;
 @RequiredArgsConstructor // 이 위치로 옮기고 import 경로도 바꿔주세요
 public class S3EventSqsListener {
 
-    private final EquipMaintenanceService equipMaintenanceService;
+    private final EquipPredictProcessor equipPredictProcessor;
     private final ObjectMapper objectMapper;
 
     // ① 큐 이름 또는 Queue URL을 value 작성
@@ -55,8 +55,23 @@ public class S3EventSqsListener {
                 log.info("➡️ bucket={}, key={}", bucket, key);
 
                 if (key.startsWith("EQUIPMENT/") && key.endsWith(".json")) {
-                    log.info("👀 서비스 호출 예정");
-//                    equipMaintenanceService.fetchAndProcessMaintenancePredictions();
+                    // key에서 equip_id와 zone_id 추출
+                    String zoneId = null, equipId = null;
+                    for(String segment : key.split("/")) {
+                        if (segment.startsWith("zone_id=")) {
+                            zoneId = segment.substring("zone_id=".length());
+                        } else if (segment.startsWith("equip_id=")) {
+                            equipId = segment.substring("equip_id=".length());
+                        }
+                    }
+
+                    if (zoneId != null && equipId != null) {
+
+                        log.info("👀 서비스 호출 예정 (zoneId={}, equipId={})", zoneId, equipId);
+                        equipPredictProcessor.equipPredProcess(zoneId, equipId);
+                    } else {
+                        log.warn("⚠️ zone_id 또는 equip_id를 추출하지 못했습니다: {}", key);
+                    }
                 }
             }
         } catch (Exception e) {
