@@ -67,14 +67,6 @@ public class SensorService {
                 && !sensor.getEquipId().equals(sensor.getZoneId()))
             .collect(Collectors.toList());
     }
-
-//    /**
-//     * 센서 정보 저장을 위한 레포 접근 메서드
-//     */
-//    @Transactional
-//    protected Sensor save(Sensor sensor) {
-//        return sensorRepository.save(sensor);
-//    }
     
     /**
      * 공간 Id로 공간 조회하는 메서드
@@ -90,27 +82,4 @@ public class SensorService {
         return equipRepoService.findById(eqiuipId);
     }
 
-//    /**
-//     * 센서 Id로 센서를 조회하는 레포 접근 메서드
-//     */
-//    public Sensor getSensorById(String sensorId) {
-//        return sensorRepository.findById(sensorId)
-//                .orElseThrow(() -> new ResponseStatusException(
-//                        HttpStatus.NOT_FOUND, "존재하지 않는 센서 ID: " + sensorId));
-//    }
-
-//    /**
-//     * 공간에 존재하는 센서 리스트를 조회하는 레포 접근 메서드
-//     */
-//    public List<Sensor> findByZone(Zone zone) {
-//        return sensorRepository.findByZone(zone);
-//    }
-//
-//    public Optional<Sensor> findById(String sensorId) {
-//        return sensorRepository.findById(sensorId);
-//    }
-//
-//    public List<Sensor> findByZone_ZoneId(String zoneId) {
-//        return sensorRepository.findByZone_ZoneId(zoneId);
-//    }
 }

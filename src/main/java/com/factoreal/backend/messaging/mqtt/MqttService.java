@@ -62,7 +62,7 @@ public class MqttService {
                         String equipIdVal = reported.path("equipId").asText(null);   // 키가 없으면 null
                         String equipId = (equipIdVal == null || equipIdVal.isBlank()) ? null : equipIdVal;
 
-                        if (zoneId == null || zoneId.isBlank()) {
+                        if (zoneId.isBlank()) {
                             log.error("❌ 유효하지 않은 zoneId: {}", zoneId);
                             return;
                         }

@@ -203,13 +203,40 @@ class MqttServiceTest {
                 .subscribe(anyString(), anyInt(), any());            // subscribe 실패
 
         Thread.currentThread().interrupt();                          // retry sleep 직전 플래그 ON
-
         assertThrows(MqttException.class, () -> mqttSvc.SensorShadowSubscription());
 
         // (옵션) subscribe 는 정확히 1번만 시도됨
         verify(mqtt, times(1)).subscribe(anyString(), anyInt(), any());
 
         clearInterruptFlag();                                    // 플래그 초기화
+    }
+    /* ========== 9) subscribe 실패→ catch 블록 내부 sleep() 도중 인터럽트 → 재래핑 검증 ========== */
+    @Test
+    void interrupt_during_retry_6times_throws_mqttException() throws Exception {
+        when(mqtt.isConnected()).thenReturn(true);                   // 바로 subscribe
+        doThrow(new MqttException(0)).when(mqtt)
+                .subscribe(anyString(), anyInt(), any());            // subscribe 실패
+//        MqttException ex = new MqttException(MqttException.REASON_CODE_CLIENT_EXCEPTION);
+
+// subscribe() 호출 때 예외 발생하도록 세팅
+//        doThrow(ex).when(mqtt)
+//                .subscribe(eq("sensor/temp"), eq(1), any(IMqttMessageListener.class));
+//        IMqttMessageListener listener = mock(IMqttMessageListener.class);
+////        Thread.currentThread().interrupt();                          // retry sleep 직전 플래그 ON
+//        Exception MqttException = new MqttException(0);
+        MqttException ex = new MqttException(1);
+
+// subscribe() 호출 때 예외 발생하도록 세팅
+//        doThrow(ex).when(mqtt)
+//                .subscribe(eq("sensor/temp"), eq(1), any(IMqttMessageListener.class));
+
+        //        when(mqtt.subscribe(anyString(),any(),listener)).thenThrow(MqttException);
+//        assertThrows(MqttException.class, () -> mqttSvc.SensorShadowSubscription());
+        mqttSvc.SensorShadowSubscription();
+        // (옵션) subscribe 는 정확히 1번만 시도됨
+        verify(mqtt, times(5)).subscribe(anyString(), anyInt(), any());
+
+//        clearInterruptFlag();                                    // 플래그 초기화
     }
 
 //    /* ========== 10) 재시도 5회 초과 시 에러로그 호출 ========== */

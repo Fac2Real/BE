@@ -5,6 +5,7 @@ import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.dto.request.AbnormalPagingRequest;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.domain.equip.application.EquipRepoService;
+import com.factoreal.backend.domain.equip.dto.response.EquipDetailResponse;
 import com.factoreal.backend.domain.equip.entity.Equip;
 import com.factoreal.backend.domain.sensor.application.SensorRepoService;
 import com.factoreal.backend.domain.sensor.entity.Sensor;
@@ -18,15 +19,19 @@ import com.factoreal.backend.global.exception.dto.BadRequestException;
 import com.factoreal.backend.global.exception.dto.DuplicateResourceException;
 import com.factoreal.backend.global.exception.dto.NotFoundException;
 import com.factoreal.backend.messaging.kafka.strategy.enums.SensorType;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.testcontainers.shaded.com.fasterxml.jackson.core.JsonProcessingException;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.SerializationFeature;
 
+import java.lang.reflect.Method;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -233,6 +238,59 @@ class ZoneServiceTest {
         assertThat(res.get(0).getEquipList()).hasSize(1);
         assertThat(res.get(0).getEquipList().get(0).getFacSensor()).hasSize(1);
     }
+
+    // 공간에 대한 설비들의 상세정보를 보내주는 메서드
+    @SuppressWarnings("unchecked")
+    private List<EquipDetailResponse> invokeEquipDetails(Zone zone) throws Exception {
+        Method m = ZoneService.class.getDeclaredMethod("getEquipDetailDtos", Zone.class);
+        m.setAccessible(true);                    // private 접근 허용
+        return (List<EquipDetailResponse>) m.invoke(zoneService, zone);
+    }
+
+//    // 환경 센서만 존재하는 경우 체크
+//    @Test
+//    void equipName_empty_filteredOut() throws Exception {
+//        Zone zone = new Zone("Z-empty", "테스트존");
+//
+//        Equip emptyEquip = mock(Equip.class);
+//        when(emptyEquip.getEquipName()).thenReturn("empty"); // ← "empty" 이름
+//
+//        when(equipRepoService.findEquipsByZone(zone))
+//                .thenReturn(List.of(emptyEquip));
+//        when(sensorRepoService.findByZone(zone))
+//                .thenReturn(List.of());
+//
+//        List<EquipDetailResponse> list = invokeEquipDetails(zone);
+//
+//        assertThat(list).isEmpty();                          // false 분기 실행 확인
+//        // 환경센서를 위한 데이터
+//        Sensor envSensor = mock(Sensor.class);
+//        when(envSensor.getZone()).thenReturn(zone);
+//        when(envSensor.getEquip()).thenReturn(emptyEquip);
+//        when(envSensor.getSensorType()).thenReturn(SensorType.temp);
+//        when(envSensor.getSensorId()).thenReturn("S-1");
+//
+//        when(sensorRepoService.findByZone(zone)).thenReturn(List.of(envSensor));
+//        // 각 경우의 수에 모든 설비 데이터를 조회 요소로 넣어줌
+//        when(equipRepoService.findEquipsByZone(zone)).thenReturn(List.of(emptyEquip));
+//
+//        List<ZoneDetailResponse> res = zoneService.getZoneItems();
+//
+//        // 객체 확인
+//        ObjectMapper om = new ObjectMapper();   // LocalDateTime 등 지원
+//        String resObj = om.writerWithDefaultPrettyPrinter()
+//                .writeValueAsString(res);
+//
+//        System.out.println(resObj);
+//
+//        assertThat(res.get(0).getZoneName()).isEqualTo("대기실");
+//
+//        // 환경-센서 1개, 설비-센서 1개까지 확인하고 싶다면
+//        assertThat(res.get(0).getEnvList()).hasSize(1);
+//        assertThat(res.get(0).getEquipList()).hasSize(1);
+//        assertThat(res.get(0).getEquipList().get(0).getFacSensor()).hasSize(1);
+//
+//    }
 
     @Test
     void findSystemLogsByZoneId_success() throws JsonProcessingException {
