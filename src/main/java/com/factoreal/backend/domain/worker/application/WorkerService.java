@@ -157,10 +157,7 @@ public class WorkerService {
 
         // 2-2. 해당 zone의 담당자 ID가 작업자 ID와 같은지 확인
         Optional<WorkerZone> zoneManager = workerZoneRepoService.findByZoneZoneIdAndManageYnIsTrue(zoneId);
-        if (zoneManager.isEmpty()) {
-            return null;
-        }
-       String managerId = zoneManager.get().getWorker().getWorkerId();
+        String managerId = zoneManager.map(wz -> wz.getWorker().getWorkerId()).orElse(null);
 
         // 3. AbnormalLog 에서 작업자 상태 조회
         List<AbnormalLogResponse> statusList = abnormalLogService.
