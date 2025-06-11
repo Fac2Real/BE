@@ -17,8 +17,9 @@ public class WorkerInfoResponse {
     private String email;
     private String fcmToken;
     private Boolean isManager;
+    private int status;
 
-    public static WorkerInfoResponse from(Worker worker, Boolean isManager) {
+    public static WorkerInfoResponse from(Worker worker, Boolean isManager, int status) {
         return WorkerInfoResponse.builder()
                 .workerId(worker.getWorkerId())
                 .name(worker.getName())
@@ -26,6 +27,7 @@ public class WorkerInfoResponse {
                 .email(worker.getEmail())
                 .fcmToken(worker.getFcmToken())
                 .isManager(isManager)
+                .status(status)
                 .build();
     }
-} 
+}

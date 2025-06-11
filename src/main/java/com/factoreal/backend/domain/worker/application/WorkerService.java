@@ -146,10 +146,41 @@ public class WorkerService {
     @Transactional(readOnly = true)
     public List<WorkerInfoResponse> getWorkersByZoneId(String zoneId) {
         log.info("공간 ID: {}의 현재 작업자 목록 조회", zoneId);
-        // existFlag는 boolean 같은 개념 0 혹은 1이 들어감
+
+        // 1. 해당 zoneId에 존재하는 작업자 목록 조회
         List<ZoneHist> currentWorkers = zoneHistoryRepoService.findByZone_ZoneIdAndExistFlag(zoneId, 1);
+
+        // 2. 조회된 작업자들의 ID 목록 추출
+        List<String> workerIds = currentWorkers.stream()
+                .map(zoneHist -> zoneHist.getWorker().getWorkerId())
+                .toList();
+
+        // 2-2. 해당 zone의 담당자 ID가 작업자 ID와 같은지 확인
+        Optional<WorkerZone> zoneManager = workerZoneRepoService.findByZoneZoneIdAndManageYnIsTrue(zoneId);
+        if (zoneManager.isEmpty()) {
+            return null;
+        }
+       String managerId = zoneManager.get().getWorker().getWorkerId();
+
+        // 3. AbnormalLog 에서 작업자 상태 조회
+        List<AbnormalLogResponse> statusList = abnormalLogService.
+                findLatestAbnormalLogsForTargets(TargetType.Worker, workerIds);
+
+        // 4. 상태 Map<workerId, status>
+        Map<String, Integer> statusMap = statusList.stream()
+                .collect(
+                        Collectors.toMap(
+                                AbnormalLogResponse::getTargetId,
+                                AbnormalLogResponse::getDangerLevel
+                        ));
+
         return currentWorkers.stream()
-                .map(zoneHist -> WorkerInfoResponse.from(zoneHist.getWorker(), false))
+                .map(zoneHist -> {
+                    Worker worker = zoneHist.getWorker();
+                    Integer status = statusMap.getOrDefault(worker.getWorkerId(), 0);
+                    Boolean isManager = Objects.equals(managerId, worker.getWorkerId());
+                    return WorkerInfoResponse.from(worker, isManager, status);
+                })
                 .collect(Collectors.toList());
     }
 
