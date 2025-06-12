@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/fcm")
@@ -37,38 +38,34 @@ public class FCMController {
 
     @Operation(summary = "작업자 안전(safety)알람 호출용", description = "상태 이상자를 도울사람에게 호출 전송")
     @PostMapping("/safety")
-    public ResponseEntity<Object> sendWorkerMessage(@RequestBody FCMSafetyRequest request) {
+    public FCMResponse sendWorkerMessage(@RequestBody FCMSafetyRequest request) {
 //        fcmService.sendMessage();
-        fcmService.sendWorkerSafety(request.getWorkerId(), request.getCareNeedWorkerId(), request.getMessage());
-        return ResponseEntity.ok().build();
+        return fcmService.sendWorkerSafety(request.getWorkerId(), request.getCareNeedWorkerId(), request.getMessage());
     }
 
     @Operation(summary = "공간 안전(safety)알람 호출용", description = "위험한 구역(zone)에 위치한 사람들에게 일괄 전송")
     @PostMapping("/zone")
-    public ResponseEntity<Object> sendZoneMessage(@RequestBody FCMZoneRequest request) {
+    public List<FCMResponse> sendZoneMessage(@RequestBody FCMZoneRequest request) {
 //        fcmService.sendMessage();
-        fcmService.sendZoneSafety(
+        return fcmService.sendZoneSafety(
                 request.getZoneId(),
                 request.getDangerLevel(),
                 TriggerType.MANUAL,
                 LocalDateTime.now(),
                 null
         );
-        return ResponseEntity.ok().build();
     }
 
     @Operation(summary = "설비 점검(maintain)알람 호출용", description = "설비와 점검자 ID를 받아 호출")
     @PostMapping("/equip")
-    public ResponseEntity<Object> sendEquipoMessage(@RequestBody FCMEquipRequest request) {
+    public FCMResponse sendEquipoMessage(@RequestBody FCMEquipRequest request) {
 //        fcmService.sendMessage();
-        fcmService.sendEquipMaintain(request.getWorkerId(), request.getEquipId(),request.getMessage());
-        return ResponseEntity.ok().build();
+        return fcmService.sendEquipMaintain(request.getWorkerId(), request.getEquipId(),request.getMessage());
     }
 
     @Operation(summary = "작업자 직접 호출용(메세지 직접 입력)",description = "작업자에게 직접 입력한 메세지를 전송")
     @PostMapping("/custom")
-    public ResponseEntity<Object> sendCustomMessage(@RequestBody FCMCustomRequest request){
-        fcmService.sendCustomMessage(request.getWorkerId(),request.getMessage());
-        return ResponseEntity.ok().build();
+    public FCMResponse sendCustomMessage(@RequestBody FCMCustomRequest request){
+        return fcmService.sendCustomMessage(request.getWorkerId(),request.getMessage());
     }
 }
