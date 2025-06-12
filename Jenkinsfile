@@ -16,6 +16,10 @@ pipeline {
     /* Slack */
     SLACK_CHANNEL      = '#ci-cd'
     SLACK_CRED_ID      = 'slack-factoreal-token'   // Slack App OAuth Token
+
+    /* Argo CD */
+    ARGOCD_SERVER           = 'argocd.monitory.space'   // Argo CD server endpoint
+    ARGOCD_APPLICATION_NAME = 'backend'
   }
 
   stages {
@@ -70,10 +74,10 @@ set +o allexport
                               tokenCredentialId: env.SLACK_CRED_ID,
                               color: '#ff0000',
                               message: """:x: *BE Test 실패*
-          파이프라인: <${env.BUILD_URL}|열기>
-          커밋: `${env.GIT_COMMIT}` – `${env.COMMIT_MSG}`
-          (<${env.REPO_URL}/commit/${env.GIT_COMMIT}|커밋 보기>)
-          """
+파이프라인: <${env.BUILD_URL}|열기>
+커밋: `${env.GIT_COMMIT}` – `${env.COMMIT_MSG}`
+(<${env.REPO_URL}/commit/${env.GIT_COMMIT}|커밋 보기>)
+"""
         }
       }
     }
@@ -98,18 +102,17 @@ aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
 docker build -t ${ECR_REGISTRY}/${IMAGE_REPO_NAME}:${LATEST_TAG} .
 
 docker push ${ECR_REGISTRY}/${IMAGE_REPO_NAME}:${LATEST_TAG}
-          """
-        }
-        sshagent(credentials: ['monitory-temp']) {
-          sh """
-ssh -o StrictHostKeyChecking=no ec2-user@43.200.39.139 <<'EOF'
-set -e
-cd datastream
-aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
-docker-compose -f docker-compose-service.yml down -v
-docker-compose -f docker-compose-service.yml up -d --pull always --build
-EOF
 """
+        }
+
+        withCredentials([string(credentialsId: 'argo-jenkins-token', variable: 'ARGOCD_AUTH_TOKEN')]) {
+          sh '''
+argocd --server $ARGOCD_SERVER --insecure --grpc-web \
+        app sync $ARGOCD_APPLICATION_NAME
+
+argocd --server $ARGOCD_SERVER --insecure --grpc-web \
+        app wait $ARGOCD_APPLICATION_NAME --health --timeout 300
+'''
         }
       }
       /* Slack 알림 */
@@ -138,7 +141,7 @@ EOF
     }
 
 
-    /* 3) main 전용 ─ Docker 이미지 빌드 & ECR Push & Deploy (EC2) */
+    /* 3) main 전용 ─ Docker 이미지 빌드 & ECR Push (EC2) */
     stage('Docker Build & Push (main only)') {
       when {
         allOf {
@@ -156,7 +159,7 @@ aws ecr get-login-password --region ${AWS_DEFAULT_REGION} \
 docker build -t ${ECR_REGISTRY}/${IMAGE_REPO_NAME}:${PROD_TAG} .
 
 docker push ${ECR_REGISTRY}/${IMAGE_REPO_NAME}:${PROD_TAG}
-          """
+"""
         }
       }
       /* Slack 알림 */
