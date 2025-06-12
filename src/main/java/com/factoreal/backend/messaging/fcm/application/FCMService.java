@@ -54,7 +54,7 @@ public class FCMService {
     /**
      * 유지 보수용 알람
      */
-    public void sendEquipMaintain(String workerId, String equipId) {
+    public void sendEquipMaintain(String workerId, String equipId, String message) {
         // 1. Equip -> 설비 명, 위치 조회, Worker -> FCM 토큰 조회
         Equip equip = equipRepoService.findById(equipId);
         Worker worker = workerRepoService.findById(workerId);
@@ -62,7 +62,9 @@ public class FCMService {
         // 2. 문구 생성
         String title = "[확인] 수동 호출, 설비 점검 요청";
         String body = "%s의 %s설비 점검 요청합니다.".formatted(equip.getZone().getZoneName(), equip.getEquipName());
-
+        if (message != null && !message.isBlank()) {
+            body = body.concat("\n[관리자 메세지] %s".formatted(message));
+        }
         fcmService.sendMessage(worker.getFcmToken(), title, body)
             .thenAccept(messageId -> {
                 notifyLogService.saveNotifyLogFromFCM(
@@ -81,7 +83,7 @@ public class FCMService {
     /**
      * 작업자 건강 도움용 알람
      */
-    public void sendWorkerSafety(String helperWorkerId, String careNeedWorkerId) {
+    public void sendWorkerSafety(String helperWorkerId, String careNeedWorkerId,String message) {
         Worker helper = workerRepoService.findById(helperWorkerId);
         Worker careNeedWorker = workerRepoService.findById(careNeedWorkerId);
 
@@ -92,7 +94,9 @@ public class FCMService {
         String title = "[긴급] 수동 호출, 인근 근로자 건강 이상";
         String body = String.format("%s에 있는 작업자 %s씨의 건강 이상이 발견되었습니다. 지원바랍니다.",
             zoneName, careNeedWorker.getName());
-
+        if (message != null && !message.isBlank()) {
+            body = body.concat("\n[관리자 메세지] %s".formatted(message));
+        }
         String fcmToken = helper.getFcmToken();
         if (fcmToken == null || fcmToken.isBlank()) {
             log.warn("❌ 작업자 {}의 FCM 토큰이 없습니다. 알림 전송 건너뜀", helper.getWorkerId());
@@ -163,6 +167,67 @@ public class FCMService {
                     return null;
                 });
         }
+    }
+
+    public void sendCustomMessage(List<String> workerId, String zoneId, String message) {
+
+        // 1. 메세지를 보낼 대상 만들기
+        // 1-1. 전달받은 workerId 목록으로 Worker 목록 조회
+        List<Worker> allWorkers = workerRepoService.findWorkersByWorkerIdIn(workerId);
+        
+        try {
+            // 1-2. 실제하는 Zone인지 확인
+            Zone zone = zoneRepoService.findById(zoneId);
+            // 1-3. 해당 Zone에 현재 위치한 작업자 목록 조회
+            List<Worker> workersInZone = zoneHistoryRepoService.getCurrentWorkersByZoneId(zoneId)
+                .stream()
+                .map(ZoneHist::getWorker)
+                .toList();
+            if (workersInZone.isEmpty()) {
+                throw new RuntimeException("현재 Zone에 작업자가 없습니다.");
+            }
+            workersInZone.forEach(worker -> {
+                if (allWorkers.stream().noneMatch(w -> w.getWorkerId().equals(worker.getWorkerId()))) {
+                    allWorkers.add(worker);
+                }
+            });
+        }catch (BadRequestException e){
+            log.warn("존재하지 않는 Zone을 요청하였습니다.");
+        }catch (RuntimeException e){
+            log.info("해당 Zone에 위치한 작업자가 없어 건너뜀.");
+        }
+
+
+
+        String title = "[관리자 송신 알림]";
+
+        if (message == null || message.isBlank()) {
+            throw new BadRequestException("메세지를 입력해주세요.");
+        }
+        String body = "[관리자 메세지] %s".formatted(message);
+        for (Worker worker : allWorkers) {
+            String token = worker.getFcmToken();
+            if (token == null || token.isBlank()) {
+                log.warn("❌ Worker {}'s FCM token is missing. Skipping message.", worker.getWorkerId());
+                notifyLogService.saveNotifyLogFromFCM(
+                    worker.getWorkerId(), false, TriggerType.MANUAL, LocalDateTime.now(), null
+                );
+                continue;
+            }
+
+            fcmService.sendMessage(token, title, body)
+                .thenAccept(messageId -> notifyLogService.saveNotifyLogFromFCM(
+                    worker.getWorkerId(), true, TriggerType.MANUAL, LocalDateTime.now(), null
+                ))
+                .exceptionally(ex -> {
+                    log.error("❌ Failed to send FCM message to worker {}: {}", worker.getWorkerId(), ex.getMessage());
+                    notifyLogService.saveNotifyLogFromFCM(
+                        worker.getWorkerId(), false, TriggerType.MANUAL, LocalDateTime.now(), null
+                    );
+                    return null;
+                });
+        }
+
     }
 
 

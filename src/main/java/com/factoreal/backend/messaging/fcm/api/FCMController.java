@@ -1,10 +1,7 @@
 package com.factoreal.backend.messaging.fcm.api;
 
 import com.factoreal.backend.domain.notifyLog.dto.TriggerType;
-import com.factoreal.backend.messaging.fcm.dto.FCMEquipRequest;
-import com.factoreal.backend.messaging.fcm.dto.FCMSafetyRequest;
-import com.factoreal.backend.messaging.fcm.dto.FCMTokenRegistDto;
-import com.factoreal.backend.messaging.fcm.dto.FCMZoneRequest;
+import com.factoreal.backend.messaging.fcm.dto.*;
 import com.factoreal.backend.messaging.fcm.application.FCMService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,7 +22,7 @@ public class FCMController {
 
     @PostMapping
     @Operation(summary = "FCM 토큰 등록", description = "작업자의 앱을 실행하면 worker_info에 fcm토큰이 저장됩니다.")
-    public ResponseEntity<String> sendMessage(@RequestBody FCMTokenRegistDto message) {
+    public ResponseEntity<String> sendMessage(@RequestBody FCMTokenRegistRequest message) {
         try {
             String response = fcmService.saveToken(message.getWorkerId(), message.getToken());
             log.info("토큰 등록 완료");
@@ -42,7 +39,7 @@ public class FCMController {
     @PostMapping("/safety")
     public ResponseEntity<Object> sendWorkerMessage(@RequestBody FCMSafetyRequest request) {
 //        fcmService.sendMessage();
-        fcmService.sendWorkerSafety(request.getWorkerId(), request.getCareNeedWorkerId());
+        fcmService.sendWorkerSafety(request.getWorkerId(), request.getCareNeedWorkerId(), request.getMessage());
         return ResponseEntity.ok().build();
     }
 
@@ -64,7 +61,14 @@ public class FCMController {
     @PostMapping("/equip")
     public ResponseEntity<Object> sendEquipoMessage(@RequestBody FCMEquipRequest request) {
 //        fcmService.sendMessage();
-        fcmService.sendEquipMaintain(request.getWorkerId(), request.getEquipId());
+        fcmService.sendEquipMaintain(request.getWorkerId(), request.getEquipId(),request.getMessage());
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "작업자 직접 호출용(메세지 직접 입력)",description = "작업자에게 직접 입력한 메세지를 전송")
+    @PostMapping("/custom")
+    public ResponseEntity<Object> sendCustomMessage(@RequestBody FCMCustomRequest request){
+        fcmService.sendCustomMessage(request.getWorkerId(),request.getZoneId(),request.getMessage());
         return ResponseEntity.ok().build();
     }
 }
