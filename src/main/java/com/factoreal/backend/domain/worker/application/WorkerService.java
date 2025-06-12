@@ -4,9 +4,9 @@ import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
 import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.dto.response.AbnormalLogResponse;
 import com.factoreal.backend.domain.worker.dto.request.CreateWorkerRequest;
+import com.factoreal.backend.domain.worker.dto.response.WorkerCurrentLocationResponse;
 import com.factoreal.backend.domain.worker.dto.response.WorkerDetailResponse;
 import com.factoreal.backend.domain.worker.dto.response.WorkerInfoResponse;
-import com.factoreal.backend.domain.worker.dto.response.ZoneManagerResponse;
 import com.factoreal.backend.domain.worker.entity.Worker;
 import com.factoreal.backend.domain.worker.entity.WorkerZone;
 import com.factoreal.backend.domain.worker.entity.WorkerZoneId;
@@ -185,7 +185,7 @@ public class WorkerService {
      * 특정 공간의 담당자와 현재 위치 정보 조회
      */
     @Transactional(readOnly = true)
-    public ZoneManagerResponse getZoneManagerWithLocation(String zoneId) {
+    public WorkerCurrentLocationResponse getZoneManager(String zoneId) {
         log.info("공간 ID: {}의 담당자 정보 조회", zoneId);
 
         // 1. 담당자 조회
@@ -211,7 +211,7 @@ public class WorkerService {
         // 4. 현재 위치한 공간 정보 (없을 수 있음)
         Zone currentZone = currentLocation != null ? currentLocation.getZone() : null;
 
-        return ZoneManagerResponse.from(manager, currentZone, true, status);
+        return WorkerCurrentLocationResponse.from(manager, currentZone, true, status);
     }
 
     /**

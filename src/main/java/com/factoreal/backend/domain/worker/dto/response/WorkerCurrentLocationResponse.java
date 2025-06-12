@@ -11,12 +11,12 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ZoneManagerResponse extends WorkerInfoResponse{
+public class WorkerCurrentLocationResponse extends WorkerInfoResponse{
     private String currentZoneId;
     private String currentZoneName;
 
-    public static ZoneManagerResponse from(Worker worker, Zone currentZone, Boolean isManager, int status) {
-        return ZoneManagerResponse.builder()
+    public static WorkerCurrentLocationResponse from(Worker worker, Zone currentZone, Boolean isManager, int status) {
+        return WorkerCurrentLocationResponse.builder()
                 .workerId(worker.getWorkerId())
                 .name(worker.getName())
                 .phoneNumber(worker.getPhoneNumber())
