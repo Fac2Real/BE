@@ -83,8 +83,10 @@ public class ReportService {
      */
     /* 2) 전달 한 달치 A/B/C 등급 요약 */
     public MonthlyGradeSummaryResponse getPrevMonthGrade() {
-        LocalDate end = LocalDate.now().minusDays(1);          // 오늘
-        LocalDate start = end.minusDays(30);        // 30일 전
+        LocalDate endBeforeFormat = LocalDate.now().minusDays(1);          // 오늘
+        LocalDate startBeforeFormat = endBeforeFormat.minusDays(30);        // 30일 전
+        LocalDateTime start = startBeforeFormat.atStartOfDay();
+        LocalDateTime end = endBeforeFormat.atTime(LocalTime.MAX);
 
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy.MM.dd");
 
@@ -119,8 +121,10 @@ public class ReportService {
      * 전날 기준 최근 30일 이상치 조회
      */
     public PeriodDetailReportResponse buildLast30DaysReport() {
-        LocalDateTime end = LocalDateTime.now().minusDays(1);
-        LocalDateTime start = end.minusDays(30);
+        LocalDate endBeforeFormat = LocalDate.now().minusDays(1);          // 오늘
+        LocalDate startBeforeFormat = endBeforeFormat.minusDays(30);        // 30일 전
+        LocalDateTime start = startBeforeFormat.atStartOfDay();
+        LocalDateTime end = endBeforeFormat.atTime(LocalTime.MAX);
 
         List<AbnormalLog> logs = abnormalLogRepoService.findPreview30daysLog();
 
