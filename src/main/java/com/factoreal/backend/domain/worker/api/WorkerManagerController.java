@@ -35,14 +35,8 @@ public class WorkerManagerController {
   public ResponseEntity<String> assignManager(
       @Parameter(description = "공간 ID", required = true) @PathVariable String zoneId,
       @Parameter(description = "작업자 ID", required = true) @PathVariable String workerId) {
-    log.info("공간 ID: {}의 담당자를 작업자 ID: {}로 지정 요청", zoneId, workerId);
-    List<WorkerManagerResponse> temp = workerManagerService.getManagerCandidates(zoneId);
-    boolean isCandidate = temp.stream().anyMatch(w -> w.getWorkerId().equals(workerId));
-    if (!isCandidate) {
-      workerManagerService.assignManager(zoneId, workerId);
-      return ResponseEntity.ok().build();
-    }
-    return ResponseEntity.badRequest().body("공간 후보자가 아닙니다.");
+    workerManagerService.assignManager(zoneId, workerId);
+    return ResponseEntity.ok().build();
   }
 
   @Operation(summary = "현재 공간 담당자 정보 조회", description = "특정 공간의 현재 담당자 정보를 조회합니다.")
@@ -52,6 +46,5 @@ public class WorkerManagerController {
     log.info("공간 ID: {}의 현재 담당자 조회 요청", zoneId);
     WorkerManagerResponse manager = workerManagerService.getCurrentManager(zoneId);
     return manager != null ? ResponseEntity.ok(manager) : ResponseEntity.noContent().build();
-    // 담당자가 있으면 담당자 정보 반환, 없으면 빈 응답
   }
 }
