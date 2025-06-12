@@ -9,8 +9,15 @@ spring:
     consumer:
       group-id: ${KAFKA_CONSUMER_GROUP_ID}
 
+
   datasource:
     url: jdbc:mysql://127.0.0.1:3306/my_database
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: user
     password: factor2al
+
+aws:
+  sqs:
+    listener:
+      max-number-of-messages: 1 # 동시 처리 튜닝용
+      wait-timeout : 5 # long-polling (초)

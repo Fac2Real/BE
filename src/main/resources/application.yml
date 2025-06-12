@@ -79,6 +79,10 @@ aws:
   access-key: ${AWS_IAM_ACCESS_KEY}
   secret-key: ${AWS_IAM_SECRET_KEY}
   region: ap-northeast-2
+  sqs:
+    listener:
+      max-number-of-messages: 5 # 동시 처리 튜닝용
+      wait-timeout : 10 # long-polling (초)
 
 firebase:
   json-base64: ${FIREBASE_JSON_BASE64}

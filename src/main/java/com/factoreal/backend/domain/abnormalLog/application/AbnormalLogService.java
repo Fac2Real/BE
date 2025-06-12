@@ -4,6 +4,7 @@ import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.dto.request.AbnormalPagingRequest;
 import com.factoreal.backend.domain.abnormalLog.dto.response.AbnormalLogResponse;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
+import com.factoreal.backend.domain.equip.entity.Equip;
 import com.factoreal.backend.domain.sensor.application.SensorRepoService;
 import com.factoreal.backend.domain.sensor.dao.SensorRepository;
 import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
@@ -179,6 +180,7 @@ public class AbnormalLogService {
         return true;
     }
 
+    // 센서 abnormal log 저장
     @Transactional
     public AbnormalLog saveAbnormalLog(SensorKafkaDto dto, Sensor sensor, int dangerLevel) {
         RiskLevel riskLevel = RiskLevel.fromPriority(dangerLevel);
@@ -200,6 +202,30 @@ public class AbnormalLogService {
         return PageRequest.of(
                 abnormalPagingRequest.getPage(),
                 abnormalPagingRequest.getSize());
+    }
+
+    /**
+     * 설비 예측 기반 이상 로그 저장
+     * @param zone 공간 엔티티
+     * @param equip 설비 엔티티
+     * @param remainDays 계산된 잔존 수명(일)
+     * @param dangerLevel 위험 레벨 (1 또는 2)
+     */
+    @Transactional
+    public void saveEquipAbnormalLog(Zone zone, Equip equip, int remainDays, int dangerLevel) {
+        AbnormalLog abnormalLog = AbnormalLog.builder()
+                .targetType(TargetType.Equip)
+                .targetId(equip.getEquipId())
+                .abnormalType("설비 잔존 수명 경고")      // 필요에 따라 상세 메시지로 변경
+                .abnVal((double) remainDays)
+                .dangerLevel(dangerLevel)
+                .zone(zone)
+                .detectedAt(LocalDateTime.now())
+                .isRead(false)
+                .build();
+
+        abnormalLogRepoService.save(abnormalLog);
+        log.info("📝 설비 이상 로그 저장 (equipId={}, dangerLevel={})", equip.getEquipId(), dangerLevel);
     }
 
 
