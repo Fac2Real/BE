@@ -1,5 +1,6 @@
 package com.factoreal.backend.domain.worker.application;
 
+import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
 import com.factoreal.backend.domain.worker.dto.response.WorkerInfoResponse;
 import com.factoreal.backend.domain.worker.dto.response.WorkerManagerResponse;
 import com.factoreal.backend.domain.worker.entity.Worker;
@@ -33,6 +34,9 @@ class WorkerManagerServiceTest {
 
     @InjectMocks
     private WorkerManagerService workerManagerService;
+
+    @Mock
+    private AbnormalLogService abnormalLogService;
 
     private Worker worker1, worker2, worker3;
     private Zone zone1, zone2;
