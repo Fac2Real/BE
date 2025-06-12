@@ -5,6 +5,7 @@ import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailRespons
 import com.factoreal.backend.domain.controlLog.entity.ControlLog;
 import com.factoreal.backend.domain.controlLog.application.ControlLogRepoService;
 import com.factoreal.backend.domain.worker.application.WorkerManagerService;
+import com.factoreal.backend.domain.worker.application.WorkerService;
 import com.factoreal.backend.domain.worker.dto.response.WorkerInfoResponse;
 import com.factoreal.backend.domain.worker.dto.response.WorkerManagerResponse;
 import com.factoreal.backend.domain.zone.application.ZoneRepoService;
@@ -34,7 +35,7 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class ReportMailService {
     private final ZoneRepoService zoneRepoService;
-    private final WorkerManagerService workerManagerService;
+    private final WorkerService workerService;
     private final ReportService reportService;
     private final CsvUtil csvUtil;
     //    private final Html2PdfUtil pdfUtil;
@@ -54,7 +55,7 @@ public class ReportMailService {
             String zoneName = zone.getZoneName();
 
             // 공간의 매니저 탐색 후
-            WorkerInfoResponse manager = workerManagerService.getCurrentManager(zoneId);
+            WorkerInfoResponse manager = workerService.getZoneManager(zoneId);
 
             // 담당자가 없거나 메일이 없으면 skip
             if (manager == null || manager.getEmail() == null || manager.getEmail().isBlank()) {

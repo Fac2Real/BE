@@ -3,6 +3,8 @@ package com.factoreal.backend.domain.abnormalLog.application;
 import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.*;
 import com.factoreal.backend.domain.controlLog.application.ControlLogRepoService;
 import com.factoreal.backend.domain.worker.application.WorkerManagerService;
+import com.factoreal.backend.domain.worker.application.WorkerService;
+import com.factoreal.backend.domain.worker.dto.response.WorkerCurrentLocationResponse;
 import com.factoreal.backend.domain.worker.dto.response.WorkerInfoResponse;
 import com.factoreal.backend.domain.worker.dto.response.WorkerManagerResponse;
 import com.factoreal.backend.domain.zone.application.ZoneRepoService;
@@ -35,22 +37,20 @@ class ReportMailServiceTest {
 
 
     @Mock ZoneRepoService zoneRepoService;
-    @Mock WorkerManagerService workerManagerService;
+    @Mock WorkerService workerService;
     @Mock ReportService reportService;
     @Mock CsvUtil csvUtil;
-    @Mock
-    JavaMailSender mailSender;
-    @Mock
-    ControlLogRepoService controlLogRepoService;
+    @Mock JavaMailSender mailSender;
+    @Mock ControlLogRepoService controlLogRepoService;
 
     @InjectMocks
     ReportMailService mailService;
 
     /* ── 공용 더미 ───────────────────────── */
     private Zone z(String id) { return Zone.builder().zoneId(id).zoneName("Z" + id).build(); }
-    private WorkerInfoResponse mgr(String email) {
-        return WorkerInfoResponse.builder()
-                .workerId("W1").name("홍길동").email(email).isManager(true).build();
+    private WorkerCurrentLocationResponse mgr(String email) {
+        return WorkerCurrentLocationResponse.builder()
+                .workerId("W1").name("홍길동").email(email).isManager(true).status(0).build();
     }
 
     /* 2-1. 하나라도 메일 발송되면 OK */
@@ -61,11 +61,11 @@ class ReportMailServiceTest {
         when(zoneRepoService.findAll()).thenReturn(zoneList);
 
         // A는 담당자 없는 경우
-        when(workerManagerService.getCurrentManager("A")).thenReturn(null);
+        when(workerService.getZoneManager("A")).thenReturn(null);
         // B는 담당자가 있고, 이메일도 갖는 경우
-        when(workerManagerService.getCurrentManager("B")).thenReturn(mgr("test@x.com"));
+        when(workerService.getZoneManager("B")).thenReturn(mgr("test@x.com"));
         // C : 담당자 있으나 이메일은 갖고있지 않은 경우 → skip 분기
-        when(workerManagerService.getCurrentManager("C")).thenReturn(mgr("  "));
+        when(workerService.getZoneManager("C")).thenReturn(mgr("  "));
 
         // 해당 구간에서 eq(rpt())가 실행될 때 정상적인 로직이 작동한 게 아닌
         // 첫번째 rpt()인 report 와 두번째 rpt() 가 생성되려고 시도하다가
@@ -127,7 +127,7 @@ class ReportMailServiceTest {
     @Test
     void sendReport_noManagers_throws404() {
         when(zoneRepoService.findAll()).thenReturn(List.of(z("A"), z("B")));
-        when(workerManagerService.getCurrentManager(anyString())).thenReturn(null); // 전부 null
+        when(workerService.getZoneManager(anyString())).thenReturn(null); // 전부 null
 
         ResponseStatusException ex = assertThrows(
                 ResponseStatusException.class,

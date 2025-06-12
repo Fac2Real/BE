@@ -2,9 +2,9 @@ package com.factoreal.backend.domain.worker.api;
 
 import com.factoreal.backend.domain.worker.application.WorkerService;
 import com.factoreal.backend.domain.worker.dto.request.CreateWorkerRequest;
+import com.factoreal.backend.domain.worker.dto.response.WorkerCurrentLocationResponse;
 import com.factoreal.backend.domain.worker.dto.response.WorkerDetailResponse;
 import com.factoreal.backend.domain.worker.dto.response.WorkerInfoResponse;
-import com.factoreal.backend.domain.worker.dto.response.ZoneManagerResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -50,11 +50,9 @@ public class WorkerController {
 
     @Operation(summary = "공간 담당자와 담당자의 현재 위치정보 조회", description = "공간 ID를 기반으로 해당 공간의 담당자와 현재 위치 정보를 조회합니다.")
     @GetMapping("/zone/{zoneId}/manager")
-    public ZoneManagerResponse getZoneManager(@PathVariable String zoneId) {
+    public WorkerCurrentLocationResponse getZoneManager(@PathVariable String zoneId) {
         log.info("공간 ID: {}의 담당자 정보 조회 요청", zoneId);
-
-        ZoneManagerResponse response = workerService.getZoneManagerWithLocation(zoneId);
-        return response;
+        return workerService.getZoneManager(zoneId);
     }
 
     @Operation(summary = "작업자의 정보를 수정합니다.", description = "요청한 정보를 토대로 (이름, 휴대폰번호, 이메일, 출입권한공간리스트) 정보 수정")

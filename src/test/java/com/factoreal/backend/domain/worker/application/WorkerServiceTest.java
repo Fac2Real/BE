@@ -4,6 +4,7 @@ import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
 import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.dto.response.AbnormalLogResponse;
 import com.factoreal.backend.domain.worker.dto.request.CreateWorkerRequest;
+import com.factoreal.backend.domain.worker.dto.response.WorkerCurrentLocationResponse;
 import com.factoreal.backend.domain.worker.dto.response.WorkerDetailResponse;
 import com.factoreal.backend.domain.worker.dto.response.WorkerInfoResponse;
 import com.factoreal.backend.domain.worker.entity.Worker;
@@ -477,5 +478,42 @@ class WorkerServiceTest {
             verify(workerZoneRepoService, times(1)).deleteByWorkerWorkerId(workerId);
             verify(workerZoneRepoService, times(1)).save(any(WorkerZone.class));
         }
+    }
+
+    @Test
+    @DisplayName("현재 공간 담당자 조회 - 담당자가 있는 경우")
+    void getCurrentManager_WhenManagerExists() {
+        // given
+        String zoneId = "20250507165750-827";  // zone1의 ID
+
+        given(workerZoneRepoService.findByZoneZoneIdAndManageYnIsTrue(zoneId))
+                .willReturn(Optional.of(workerZone));
+
+        // when
+        WorkerCurrentLocationResponse manager = workerService.getZoneManager(zoneId);
+
+        // then
+        assertThat(manager).isNotNull();
+        assertThat(manager.getWorkerId()).isEqualTo(worker.getWorkerId());
+        assertThat(manager.getName()).isEqualTo(worker.getName());
+        assertThat(manager.getEmail()).isEqualTo(worker.getEmail());
+        assertThat(manager.getPhoneNumber()).isEqualTo(worker.getPhoneNumber());
+        assertThat(manager.getIsManager()).isTrue();
+    }
+
+    @Test
+    @DisplayName("현재 공간 담당자 조회 - 담당자가 없는 경우")
+    void getCurrentManager_WhenNoManagerExists() {
+        // given
+        String zoneId = "20250507165750-827";  // zone1의 ID
+
+        given(workerZoneRepoService.findByZoneZoneIdAndManageYnIsTrue(zoneId))
+                .willReturn(Optional.empty());
+
+        // when
+        WorkerCurrentLocationResponse manager = workerService.getZoneManager(zoneId);
+
+        // then
+        assertThat(manager).isNull();
     }
 } 
