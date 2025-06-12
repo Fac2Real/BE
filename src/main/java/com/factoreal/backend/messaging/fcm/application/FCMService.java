@@ -6,8 +6,8 @@ import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.domain.equip.application.EquipRepoService;
 import com.factoreal.backend.domain.equip.entity.Equip;
-import com.factoreal.backend.domain.notifyLog.dto.TriggerType;
 import com.factoreal.backend.domain.notifyLog.application.NotifyLogService;
+import com.factoreal.backend.domain.notifyLog.dto.TriggerType;
 import com.factoreal.backend.domain.sensor.application.SensorRepoService;
 import com.factoreal.backend.domain.sensor.entity.Sensor;
 import com.factoreal.backend.domain.worker.application.WorkerRepoService;
@@ -171,65 +171,38 @@ public class FCMService {
         }
     }
 
-    public void sendCustomMessage(List<String> workerId, String zoneId, String message) {
+    public void sendCustomMessage(String workerId, String message) {
 
         // 1. 메세지를 보낼 대상 만들기
         // 1-1. 전달받은 workerId 목록으로 Worker 목록 조회
-        List<Worker> allWorkers = workerRepoService.findWorkersByWorkerIdIn(workerId);
-        
-        try {
-            // 1-2. 실제하는 Zone인지 확인
-            Zone zone = zoneRepoService.findById(zoneId);
-            // 1-3. 해당 Zone에 현재 위치한 작업자 목록 조회
-            List<Worker> workersInZone = zoneHistoryRepoService.getCurrentWorkersByZoneId(zoneId)
-                .stream()
-                .map(ZoneHist::getWorker)
-                .toList();
-            if (workersInZone.isEmpty()) {
-                throw new RuntimeException("현재 Zone에 작업자가 없습니다.");
-            }
-            workersInZone.forEach(worker -> {
-                if (allWorkers.stream().noneMatch(w -> w.getWorkerId().equals(worker.getWorkerId()))) {
-                    allWorkers.add(worker);
-                }
-            });
-        }catch (BadRequestException e){
-            log.warn("존재하지 않는 Zone을 요청하였습니다.");
-        }catch (RuntimeException e){
-            log.info("해당 Zone에 위치한 작업자가 없어 건너뜀.");
-        }
-
-
+        Worker worker = workerRepoService.findById(workerId);
 
         String title = "[관리자 송신 알림]";
-
         if (message == null || message.isBlank()) {
             throw new BadRequestException("메세지를 입력해주세요.");
         }
         String body = "[관리자 메세지] %s".formatted(message);
-        for (Worker worker : allWorkers) {
-            String token = worker.getFcmToken();
-            if (token == null || token.isBlank()) {
-                log.warn("❌ Worker {}'s FCM token is missing. Skipping message.", worker.getWorkerId());
+
+        String token = worker.getFcmToken();
+        if (token == null || token.isBlank()) {
+            log.warn("❌ Worker {}'s FCM token is missing. Skipping message.", worker.getWorkerId());
+            notifyLogService.saveNotifyLogFromFCM(
+                worker.getWorkerId(), false, TriggerType.MANUAL, LocalDateTime.now(), null
+            );
+            throw new BadRequestException("작업자 FCM Token이 등록되지 않았습니다.");
+        }
+
+        fcmService.sendMessage(token, title, body)
+            .thenAccept(messageId -> notifyLogService.saveNotifyLogFromFCM(
+                worker.getWorkerId(), true, TriggerType.MANUAL, LocalDateTime.now(), null
+            ))
+            .exceptionally(ex -> {
+                log.error("❌ Failed to send FCM message to worker {}: {}", worker.getWorkerId(), ex.getMessage());
                 notifyLogService.saveNotifyLogFromFCM(
                     worker.getWorkerId(), false, TriggerType.MANUAL, LocalDateTime.now(), null
                 );
-                continue;
-            }
-
-            fcmService.sendMessage(token, title, body)
-                .thenAccept(messageId -> notifyLogService.saveNotifyLogFromFCM(
-                    worker.getWorkerId(), true, TriggerType.MANUAL, LocalDateTime.now(), null
-                ))
-                .exceptionally(ex -> {
-                    log.error("❌ Failed to send FCM message to worker {}: {}", worker.getWorkerId(), ex.getMessage());
-                    notifyLogService.saveNotifyLogFromFCM(
-                        worker.getWorkerId(), false, TriggerType.MANUAL, LocalDateTime.now(), null
-                    );
-                    return null;
-                });
-        }
-
+                return null;
+            });
     }
 
 

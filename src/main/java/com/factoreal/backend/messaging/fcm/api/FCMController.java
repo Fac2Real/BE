@@ -68,7 +68,7 @@ public class FCMController {
     @Operation(summary = "작업자 직접 호출용(메세지 직접 입력)",description = "작업자에게 직접 입력한 메세지를 전송")
     @PostMapping("/custom")
     public ResponseEntity<Object> sendCustomMessage(@RequestBody FCMCustomRequest request){
-        fcmService.sendCustomMessage(request.getWorkerId(),request.getZoneId(),request.getMessage());
+        fcmService.sendCustomMessage(request.getWorkerId(),request.getMessage());
         return ResponseEntity.ok().build();
     }
 }
