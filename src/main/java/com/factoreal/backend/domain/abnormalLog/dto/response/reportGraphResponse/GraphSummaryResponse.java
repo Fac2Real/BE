@@ -12,6 +12,14 @@ import java.util.List;
 public class GraphSummaryResponse {
 
     private String period;
+    /**
+     * 로그 갯수 관련
+     */
+    private int totalCnt;
+
+    private int warnCnt;
+
+    private int dangerCnt;
 
     /**
      * SENSOR / EQUIP / WORKER 건수
