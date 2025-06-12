@@ -7,6 +7,7 @@ import com.factoreal.backend.domain.worker.entity.WorkerZoneId;
 import com.factoreal.backend.global.exception.dto.BadRequestException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -75,14 +76,23 @@ public class WorkerManagerService {
                 .orElseThrow(() -> new BadRequestException(
                         String.format("작업자 ID: %s는 공간 ID: %s에 대한 접근 권한이 없습니다.", workerId, zoneId)));
 
-        // 2. 기존 담당자가 있다면 담당자 해제
+        // 2. 다른 공간의 담당자인지 확인
+        boolean isAlreadyManagerOfOtherZone = workerZoneRepoService.findByWorkerWorkerIdAndManageYnIsTrue(workerId)
+                .stream()
+                .anyMatch(wz -> !wz.getZone().getZoneId().equals(zoneId));
+
+        if (isAlreadyManagerOfOtherZone) {
+            throw new BadRequestException(String.format("작업자 ID: %s는 이미 다른 공간의 담당자입니다.", workerId));
+        }
+
+        // 3. 기존 담당자가 있다면 담당자 해제
         Optional<WorkerZone> currentManager = workerZoneRepoService.findByZoneZoneIdAndManageYnIsTrue(zoneId);
         currentManager.ifPresent(manager -> {
             manager.setManageYn(false);
             workerZoneRepoService.save(manager);
         });
 
-        // 3. 새로운 담당자 지정
+        // 4. 새로운 담당자 지정
         workerZone.setManageYn(true);
         workerZoneRepoService.save(workerZone);
     }
