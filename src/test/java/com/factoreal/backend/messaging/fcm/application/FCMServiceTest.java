@@ -1,5 +1,6 @@
 package com.factoreal.backend.messaging.fcm.application;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogRepoService;
@@ -20,6 +21,7 @@ import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.domain.zone.entity.ZoneHist;
 import com.factoreal.backend.global.exception.dto.BadRequestException;
 import com.factoreal.backend.global.exception.dto.NotFoundException;
+import com.factoreal.backend.messaging.fcm.dto.FCMResponse;
 import com.factoreal.backend.messaging.kafka.strategy.enums.SensorType;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import org.junit.jupiter.api.BeforeEach;
@@ -447,7 +449,12 @@ class FCMServiceTest {
             Worker NoTokenWorker = mockWorker;
             NoTokenWorker.setFcmToken(null);
             when(workerRepoService.findById(mockWorker.getWorkerId())).thenReturn(NoTokenWorker);
-            assertThrows(BadRequestException.class,()->fcmService.sendCustomMessage(mockWorker.getWorkerId(), "test Message"));
+            assertThat(fcmService.sendCustomMessage(mockWorker.getWorkerId(), "test Message")).isEqualTo(FCMResponse.builder()
+                    .workerId(mockWorker.getWorkerId())
+                .workerName(mockWorker.getName())
+                    .success(false)
+                    .errorDescription("❌ 작업자의 FCM 토큰이 없습니다.")
+                .build());
             verify(fcmPushService, never()).sendMessage(anyString(), anyString(), anyString());
             verify(notifyLogService, never()).saveNotifyLogFromFCM(anyString(), anyBoolean(), any(), any(), anyLong());
         }
@@ -458,7 +465,12 @@ class FCMServiceTest {
             Worker NoTokenWorker = mockWorker;
             NoTokenWorker.setFcmToken("");
             when(workerRepoService.findById(mockWorker.getWorkerId())).thenReturn(NoTokenWorker);
-            assertThrows(BadRequestException.class,()->fcmService.sendCustomMessage(mockWorker.getWorkerId(), "test Message"));
+            assertThat(fcmService.sendCustomMessage(mockWorker.getWorkerId(), "test Message")).isEqualTo(FCMResponse.builder()
+                .workerId(mockWorker.getWorkerId())
+                .workerName(mockWorker.getName())
+                .success(false)
+                .errorDescription("❌ 작업자의 FCM 토큰이 없습니다.")
+                .build());
             verify(fcmPushService, never()).sendMessage(anyString(), anyString(), anyString());
             verify(notifyLogService, never()).saveNotifyLogFromFCM(anyString(), anyBoolean(), any(), any(), anyLong());
         }
