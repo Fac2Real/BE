@@ -115,6 +115,7 @@ class ControlLogServiceTest {
         map.values().forEach(System.out::println);
     }
     /* ========== 3) MQTT 발행 실패 → WebSocket 호출 & mqttDelivered=false ========== */
+    @SuppressWarnings("unchecked")
     @Test
     void saveControl_mqttFail_socketStillCalled() {
         // given
