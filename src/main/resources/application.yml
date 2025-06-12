@@ -99,3 +99,14 @@ fastapi:
 webhook:
   slack:
     equip_url: ${SLACK_WEBHOOK_EQUIP_URL}
+
+
+# Prometheus
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "prometheus"
+  endpoint:
+    prometheus:
+      enabled: true
