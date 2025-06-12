@@ -102,29 +102,4 @@ public class WorkerManagerService {
         workerZone.setManageYn(true);
         workerZoneRepoService.save(workerZone);
     }
-
-    /**
-     * 특정 공간의 현재 담당자 조회
-     */
-    @Transactional(readOnly = true)
-    public WorkerInfoResponse getCurrentManager(String zoneId) {
-        log.info("공간 ID: {}의 현재 담당자 정보 조회", zoneId);
-        Optional<WorkerZone> optionalWorkerZone = workerZoneRepoService.findByZoneZoneIdAndManageYnIsTrue(zoneId);
-        if (optionalWorkerZone.isEmpty()) { return null; }
-
-        Worker manager = optionalWorkerZone.get().getWorker();
-
-        List<AbnormalLogResponse> statusList = abnormalLogService.findLatestAbnormalLogsForTargets(
-                TargetType.Worker,
-                Collections.singletonList(manager.getWorkerId())
-        );
-
-        Integer status = statusList.stream()
-                .findFirst()
-                .map(AbnormalLogResponse::getDangerLevel)
-                .orElse(0);
-
-        return WorkerInfoResponse.from(manager, true, status);
-
-    }
 }

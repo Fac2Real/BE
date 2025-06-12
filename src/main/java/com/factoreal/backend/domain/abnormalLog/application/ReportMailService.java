@@ -54,7 +54,7 @@ public class ReportMailService {
             String zoneName = zone.getZoneName();
 
             // 공간의 매니저 탐색 후
-            WorkerInfoResponse manager = workerManagerService.getCurrentManager(zoneId);
+            WorkerInfoResponse manager = workerService.getCurrentManager(zoneId);
 
             // 담당자가 없거나 메일이 없으면 skip
             if (manager == null || manager.getEmail() == null || manager.getEmail().isBlank()) {

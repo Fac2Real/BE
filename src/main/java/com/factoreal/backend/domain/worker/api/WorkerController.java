@@ -52,9 +52,7 @@ public class WorkerController {
     @GetMapping("/zone/{zoneId}/manager")
     public ZoneManagerResponse getZoneManager(@PathVariable String zoneId) {
         log.info("공간 ID: {}의 담당자 정보 조회 요청", zoneId);
-
-        ZoneManagerResponse response = workerService.getZoneManagerWithLocation(zoneId);
-        return response;
+        return workerService.getZoneManagerWithLocation(zoneId);
     }
 
     @Operation(summary = "작업자의 정보를 수정합니다.", description = "요청한 정보를 토대로 (이름, 휴대폰번호, 이메일, 출입권한공간리스트) 정보 수정")

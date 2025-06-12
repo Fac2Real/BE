@@ -188,20 +188,30 @@ public class WorkerService {
     public ZoneManagerResponse getZoneManagerWithLocation(String zoneId) {
         log.info("공간 ID: {}의 담당자 정보 조회", zoneId);
 
-        Optional<WorkerZone> zoneManager = workerZoneRepoService.findByZoneZoneIdAndManageYnIsTrue(zoneId);
-        if (zoneManager.isEmpty()) {
-            return null;
-        }
+        // 1. 담당자 조회
+        Optional<WorkerZone> workerZone = workerZoneRepoService.findByZoneZoneIdAndManageYnIsTrue(zoneId);
+        if (workerZone.isEmpty()) { return null; }
 
-        Worker manager = zoneManager.get().getWorker();
+        Worker manager = workerZone.get().getWorker();
 
-        // 2. 담당자의 현재 위치 조회 (existFlag = 1)
+        // 2. 담당자 상태 조회
+        List<AbnormalLogResponse> statusList = abnormalLogService.findLatestAbnormalLogsForTargets(
+                TargetType.Worker,
+                Collections.singletonList(manager.getWorkerId())
+        );
+
+        Integer status = statusList.stream()
+                .findFirst()
+                .map(AbnormalLogResponse::getDangerLevel)
+                .orElse(0);
+
+        // 3. 담당자의 현재 위치 조회 (existFlag = 1)
         ZoneHist currentLocation = zoneHistoryRepoService.findByWorker_WorkerIdAndExistFlag(manager, 1);
 
-        // 3. 현재 위치한 공간 정보 (없을 수 있음)
+        // 4. 현재 위치한 공간 정보 (없을 수 있음)
         Zone currentZone = currentLocation != null ? currentLocation.getZone() : null;
 
-        return ZoneManagerResponse.from(manager, currentZone);
+        return ZoneManagerResponse.from(manager, currentZone, true, status);
     }
 
     /**
