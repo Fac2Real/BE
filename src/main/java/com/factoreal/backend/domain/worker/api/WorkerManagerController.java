@@ -33,7 +33,7 @@ public class WorkerManagerController {
 
   @Operation(summary = "공간 담당자 지정", description = "특정 공간의 담당자를 지정합니다.")
   @PostMapping("/{zoneId}/assign/{workerId}")
-  public ResponseEntity<String> assignManager(
+  public ResponseEntity<Void> assignManager(
       @Parameter(description = "공간 ID", required = true) @PathVariable String zoneId,
       @Parameter(description = "작업자 ID", required = true) @PathVariable String workerId) {
     workerManagerService.assignManager(zoneId, workerId);
