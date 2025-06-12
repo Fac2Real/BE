@@ -3,6 +3,7 @@ package com.factoreal.backend.domain.abnormalLog.application;
 import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.*;
 import com.factoreal.backend.domain.controlLog.application.ControlLogRepoService;
 import com.factoreal.backend.domain.worker.application.WorkerManagerService;
+import com.factoreal.backend.domain.worker.dto.response.WorkerInfoResponse;
 import com.factoreal.backend.domain.worker.dto.response.WorkerManagerResponse;
 import com.factoreal.backend.domain.zone.application.ZoneRepoService;
 import com.factoreal.backend.domain.zone.entity.Zone;
@@ -47,8 +48,8 @@ class ReportMailServiceTest {
 
     /* ── 공용 더미 ───────────────────────── */
     private Zone z(String id) { return Zone.builder().zoneId(id).zoneName("Z" + id).build(); }
-    private WorkerManagerResponse mgr(String email) {
-        return WorkerManagerResponse.builder()
+    private WorkerInfoResponse mgr(String email) {
+        return WorkerInfoResponse.builder()
                 .workerId("W1").name("홍길동").email(email).isManager(true).build();
     }
 

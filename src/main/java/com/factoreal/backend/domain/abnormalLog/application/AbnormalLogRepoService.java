@@ -34,11 +34,13 @@ public class AbnormalLogRepoService{
 
     public List<AbnormalLog> findPreview30daysLog(){
         // ① 오늘 날짜와 30일 전 시각 계산
-        LocalDateTime now        = LocalDateTime.now().minusDays(1);          // 현재 시각
-        LocalDateTime thirtyDays = now.minusDays(30);            // 30일 전
+        LocalDate endBeforeFormat = LocalDate.now().minusDays(1);          // 오늘
+        LocalDate startBeforeFormat = endBeforeFormat.minusDays(30);        // 30일 전
+        LocalDateTime start = startBeforeFormat.atStartOfDay();
+        LocalDateTime end = endBeforeFormat.atTime(LocalTime.MAX);
 
         // ② DB 조회 + dangerLevel 1,2 필터
-        return abnLogRepository.findByDetectedAtBetween(thirtyDays, now)
+        return abnLogRepository.findByDetectedAtBetween(start, end)
                 .stream()
                 .filter(l -> {
                     Integer dl = l.getDangerLevel();
