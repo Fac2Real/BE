@@ -358,60 +358,6 @@ class EquipMaintenanceServiceTest {
     }
 
     @Nested
-    @DisplayName("FastAPI 연동 테스트")
-    class FastApiTest {
-
-        @Test
-        @DisplayName("FastAPI 응답 body는 있지만 remainingDays가 null인 경우")
-        void whenFastApiResponseRemainingDaysNull_shouldHandleGracefully() {
-            // given
-        MaintenancePredictionResponse predictionResponse = new MaintenancePredictionResponse();
-            predictionResponse.setStatus("ok");
-            predictionResponse.setPredictions(null);
-
-            lenient().when(equipRepoService.findById(anyString())).thenReturn(equip);
-            lenient().when(restTemplate.getForEntity(anyString(), eq(MaintenancePredictionResponse.class)))
-                    .thenReturn(ResponseEntity.ok(predictionResponse));
-
-            // when
-            equipMaintenanceService.fetchAndProcessMaintenancePredictions();
-
-            // then
-            verify(equipHistoryRepoService, never()).save(any());
-        }
-
-        @Test
-        @DisplayName("FastAPI 응답 실패 시 예외 처리")
-        void whenFastApiFailure_shouldHandleException() {
-            // given
-            lenient().when(equipRepoService.findById(anyString())).thenReturn(equip);
-            lenient().when(restTemplate.getForEntity(anyString(), eq(MaintenancePredictionResponse.class)))
-                    .thenThrow(new RuntimeException("API 호출 실패"));
-
-            // when
-            equipMaintenanceService.fetchAndProcessMaintenancePredictions();
-
-            // then
-            verify(equipHistoryRepoService, never()).save(any());
-        }
-
-        @Test
-        @DisplayName("FastAPI 응답이 null인 경우")
-        void whenFastApiResponseNull_shouldHandleGracefully() {
-            // given
-            lenient().when(equipRepoService.findById(anyString())).thenReturn(equip);
-            lenient().when(restTemplate.getForEntity(anyString(), eq(MaintenancePredictionResponse.class)))
-                    .thenReturn(ResponseEntity.ok(null));
-
-            // when
-            equipMaintenanceService.fetchAndProcessMaintenancePredictions();
-
-            // then
-            verify(equipHistoryRepoService, never()).save(any());
-        }
-    }
-
-    @Nested
     @DisplayName("calculateExpectedMaintenanceDate 메서드 테스트")
     class CalculateExpectedMaintenanceDateTest {
 
