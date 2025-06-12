@@ -9,6 +9,7 @@ import com.factoreal.backend.domain.equip.application.EquipRepoService;
 import com.factoreal.backend.domain.equip.entity.Equip;
 import com.factoreal.backend.domain.notifyLog.dto.TriggerType;
 import com.factoreal.backend.domain.notifyLog.application.NotifyLogService;
+import com.factoreal.backend.domain.notifyLog.entity.NotifyLog;
 import com.factoreal.backend.domain.sensor.application.SensorRepoService;
 import com.factoreal.backend.domain.sensor.entity.Sensor;
 import com.factoreal.backend.domain.worker.application.WorkerRepoService;
@@ -18,10 +19,12 @@ import com.factoreal.backend.domain.zone.application.ZoneRepoService;
 import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.domain.zone.entity.ZoneHist;
 import com.factoreal.backend.global.exception.dto.BadRequestException;
+import com.factoreal.backend.global.exception.dto.NotFoundException;
 import com.factoreal.backend.messaging.kafka.strategy.enums.SensorType;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -265,6 +268,12 @@ class FCMServiceTest {
         );
     }
 
+    @Nested
+    @DisplayName("공간에 위험이 있는 경우, 마지막 위험을 공간내 작업자에게 알려주는 메서드")
+    class sendZoneSafety {
+
+    }
+
     @Test
     @DisplayName("sendZoneSafety 성공 - abnormalLogOption null일 때, Zone 내 작업자들에게 FCM 전송 및 NotifyLog 저장")
     void sendZoneSafety_success_abnormalLogNull() throws ExecutionException, InterruptedException, FirebaseMessagingException {
@@ -393,5 +402,65 @@ class FCMServiceTest {
         // Assert
         verify(fcmPushService, never()).sendMessage(anyString(), anyString(), anyString());
         verify(notifyLogService, never()).saveNotifyLogFromFCM(anyString(), anyBoolean(), any(), any(), anyLong());
+    }
+
+    @Nested
+    @DisplayName("메세지만 작업자에게 전달할때 사용하는 메서드 테스트")
+    class sendCustomMessage {
+        @Test
+        @DisplayName("정상 사용자, 정상 메세지를 전송할때")
+        void bestSituation(){
+            when(workerRepoService.findById(mockWorker.getWorkerId())).thenReturn(mockWorker);
+            when(fcmPushService.sendMessage(anyString(), anyString(), anyString())).thenReturn(CompletableFuture.completedFuture("messageId"));
+            when(notifyLogService.saveNotifyLogFromFCM(anyString(), anyBoolean(), any(), any(), anyLong())).thenReturn(NotifyLog.builder().build());
+            fcmService.sendCustomMessage(mockWorker.getWorkerId(), "test Message");
+            verify(fcmPushService).sendMessage(mockWorker.getFcmToken(), "[관리자 송신 알림]", "[관리자 메세지] test Message");
+        }
+
+        @Test
+        @DisplayName("없는 사용자, 정상 메세지를 전송할때 -> 유저 유효성 검증에서 바로 확인 (NotFound)")
+        void NotFoundUserSituation(){
+            when(workerRepoService.findById("이상한 사용자")).thenThrow(new NotFoundException("없는 사용자 입니다."));
+            assertThrows(NotFoundException.class,()->fcmService.sendCustomMessage("이상한 사용자", "test Message"));
+        }
+
+        @Test
+        @DisplayName("메세지가 비어있는 경우 -> 빈 문자열일 경우 예외 처리(BadRequestException)")
+        void EmptyMessageSituation(){
+            when(workerRepoService.findById(mockWorker.getWorkerId())).thenReturn(mockWorker);
+            assertThrows(BadRequestException.class,()->fcmService.sendCustomMessage(mockWorker.getWorkerId(), null));
+            verify(fcmPushService, never()).sendMessage(anyString(), anyString(), anyString());
+            verify(notifyLogService, never()).saveNotifyLogFromFCM(anyString(), anyBoolean(), any(), any(), anyLong());
+        }
+
+        @Test
+        @DisplayName("메세지가 비어있는 경우2 -> 빈 문자열일 경우 예외 처리(BadRequestException)")
+        void EmptyMessageSituation2(){
+            when(workerRepoService.findById(mockWorker.getWorkerId())).thenReturn(mockWorker);
+            assertThrows(BadRequestException.class,()->fcmService.sendCustomMessage(mockWorker.getWorkerId(), ""));
+            verify(fcmPushService, never()).sendMessage(anyString(), anyString(), anyString());
+            verify(notifyLogService, never()).saveNotifyLogFromFCM(anyString(), anyBoolean(), any(), any(), anyLong());
+        }
+        @Test
+        @DisplayName("토큰이 등록되지 않은 경우 -> BadRequestException")
+        void NoTokenSituation(){
+            Worker NoTokenWorker = mockWorker;
+            NoTokenWorker.setFcmToken(null);
+            when(workerRepoService.findById(mockWorker.getWorkerId())).thenReturn(NoTokenWorker);
+            assertThrows(BadRequestException.class,()->fcmService.sendCustomMessage(mockWorker.getWorkerId(), "test Message"));
+            verify(fcmPushService, never()).sendMessage(anyString(), anyString(), anyString());
+            verify(notifyLogService, never()).saveNotifyLogFromFCM(anyString(), anyBoolean(), any(), any(), anyLong());
+        }
+
+        @Test
+        @DisplayName("토큰이 비어 있는 경우 -> BadRequestException")
+        void NoTokenSituation2(){
+            Worker NoTokenWorker = mockWorker;
+            NoTokenWorker.setFcmToken("");
+            when(workerRepoService.findById(mockWorker.getWorkerId())).thenReturn(NoTokenWorker);
+            assertThrows(BadRequestException.class,()->fcmService.sendCustomMessage(mockWorker.getWorkerId(), "test Message"));
+            verify(fcmPushService, never()).sendMessage(anyString(), anyString(), anyString());
+            verify(notifyLogService, never()).saveNotifyLogFromFCM(anyString(), anyBoolean(), any(), any(), anyLong());
+        }
     }
 }
