@@ -52,6 +52,9 @@ public class ZoneService {
         zoneRepoService.validateZoneName(zoneName);
 
         Zone zone = zoneRepoService.save(new Zone(zoneId, zoneName));
+
+        // zoneId 로 equip_info 에 저장해주기
+        equipRepoService.save(new Equip(zoneId, "empty", zone));
         return ZoneInfoResponse.fromEntity(zone);
     }
 
@@ -74,18 +77,6 @@ public class ZoneService {
         Zone updatedZone = zoneRepoService.save(zone);
         return ZoneInfoResponse.fromEntity(updatedZone);
     }
-
-//    public Zone findByZoneId(String zoneId) {
-//        return zoneRepository.findByZoneId(zoneId);
-//    }
-
-//    /**
-//     * 존 데이터 저장하는 레포지토리 접근 서비스
-//     */
-//    @Transactional
-//    protected Zone save(Zone zone) {
-//        return zoneRepository.save(zone);
-//    }
 
     /**
      * 모든 공간을 조회하는 서비스

@@ -26,7 +26,7 @@ public class EquipRepoService {
      * 설비 정보 저장 레포지토리 접근 메서드
      */
     @Transactional
-    protected Equip save(Equip equip) {
+    public Equip save(Equip equip) {
         return equipRepo.save(equip);
     }
 
