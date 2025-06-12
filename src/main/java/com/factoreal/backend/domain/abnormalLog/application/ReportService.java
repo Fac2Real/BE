@@ -305,6 +305,14 @@ public class ReportService {
         List<AbnormalLog> logs = abnormalLogRepoService.findByDetectedAtBetweenAndDangerLevelIn(
                 start, end, List.of(1, 2));
 
+        int totalAbnCnt = logs.size();
+        int warnCnt = (int) logs.stream()
+                .filter(l -> l.getDangerLevel() == 1)
+                .count();
+        int dangerCnt = (int) logs.stream()
+                .filter(l -> l.getDangerLevel() == 2)
+                .count();
+
         /* ③ 그래프 1 : TargetType 별 ─ 항상 3개(SENSOR/EQUIP/WORKER) 보장 */
         Map<TargetType, Long> typeCntMap = logs.stream()
                 .collect(Collectors.groupingBy(AbnormalLog::getTargetType, Collectors.counting()));
@@ -336,6 +344,6 @@ public class ReportService {
         DateTimeFormatter f = DateTimeFormatter.ofPattern("yyyy.MM.dd");
         String period = f.format(startDay) + " ~ " + f.format(yesterday);
 
-        return new GraphSummaryResponse(period, typeStats, dateStats, zoneStats);
+        return new GraphSummaryResponse( period, totalAbnCnt, warnCnt, dangerCnt, typeStats, dateStats, zoneStats);
     }
 }
