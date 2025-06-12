@@ -1,5 +1,9 @@
 package com.factoreal.backend.domain.worker.application;
 
+import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
+import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
+import com.factoreal.backend.domain.abnormalLog.dto.response.AbnormalLogResponse;
+import com.factoreal.backend.domain.worker.dto.response.WorkerInfoResponse;
 import com.factoreal.backend.domain.worker.dto.response.WorkerManagerResponse;
 import com.factoreal.backend.domain.worker.entity.Worker;
 import com.factoreal.backend.domain.worker.entity.WorkerZone;
@@ -11,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -23,6 +28,7 @@ import java.util.stream.Collectors;
 public class WorkerManagerService {
 
     private final WorkerZoneRepoService workerZoneRepoService;
+    private final AbnormalLogService abnormalLogService;
 
     /**
      * 특정 공간의 담당자 후보 목록 조회
@@ -101,11 +107,24 @@ public class WorkerManagerService {
      * 특정 공간의 현재 담당자 조회
      */
     @Transactional(readOnly = true)
-    public WorkerManagerResponse getCurrentManager(String zoneId) {
-        log.info("공간 ID: {}의 현재 담당자 조회", zoneId);
+    public WorkerInfoResponse getCurrentManager(String zoneId) {
+        log.info("공간 ID: {}의 현재 담당자 정보 조회", zoneId);
+        Optional<WorkerZone> optionalWorkerZone = workerZoneRepoService.findByZoneZoneIdAndManageYnIsTrue(zoneId);
+        if (optionalWorkerZone.isEmpty()) { return null; }
 
-        return workerZoneRepoService.findByZoneZoneIdAndManageYnIsTrue(zoneId)
-                .map(workerZone -> WorkerManagerResponse.fromEntity(workerZone.getWorker(), true))
-                .orElse(null);
+        Worker manager = optionalWorkerZone.get().getWorker();
+
+        List<AbnormalLogResponse> statusList = abnormalLogService.findLatestAbnormalLogsForTargets(
+                TargetType.Worker,
+                Collections.singletonList(manager.getWorkerId())
+        );
+
+        Integer status = statusList.stream()
+                .findFirst()
+                .map(AbnormalLogResponse::getDangerLevel)
+                .orElse(0);
+
+        return WorkerInfoResponse.from(manager, true, status);
+
     }
 }
