@@ -87,10 +87,10 @@ class EquipMaintenanceServiceTest {
     @DisplayName("processMaintenancePrediction 메서드 테스트")
     class ProcessMaintenancePredictionTest {
 
-        @Test
+    @Test
         @DisplayName("Case 1: 첫 예측값일 때 - 이력 저장 및 알림 발송 (D-3)")
         void firstPrediction_shouldSaveAndSendAlert_D3() throws IOException {
-            // given
+        // given
             LocalDate expectedDate = LocalDate.now().plusDays(3);  // D-3
             given(equipRepoService.findById(equipId)).willReturn(equip);
             given(equipHistoryRepoService.findLatestUncheckedByEquipId(equipId))
@@ -153,24 +153,24 @@ class EquipMaintenanceServiceTest {
                             eq(3L)
                     );
 
-            // when
+        // when
             equipMaintenanceService.processMaintenancePrediction(equipId, expectedDate);
 
-            // then
+        // then
             verify(equipHistoryRepoService, times(1)).save(any(EquipHistory.class));
-            verify(slackEquipAlarmService, times(1))
+        verify(slackEquipAlarmService, times(1))
                     .sendEquipmentMaintenanceAlert(
                             eq(equipName),
                             eq(zoneName),
                             eq(expectedDate),
                             eq(3L)
                     );
-        }
+    }
 
-        @Test
+    @Test
         @DisplayName("Case 2: 기존 이력이 있고 D-5보다 짧은 경우 - 기존 이력 유지")
         void existingPrediction_lessThanD5_shouldKeepExisting() throws IOException {
-            // given
+        // given
             LocalDate currentDate = LocalDate.now().plusDays(6);
             LocalDate newDate = LocalDate.now().plusDays(4);
 
@@ -210,15 +210,15 @@ class EquipMaintenanceServiceTest {
             given(slackEquipAlarmService.getDaysUntilMaintenance(newDate)).willReturn(7L);
             given(slackEquipAlarmService.getDaysUntilMaintenance(currentDate)).willReturn(10L);
 
-            // when
+        // when
             equipMaintenanceService.processMaintenancePrediction(equipId, newDate);
 
-            // then
+        // then
             verify(equipHistoryRepoService, times(1)).save(currentHistory);
             assertThat(currentHistory.getAccidentDate()).isEqualTo(newDate);
-        }
+    }
 
-        @Test
+    @Test
         @DisplayName("Case 2: 기존 이력이 있고 D-5보다 길며 현재 시점과 더 먼 경우 - 기존 이력 유지")
         void existingPrediction_moreThanD5AndFurther_shouldKeepExisting() throws IOException {
             // given
@@ -327,7 +327,7 @@ class EquipMaintenanceServiceTest {
         @Test
         @DisplayName("정기 알림 발송 실패 시 예외 처리")
         void whenRegularAlertFails_shouldHandleException() throws IOException {
-            // given
+        // given
             LocalDate expectedDate = LocalDate.now().plusDays(5);
             lenient().when(equipRepoService.findById(equipId)).thenReturn(equip);
             lenient().when(slackEquipAlarmService.shouldSendAlert(expectedDate)).thenReturn(true);
@@ -602,11 +602,11 @@ class EquipMaintenanceServiceTest {
             given(slackEquipAlarmService.getDaysUntilMaintenance(accidentDate))
                     .willReturn(5L);
 
-            // when
+        // when
             LatestMaintenancePredictionResponse response =
                     equipMaintenanceService.getLatestMaintenancePrediction(equipId, zoneId);
 
-            // then
+        // then
             assertThat(response.getEquipId()).isEqualTo(equipId);
             assertThat(response.getEquipName()).isEqualTo(equipName);
             assertThat(response.getZoneId()).isEqualTo(zoneId);
