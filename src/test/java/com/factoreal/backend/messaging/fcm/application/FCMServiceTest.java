@@ -69,6 +69,7 @@ class FCMServiceTest {
     private ZoneHist mockZoneHist;
     private AbnormalLog mockAbnormalLog;
     private Sensor mockSensor;
+    String message;
 
     @BeforeEach
     void setUp() {
@@ -98,6 +99,8 @@ class FCMServiceTest {
         mockSensor = new Sensor();
         mockSensor.setSensorId("sensor1");
         mockSensor.setSensorType(SensorType.temp);
+
+        message = "test Message";
     }
 
     @Test
@@ -157,7 +160,7 @@ class FCMServiceTest {
                 .thenReturn(CompletableFuture.completedFuture("messageId"));
 
         // Act
-        fcmService.sendEquipMaintain(workerId, equipId);
+        fcmService.sendEquipMaintain(workerId, equipId, message);
 
         // Assert
         verify(equipRepoService).findById(equipId);
@@ -170,7 +173,7 @@ class FCMServiceTest {
 
         assertEquals(mockWorker.getFcmToken(), tokenCaptor.getValue());
         assertEquals("[확인] 수동 호출, 설비 점검 요청", titleCaptor.getValue());
-        assertEquals("Test Zone의 Test Equip설비 점검 요청합니다.", bodyCaptor.getValue());
+        assertEquals("Test Zone의 Test Equip설비 점검 요청합니다.\n[관리자 메세지] test Message", bodyCaptor.getValue());
 
         verify(notifyLogService).saveNotifyLogFromFCM(
                 eq(workerId),
@@ -208,12 +211,12 @@ class FCMServiceTest {
                 .thenReturn(CompletableFuture.completedFuture("messageId"));
 
         // Act
-        fcmService.sendWorkerSafety(helperWorkerId, careNeedWorkerId);
+        fcmService.sendWorkerSafety(helperWorkerId, careNeedWorkerId,message);
 
         // Assert
         ArgumentCaptor<String> bodyCaptor = ArgumentCaptor.forClass(String.class);
         verify(fcmPushService).sendMessage(eq(helperWorker.getFcmToken()), anyString(), bodyCaptor.capture());
-        assertEquals("Danger Zone에 있는 작업자 Care Worker씨의 건강 이상이 발견되었습니다. 지원바랍니다.", bodyCaptor.getValue());
+        assertEquals("Danger Zone에 있는 작업자 Care Worker씨의 건강 이상이 발견되었습니다. 지원바랍니다.\n[관리자 메세지] test Message", bodyCaptor.getValue());
 
         verify(notifyLogService).saveNotifyLogFromFCM(
                 eq(helperWorkerId),
@@ -246,12 +249,12 @@ class FCMServiceTest {
                 .thenReturn(CompletableFuture.completedFuture("messageId"));
 
         // Act
-        fcmService.sendWorkerSafety(helperWorkerId, careNeedWorkerId);
+        fcmService.sendWorkerSafety(helperWorkerId, careNeedWorkerId,message);
 
         // Assert
         ArgumentCaptor<String> bodyCaptor = ArgumentCaptor.forClass(String.class);
         verify(fcmPushService).sendMessage(eq(helperWorker.getFcmToken()), anyString(), bodyCaptor.capture());
-        assertEquals(FCMService.DEFAULT_ZONE_NAME + "에 있는 작업자 Care Worker씨의 건강 이상이 발견되었습니다. 지원바랍니다.", bodyCaptor.getValue());
+        assertEquals(FCMService.DEFAULT_ZONE_NAME + "에 있는 작업자 Care Worker씨의 건강 이상이 발견되었습니다. 지원바랍니다.\n[관리자 메세지] test Message", bodyCaptor.getValue());
 
         verify(notifyLogService).saveNotifyLogFromFCM(
                 eq(helperWorkerId),
@@ -391,7 +394,4 @@ class FCMServiceTest {
         verify(fcmPushService, never()).sendMessage(anyString(), anyString(), anyString());
         verify(notifyLogService, never()).saveNotifyLogFromFCM(anyString(), anyBoolean(), any(), any(), anyLong());
     }
-
-
-//
 }

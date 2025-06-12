@@ -65,4 +65,7 @@ public class WorkerRepoService {
         return workerRepository.findWorkersByWorkerId(workerId);
     }
 
+    public List<Worker> findWorkersByWorkerIdIn(List<String> workerIds){
+        return workerRepository.findByWorkerIdIn(workerIds);
+    }
 }
