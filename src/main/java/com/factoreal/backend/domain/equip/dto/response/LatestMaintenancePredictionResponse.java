@@ -23,8 +23,9 @@ public class LatestMaintenancePredictionResponse {
     private String zoneName;
     private LocalDate expectedMaintenanceDate;
     private Long daysUntilMaintenance;
+    private Boolean MaintenanceStatus;
 
-    public static LatestMaintenancePredictionResponse fromEntity(Equip equip, EquipHistory history, Long daysUntilMaintenance) {
+    public static LatestMaintenancePredictionResponse fromEntity(Equip equip, EquipHistory history, Long daysUntilMaintenance, Boolean MaintenanceStatus) {
         return LatestMaintenancePredictionResponse.builder()
             .equipId(equip.getEquipId())
             .equipName(equip.getEquipName())
@@ -32,6 +33,7 @@ public class LatestMaintenancePredictionResponse {
             .zoneName(equip.getZone().getZoneName())
             .expectedMaintenanceDate(history.getAccidentDate())
             .daysUntilMaintenance(daysUntilMaintenance)
+            .MaintenanceStatus(MaintenanceStatus)
             .build();
     }
 } 
