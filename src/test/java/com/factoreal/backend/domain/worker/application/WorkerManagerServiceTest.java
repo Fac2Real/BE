@@ -1,5 +1,6 @@
 package com.factoreal.backend.domain.worker.application;
 
+import com.factoreal.backend.domain.worker.dto.response.WorkerInfoResponse;
 import com.factoreal.backend.domain.worker.dto.response.WorkerManagerResponse;
 import com.factoreal.backend.domain.worker.entity.Worker;
 import com.factoreal.backend.domain.worker.entity.WorkerZone;
@@ -204,7 +205,7 @@ class WorkerManagerServiceTest {
                 .willReturn(Optional.of(workerZone1));
 
         // when
-        WorkerManagerResponse manager = workerManagerService.getCurrentManager(zoneId);
+        WorkerInfoResponse manager = workerManagerService.getCurrentManager(zoneId);
 
         // then
         assertThat(manager).isNotNull();
@@ -225,7 +226,7 @@ class WorkerManagerServiceTest {
                 .willReturn(Optional.empty());
 
         // when
-        WorkerManagerResponse manager = workerManagerService.getCurrentManager(zoneId);
+        WorkerInfoResponse manager = workerManagerService.getCurrentManager(zoneId);
 
         // then
         assertThat(manager).isNull();
