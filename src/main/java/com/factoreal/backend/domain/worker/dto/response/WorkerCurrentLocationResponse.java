@@ -11,20 +11,19 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ZoneManagerResponse {
-    private String workerId;
-    private String name;
-    private String phoneNumber;
-    private String email;
+public class WorkerCurrentLocationResponse extends WorkerInfoResponse{
     private String currentZoneId;
     private String currentZoneName;
 
-    public static ZoneManagerResponse from(Worker worker, Zone currentZone) {
-        return ZoneManagerResponse.builder()
+    public static WorkerCurrentLocationResponse from(Worker worker, Zone currentZone, Boolean isManager, int status) {
+        return WorkerCurrentLocationResponse.builder()
                 .workerId(worker.getWorkerId())
                 .name(worker.getName())
                 .phoneNumber(worker.getPhoneNumber())
                 .email(worker.getEmail())
+                .fcmToken(worker.getFcmToken())
+                .isManager(isManager)
+                .status(status)
                 .currentZoneId(currentZone != null ? currentZone.getZoneId() : null)
                 .currentZoneName(currentZone != null ? currentZone.getZoneName() : null)
                 .build();
