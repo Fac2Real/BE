@@ -86,7 +86,9 @@ public class FCMService {
     public void sendWorkerSafety(String helperWorkerId, String careNeedWorkerId,String message) {
         Worker helper = workerRepoService.findById(helperWorkerId);
         Worker careNeedWorker = workerRepoService.findById(careNeedWorkerId);
-
+        if (helper.getWorkerId().equals(careNeedWorker.getWorkerId())) {
+            throw new BadRequestException("도움이 필요한 작업자 자신에게 호출할 수 없습니다.");
+        }
         ZoneHist zoneHist = zoneHistoryRepoService.getCurrentWorkerLocation(careNeedWorker.getWorkerId());
         String zoneName = (zoneHist == null || zoneHist.getZone() == null) ?
             DEFAULT_ZONE_NAME : zoneHist.getZone().getZoneName();
