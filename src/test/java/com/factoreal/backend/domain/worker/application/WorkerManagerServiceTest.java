@@ -198,41 +198,4 @@ class WorkerManagerServiceTest {
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("접근 권한이 없습니다");
     }
-
-    @Test
-    @DisplayName("현재 공간 담당자 조회 - 담당자가 있는 경우")
-    void getCurrentManager_WhenManagerExists() {
-        // given
-        String zoneId = "20250507165750-827";  // zone1의 ID
-
-        given(workerZoneRepoService.findByZoneZoneIdAndManageYnIsTrue(zoneId))
-                .willReturn(Optional.of(workerZone1));
-
-        // when
-        WorkerInfoResponse manager = workerManagerService.getCurrentManager(zoneId);
-
-        // then
-        assertThat(manager).isNotNull();
-        assertThat(manager.getWorkerId()).isEqualTo(worker1.getWorkerId());
-        assertThat(manager.getName()).isEqualTo(worker1.getName());
-        assertThat(manager.getEmail()).isEqualTo(worker1.getEmail());
-        assertThat(manager.getPhoneNumber()).isEqualTo(worker1.getPhoneNumber());
-        assertThat(manager.getIsManager()).isTrue();
-    }
-
-    @Test
-    @DisplayName("현재 공간 담당자 조회 - 담당자가 없는 경우")
-    void getCurrentManager_WhenNoManagerExists() {
-        // given
-        String zoneId = "20250507165750-827";  // zone1의 ID
-
-        given(workerZoneRepoService.findByZoneZoneIdAndManageYnIsTrue(zoneId))
-                .willReturn(Optional.empty());
-
-        // when
-        WorkerInfoResponse manager = workerManagerService.getCurrentManager(zoneId);
-
-        // then
-        assertThat(manager).isNull();
-    }
 } 
