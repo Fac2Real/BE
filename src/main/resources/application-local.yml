@@ -21,3 +21,7 @@ aws:
     listener:
       max-number-of-messages: 1 # 동시 처리 튜닝용
       wait-timeout : 5 # long-polling (초)
+
+# 로컬에서 FastAPI가 돌고 있는 호스트:포트
+fastapi:
+  base-url: http://localhost:8000

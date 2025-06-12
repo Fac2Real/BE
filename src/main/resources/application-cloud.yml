@@ -20,3 +20,7 @@ spring:
 webhook:
   slack:
     url: ${SLACK_WEBHOOK_URL}
+
+# 클러스터 내 Service 이름으로 덮어쓰기
+fastapi:
+  base-url: ${FASTAPI_URL}
