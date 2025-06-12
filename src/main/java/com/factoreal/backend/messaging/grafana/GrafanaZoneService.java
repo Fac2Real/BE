@@ -36,7 +36,9 @@ public class GrafanaZoneService {
      */
     public List<GrafanaSensorResponseDto> createDashboardUrls(String zoneId) throws JsonProcessingException {
         // 1) 센서 목록 조회
-        List<Sensor> sensors = sensorRepoService.findByZone_ZoneId(zoneId);
+        List<Sensor> sensors = sensorRepoService.findByZone_ZoneId(zoneId).stream()
+                .filter(sensor -> sensor.getIsZone() == 1)
+                .toList();
         if (sensors.isEmpty()) {
             throw new NotFoundException("No sensors for zone: " + zoneId);
         }
