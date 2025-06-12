@@ -1,5 +1,6 @@
 package com.factoreal.backend.domain.worker.api;
 
+import com.factoreal.backend.domain.worker.dto.response.WorkerInfoResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -41,10 +42,9 @@ public class WorkerManagerController {
 
   @Operation(summary = "현재 공간 담당자 정보 조회", description = "특정 공간의 현재 담당자 정보를 조회합니다.")
   @GetMapping("/{zoneId}")
-  public ResponseEntity<WorkerManagerResponse> getCurrentManager(
+  public WorkerInfoResponse getCurrentManager(
       @Parameter(description = "공간 ID", required = true) @PathVariable String zoneId) {
     log.info("공간 ID: {}의 현재 담당자 조회 요청", zoneId);
-    WorkerManagerResponse manager = workerManagerService.getCurrentManager(zoneId);
-    return manager != null ? ResponseEntity.ok(manager) : ResponseEntity.noContent().build();
+    return  workerManagerService.getCurrentManager(zoneId);
   }
 }

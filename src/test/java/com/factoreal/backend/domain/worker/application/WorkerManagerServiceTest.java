@@ -1,5 +1,7 @@
 package com.factoreal.backend.domain.worker.application;
 
+import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
+import com.factoreal.backend.domain.worker.dto.response.WorkerInfoResponse;
 import com.factoreal.backend.domain.worker.dto.response.WorkerManagerResponse;
 import com.factoreal.backend.domain.worker.entity.Worker;
 import com.factoreal.backend.domain.worker.entity.WorkerZone;
@@ -32,6 +34,9 @@ class WorkerManagerServiceTest {
 
     @InjectMocks
     private WorkerManagerService workerManagerService;
+
+    @Mock
+    private AbnormalLogService abnormalLogService;
 
     private Worker worker1, worker2, worker3;
     private Zone zone1, zone2;
@@ -204,7 +209,7 @@ class WorkerManagerServiceTest {
                 .willReturn(Optional.of(workerZone1));
 
         // when
-        WorkerManagerResponse manager = workerManagerService.getCurrentManager(zoneId);
+        WorkerInfoResponse manager = workerManagerService.getCurrentManager(zoneId);
 
         // then
         assertThat(manager).isNotNull();
@@ -225,7 +230,7 @@ class WorkerManagerServiceTest {
                 .willReturn(Optional.empty());
 
         // when
-        WorkerManagerResponse manager = workerManagerService.getCurrentManager(zoneId);
+        WorkerInfoResponse manager = workerManagerService.getCurrentManager(zoneId);
 
         // then
         assertThat(manager).isNull();
