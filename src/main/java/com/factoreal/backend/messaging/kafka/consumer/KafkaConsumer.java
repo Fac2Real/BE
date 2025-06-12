@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
 
 
@@ -35,16 +36,27 @@ public class KafkaConsumer {
 
     // 공간 센서 관련 Kafka 메시지 처리
     @KafkaListener(topics = "ENVIRONMENT", groupId = "${spring.kafka.consumer.group-id:env-group}")
-    public void consumeEnvironment(String message) {
+    public void consumeEnvironment(String message, Acknowledgment acknowledgment) {
         log.info("📩 [ENVIRONMENT] Kafka 메시지 수신: {}", message);
-        handleMessage(message, "ENVIRONMENT");
+        try {
+            handleMessage(message, "ENVIRONMENT");
+            acknowledgment.acknowledge();
+        } catch (Exception e) {
+            log.error("❌ Kafka 메시지 처리 실패: {}", message, e);
+        }
     }
 
     @KafkaListener(topics = "WEARABLE", groupId = "${spring.kafka.consumer.group-id:env-group}")
-    public void consumeWearable(String message) {
+    public void consumeWearable(String message, Acknowledgment acknowledgment) {
         log.info("📩 [WEARABLE] Kafka 메시지 수신: {}", message);
-        handleWearableMessage(message, "WEARABLE");
+        try {
+            handleWearableMessage(message, "WEARABLE");
+            acknowledgment.acknowledge();
+        } catch (Exception e) {
+            log.error("❌ Kafka 메시지 처리 실패: {}", message, e);
+        }
     }
+
     // 공통 메시지 파싱 및 처리 전달
     private void handleMessage(String message, String topic) {
         try {

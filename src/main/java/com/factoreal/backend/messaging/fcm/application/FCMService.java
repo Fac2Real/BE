@@ -157,6 +157,7 @@ public class FCMService {
             FCMResponse fcmResponse = workerFcmTokenCheck(worker);
             if (fcmResponse != null) {
                 sendResult.add(fcmResponse); // 실패하면 FCMResponse에 객체가 생성되고, 해당 라인이 실행.
+                continue;
             }
 
             fcmService.sendMessage(worker.getFcmToken(), title, body)
