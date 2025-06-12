@@ -81,12 +81,16 @@ class ZoneServiceTest {
                     z.setZoneId("zone-1");
                     return z;
                 });
+        when(equipRepoService.save(any(Equip.class))).thenAnswer(inv -> inv.getArgument(0));
+
 
         ZoneInfoResponse res = zoneService.createZone(req);
 
         // 생성한 존 정보 가져와보고, 체킹
         assertThat(res.getZoneId()).isEqualTo("zone-1");
         assertThat(res.getZoneName()).isEqualTo("대기실");
+        verify(equipRepoService, times(1)).save(any(Equip.class));
+
     }
 
     @Test
