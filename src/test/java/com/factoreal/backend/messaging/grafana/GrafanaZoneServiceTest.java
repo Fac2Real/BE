@@ -23,17 +23,20 @@ import static org.mockito.Mockito.*;
 class GrafanaZoneServiceTest {
 
     /* ────── MOCKS ─────────────────────────────────── */
-    @Mock DashboardFactory  factory;
-    @Mock GrafanaClient     client;
-    @Mock SensorRepoService sensorRepo;
+    @Mock
+    DashboardFactory factory;
+    @Mock
+    GrafanaClient client;
+    @Mock
+    SensorRepoService sensorRepo;
 
     @InjectMocks
     GrafanaZoneService service;
 
     /* 공통 테스트 상수 */
-    private static final String GRAFANA_URL   = "https://gf";
+    private static final String GRAFANA_URL = "https://gf";
     private static final String DATASOURCE_ID = "ds-uid";
-    private static final int    ORG_ID        = 42;
+    private static final int ORG_ID = 42;
 
     @BeforeEach
     void setFields() {
@@ -44,16 +47,19 @@ class GrafanaZoneServiceTest {
     }
 
     /* ========== 1) 정상 시나리오 ========== */
-    @Test @DisplayName("createDashboardUrls : 센서 2 개 정상 생성")
+    @Test
+    @DisplayName("createDashboardUrls : 센서 2 개 정상 생성")
     void createDashboard_success() throws Exception {
         // given ① 센서 목록
         Sensor s1 = mock(Sensor.class);
         when(s1.getSensorId()).thenReturn("S01");
         when(s1.getSensorType()).thenReturn(SensorType.temp);
+        when(s1.getIsZone()).thenReturn(1);
 
         Sensor s2 = mock(Sensor.class);
         when(s2.getSensorId()).thenReturn("S02");
         when(s2.getSensorType()).thenReturn(SensorType.humid);
+        when(s2.getIsZone()).thenReturn(1);
 
         when(sensorRepo.findByZone_ZoneId("Z1"))
                 .thenReturn(List.of(s1, s2));
@@ -87,7 +93,8 @@ class GrafanaZoneServiceTest {
     }
 
     /* ========== 2) 센서가 없으면 NotFoundException ========== */
-    @Test @DisplayName("createDashboardUrls : 센서 없음 → NotFoundException")
+    @Test
+    @DisplayName("createDashboardUrls : 센서 없음 → NotFoundException")
     void createDashboard_noSensors() {
         when(sensorRepo.findByZone_ZoneId("Z1"))
                 .thenReturn(List.of());                      // 빈 목록
@@ -100,12 +107,28 @@ class GrafanaZoneServiceTest {
         verifyNoInteractions(factory, client);              // 이후 호출 無
     }
 
+    /* ========== 2.5) 센서가 설비만 있으면 NotFoundException ========== */
+    @Test
+    @DisplayName("createDashboardUrls : isZone = 0 센서만 존재 → NotFoundException")
+    void createDashboard_filteredOut() {
+        Sensor s = mock(Sensor.class);
+        when(s.getIsZone()).thenReturn(0);
+        when(sensorRepo.findByZone_ZoneId("Z1")).thenReturn(List.of(s));
+
+        assertThatThrownBy(() -> service.createDashboardUrls("Z1"))
+                .isInstanceOf(NotFoundException.class);
+
+        verifyNoInteractions(factory, client);
+    }
+
     /* ========== 3) GrafanaClient 예외 → 그대로 전파 ========== */
-    @Test @DisplayName("createDashboardUrls : Grafana API 실패 → 예외 전파")
+    @Test
+    @DisplayName("createDashboardUrls : Grafana API 실패 → 예외 전파")
     void createDashboard_grafanaError() throws Exception {
         // Z1에 대한 센서 목 데이터를 반환 형식적인 가정만 하는것임으로
         // 센서 데이터를 일일이 다 넣어줄 필요가 없음 ( sensorId / sensorType 등등.. )
         Sensor s = mock(Sensor.class);
+        when(s.getIsZone()).thenReturn(1);
         when(sensorRepo.findByZone_ZoneId("Z1"))
                 .thenReturn(List.of(s));
 
