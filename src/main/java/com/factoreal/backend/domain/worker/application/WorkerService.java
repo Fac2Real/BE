@@ -241,6 +241,10 @@ public class WorkerService {
 
         workerRepoService.save(worker); // 작업자 정보 저장
 
+        List<String> zoneNames = request.getZoneNames();
+        zoneNames.add("대기실");
+        request.setZoneNames(zoneNames);
+
         // 2. 각 공간명으로 Zone 조회 및 WorkerZone 생성
         for (String zoneName : request.getZoneNames()) {
             Zone zone = zoneRepoService.findByZoneName(zoneName);
