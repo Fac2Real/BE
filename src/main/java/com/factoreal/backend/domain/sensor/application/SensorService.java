@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -29,7 +30,7 @@ public class SensorService {
      * 센서 정보 저장, 하드코딩으로 센서를 저장하고자 할때 사용
      */
     @Transactional
-    public Sensor saveSensor(SensorCreateRequest dto) {
+    public Sensor saveSensor(SensorCreateRequest dto, LocalDateTime now) {
         Zone zone = getZoneById(dto.getZoneId());
         Equip equip = getEquipById(dto.getEquipId());
 
@@ -38,6 +39,7 @@ public class SensorService {
         sens.setSensorType(SensorType.valueOf(dto.getSensorType()));
         sens.setZone(zone);
         sens.setEquip(equip);
+        sens.setCreatedAt(now);
         sens.setIsZone(dto.getIsZone());
         return sensorRepoService.save(sens);
     }

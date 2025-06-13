@@ -14,6 +14,9 @@ import org.springframework.dao.DataIntegrityViolationException;
 
 import javax.net.ssl.SSLSocketFactory;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 /**
  * ✅ AWS IoT Core MQTT 리스너
@@ -82,12 +85,14 @@ public class AwsMqttListener {
             try{
                 ObjectMapper mapper = new ObjectMapper();
                 JsonNode jsonNode = mapper.readTree(payload);
+                Long epochSeconds = jsonNode.at("/timestamp").asLong(); // 예: "1749789746"
 
                 String sensorId = jsonNode.at("/id").asText();
                 String type = jsonNode.at("/type").asText();
 //                SensorDto dto = new SensorDto(sensorId, type);
                 SensorCreateRequest dto = new SensorCreateRequest();
-                sensorService.saveSensor(dto); // 중복이면 예외 발생
+                LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochSecond(epochSeconds), ZoneId.systemDefault());
+                sensorService.saveSensor(dto,dateTime); // 중복이면 예외 발생
                 log.info("✅ 센서 저장 완료: {}", sensorId);
             } catch (DataIntegrityViolationException e) {
                 log.warn("⚠️ 중복 센서 저장 시도 차단됨: {}", e.getMessage());

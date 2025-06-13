@@ -15,6 +15,7 @@ import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.SerializationFeature;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertThrows;
@@ -54,10 +55,11 @@ class MqttServiceTest {
         """;
         stubSubscribeWithPayload(payload);
 
-        mqttSvc.SensorShadowSubscription();
+        mqttSvc.IotShadowSubscription("Sensor");
 
         ArgumentCaptor<SensorCreateRequest> cap = ArgumentCaptor.forClass(SensorCreateRequest.class);
-        verify(sensorService).saveSensor(cap.capture());
+        LocalDateTime now = LocalDateTime.now();
+        verify(sensorService).saveSensor(cap.capture(),now);
         SensorCreateRequest dto = cap.getValue();
 
         assertThat(dto.getEquipId()).isNull();
@@ -75,10 +77,11 @@ class MqttServiceTest {
         """;
         stubSubscribeWithPayload(payload);
 
-        mqttSvc.SensorShadowSubscription();
+        mqttSvc.IotShadowSubscription("Sensor");
 
         ArgumentCaptor<SensorCreateRequest> cap = ArgumentCaptor.forClass(SensorCreateRequest.class);
-        verify(sensorService).saveSensor(cap.capture());
+        LocalDateTime now = LocalDateTime.now();
+        verify(sensorService).saveSensor(cap.capture(),now);
         assertThat(cap.getValue().getIsZone()).isEqualTo(1);
     }
 
@@ -93,9 +96,9 @@ class MqttServiceTest {
         """;
         stubSubscribeWithPayload(payload);
 
-        mqttSvc.SensorShadowSubscription();
+        mqttSvc.IotShadowSubscription("Sensor");
 
-        verify(sensorService, never()).saveSensor(any());
+        verify(sensorService, never()).saveSensor(any(),any());
     }
 
     /* ========== 4) saveSensor 중복 오류(DataIntegrityViolationException)도 안전 처리 ========== */
@@ -109,11 +112,11 @@ class MqttServiceTest {
         """;
         stubSubscribeWithPayload(payload);
 
-        doThrow(new DataIntegrityViolationException("dup")).when(sensorService).saveSensor(any());
+        doThrow(new DataIntegrityViolationException("dup")).when(sensorService).saveSensor(any(),any());
 
         // 예외가 밖으로 전파되지 않고 처리 되는지만 확인
-        mqttSvc.SensorShadowSubscription();
-        verify(sensorService).saveSensor(any());
+        mqttSvc.IotShadowSubscription("Sensor");
+        verify(sensorService).saveSensor(any(),any());
     }
 
     /* ========== 5) JSON 파싱 실패 등 일반 예외도 안전 처리 ========== */
@@ -125,9 +128,9 @@ class MqttServiceTest {
         String badJson = "{\"current\":{\"state\":{\"reported\":{";
         stubSubscribeWithPayload(badJson);
 
-        mqttSvc.SensorShadowSubscription();
+        mqttSvc.IotShadowSubscription("Sensor");
 
-        verify(sensorService, never()).saveSensor(any());
+        verify(sensorService, never()).saveSensor(any(),any());
     }
 
     /* ========== 6) 초기 미연결 상태면 reconnect 후 subscribe 재시도 ========== */
@@ -144,10 +147,10 @@ class MqttServiceTest {
         """;
         stubSubscribeWithPayload(payload);
 
-        mqttSvc.SensorShadowSubscription();
+        mqttSvc.IotShadowSubscription("Sensor");
 
         verify(mqtt).reconnect();          // 재연결 한 번 시도
-        verify(sensorService).saveSensor(any());
+        verify(sensorService).saveSensor(any(),any());
         /* 👁️ JSON 형태로 Dto출력 */
         ObjectMapper om = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
         System.out.println("=== mqtt DTO ===");
@@ -165,9 +168,9 @@ class MqttServiceTest {
       """;
         stubSubscribeWithPayload(payload);        // util 메서드(앞서 정의)
 
-        mqttSvc.SensorShadowSubscription();
+        mqttSvc.IotShadowSubscription("Sensor");
 
-        verify(sensorService, never()).saveSensor(any());
+        verify(sensorService, never()).saveSensor(any(),any());
     }
 
     /* 인터럽트 플래그 초기화 */
@@ -186,7 +189,7 @@ class MqttServiceTest {
         // 2️⃣ sleep() 전에 인터럽트 플래그 세팅 → 즉시 InterruptedException 발생
         Thread.currentThread().interrupt();
 
-        assertThrows(MqttException.class, () -> mqttSvc.SensorShadowSubscription());
+        assertThrows(MqttException.class, () -> mqttSvc.IotShadowSubscription("Sensor"));
 
         // 3️⃣ 메서드 안에서 다시 interrupt() 했으므로 아직 true
         assertTrue(Thread.currentThread().isInterrupted());
@@ -203,7 +206,7 @@ class MqttServiceTest {
                 .subscribe(anyString(), anyInt(), any());            // subscribe 실패
 
         Thread.currentThread().interrupt();                          // retry sleep 직전 플래그 ON
-        assertThrows(MqttException.class, () -> mqttSvc.SensorShadowSubscription());
+        assertThrows(MqttException.class, () -> mqttSvc.IotShadowSubscription("Sensor"));
 
         // (옵션) subscribe 는 정확히 1번만 시도됨
         verify(mqtt, times(1)).subscribe(anyString(), anyInt(), any());
@@ -232,7 +235,7 @@ class MqttServiceTest {
 
         //        when(mqtt.subscribe(anyString(),any(),listener)).thenThrow(MqttException);
 //        assertThrows(MqttException.class, () -> mqttSvc.SensorShadowSubscription());
-        mqttSvc.SensorShadowSubscription();
+        mqttSvc.IotShadowSubscription("Sensor");
         // (옵션) subscribe 는 정확히 1번만 시도됨
         verify(mqtt, times(5)).subscribe(anyString(), anyInt(), any());
 

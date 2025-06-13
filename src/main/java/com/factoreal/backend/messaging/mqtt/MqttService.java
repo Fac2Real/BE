@@ -2,6 +2,8 @@ package com.factoreal.backend.messaging.mqtt;
 
 import com.factoreal.backend.domain.sensor.application.SensorService;
 import com.factoreal.backend.domain.sensor.dto.request.SensorCreateRequest;
+import com.factoreal.backend.domain.wearable.application.WearableRepoService;
+import com.factoreal.backend.domain.wearable.entity.Wearable;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
@@ -13,6 +15,10 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.List;
 
 @Slf4j
 @Component
@@ -20,15 +26,22 @@ import java.nio.charset.StandardCharsets;
 public class MqttService {
     private final MqttClient mqttClient;
     private final SensorService sensorService;
+    private final WearableRepoService wearableRepoService;
     private static final int MAX_RETRY_ATTEMPTS = 5;
     private static final long RETRY_DELAY_MS = 2000;
 
+
+    @PostConstruct
+    public void subscribeToShadowUpdates() throws MqttException {
+        for (String thingName : List.of("Sensor", "Wearable")) {
+            IotShadowSubscription(thingName);
+        }
+    }
     /**
-     * - 디바이스의 shadow 메타데이터 변경사항(등록/수정)을 구독
+     * - 센서의 shadow 메타데이터 변경사항(등록/수정)을 구독
      * @throws MqttException mqtt 연결에 실패시 MqttException 발생
      */
-    @PostConstruct
-    public void SensorShadowSubscription() throws MqttException {
+    public void IotShadowSubscription(String thingName) throws MqttException {
         int retryCount = 0;
         while (retryCount < MAX_RETRY_ATTEMPTS) {
             try {
@@ -38,9 +51,6 @@ public class MqttService {
                     mqttClient.reconnect();
                     Thread.sleep(RETRY_DELAY_MS);
                 }
-
-                // 🟢 구독할 Thing 설정
-                String thingName = "Sensor";
                 // #는 topic의 여러 level을 대체 가능, +는 topic의 단일 level을 대체 가능
                 String topic = "$aws/things/" + thingName + "/shadow/name/+/update/documents";
                 
@@ -53,25 +63,18 @@ public class MqttService {
                         JsonNode jsonNode = mapper.readTree(payload);
                         // mqtt에서 전달되는 뎁스를 따라가야함
                         JsonNode reported = jsonNode.at("/current/state/reported");
+                        Long epochSeconds = jsonNode.at("/timestamp").asLong(); // 예: "1749789746"
+
                         log.info("📥 MQTT 수신 (topic: {}): {}", t, jsonNode);
 
-                        String sensorId = reported.at("/sensorId").asText();
-                        String type = reported.at("/type").asText();
-                        String zoneId = reported.at("/zoneId").asText();
-                        /* ---------- equipId / equipName 처리 ---------- */
-                        String equipIdVal = reported.path("equipId").asText(null);   // 키가 없으면 null
-                        String equipId = (equipIdVal == null || equipIdVal.isBlank()) ? null : equipIdVal;
-
-                        if (zoneId.isBlank()) {
-                            log.error("❌ 유효하지 않은 zoneId: {}", zoneId);
-                            return;
+                        if ("Sensor".equals(thingName)) {
+                            processSensorPayload(reported, epochSeconds);
+                        } else if ("Wearable".equals(thingName)) {
+                            processWearablePayload(reported, epochSeconds);
+                        } else {
+                            log.warn("❓ 알 수 없는 thingName 수신: {}", thingName);
                         }
 
-                        Integer iszone = (equipId != null && equipId.equals(zoneId)) ? 1 : 0;
-
-                        SensorCreateRequest dto = new SensorCreateRequest(sensorId, type, zoneId, equipId, null, null, iszone);
-                        sensorService.saveSensor(dto); // 중복이면 예외 발생
-                        log.info("✅ 센서 저장 완료: {}", sensorId);
                     } catch (DataIntegrityViolationException e) {
                         log.warn("⚠️ 중복 센서 저장 시도 차단됨: {}", e.getMessage());
                     } catch (Exception e) {
@@ -100,5 +103,36 @@ public class MqttService {
                 throw new MqttException(MqttException.REASON_CODE_CLIENT_EXCEPTION);
             }
         }
+    }
+
+    private void processSensorPayload(JsonNode reported, Long epochTime) {
+        String sensorId = reported.at("/sensorId").asText();
+        String type = reported.at("/type").asText();
+        String zoneId = reported.at("/zoneId").asText();
+        /* ---------- equipId / equipName 처리 ---------- */
+        String equipIdVal = reported.path("equipId").asText(null);   // 키가 없으면 null
+        String equipId = (equipIdVal == null || equipIdVal.isBlank()) ? null : equipIdVal;
+
+        if (zoneId.isBlank()) {
+            log.error("❌ 유효하지 않은 zoneId: {}", zoneId);
+            return;
+        }
+
+        Integer iszone = (equipId != null && equipId.equals(zoneId)) ? 1 : 0;
+        LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochSecond(epochTime), ZoneId.systemDefault());
+        SensorCreateRequest dto = new SensorCreateRequest(sensorId, type, zoneId, equipId, null, null, iszone);
+        sensorService.saveSensor(dto, dateTime); // 중복이면 예외 발생
+        log.info("✅ 센서 저장 완료: {}", sensorId);
+    }
+
+    private void processWearablePayload(JsonNode reported, Long epochTime) throws MqttException {
+        String wearableId = reported.at("/wearableId").asText();
+        LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochSecond(epochTime), ZoneId.systemDefault());
+        Wearable wearable = Wearable.builder()
+            .wearableId(wearableId)
+            .createdAt(dateTime)
+            .build();
+
+        wearableRepoService.saveWearable(wearable);
     }
 }
