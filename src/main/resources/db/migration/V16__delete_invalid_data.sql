@@ -1,0 +1,1 @@
+DELETE FROM `my_database`.`sensor_info` WHERE  `sensor_id`='UA10H-HUM-24060892';

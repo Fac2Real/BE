@@ -32,12 +32,12 @@ public class ZoneHist {
 
     // FK: zone_id → zone_info
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "zone_id", referencedColumnName = "zone_id")
+    @JoinColumn(name = "zone_id", referencedColumnName = "zone_id",nullable = false)
     private Zone zone; // 공간 고유 ID
 
     // FK: worker_id → worker_info
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "worker_id", referencedColumnName = "worker_id")
+    @JoinColumn(name = "worker_id", referencedColumnName = "worker_id", nullable = false)
     private Worker worker; // 작업자 고유 ID
 
 }

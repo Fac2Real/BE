@@ -22,6 +22,6 @@ public class Wearable {
     @Column(name = "wearable_id", length = 100, nullable = false, unique = true)
     private String wearableId; // 웨어러블 고유 ID
 
-    @Column(name = "created_id", nullable = false)
-    private LocalDateTime createdId; // 웨어러블 생성 시간
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt; // 웨어러블 생성 시간
 }
