@@ -19,6 +19,7 @@ import org.testcontainers.shaded.com.fasterxml.jackson.core.JsonProcessingExcept
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.SerializationFeature;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -70,9 +71,9 @@ class SensorServiceTest {
         when(equipRepo.findById("E1")).thenReturn(equip());
         when(sensorRepo.save(any(Sensor.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
-
+        LocalDateTime now = LocalDateTime.now();
         // when
-        Sensor saved = sensorService.saveSensor(dto);
+        Sensor saved = sensorService.saveSensor(dto,now);
 
         // then
         assertThat(saved.getSensorId()).isEqualTo("S-1");
@@ -87,9 +88,9 @@ class SensorServiceTest {
 
         when(zoneRepo.findById("Z999"))
                 .thenThrow(new NotFoundException("Zone 없음"));
-
+        LocalDateTime now = LocalDateTime.now();
         assertThrows(NotFoundException.class,
-                () -> sensorService.saveSensor(dto));
+                () -> sensorService.saveSensor(dto,now));
     }
 
     /* ---------- 3) getAllSensors ---------- */
