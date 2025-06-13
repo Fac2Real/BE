@@ -46,7 +46,7 @@ public class AbnormalLog {
 
     // FK: zone_id → zone_info
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "zone_id", referencedColumnName = "zone_id")
+    @JoinColumn(name = "zone_id", referencedColumnName = "zone_id", nullable = false)
     private Zone zone; // 공간 고유 ID
 
     @Column(name = "is_read")

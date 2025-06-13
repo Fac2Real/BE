@@ -41,7 +41,7 @@ public class ControlLog {
 
     // Zone 연관 관계
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "zone_id", referencedColumnName = "zone_id")
+    @JoinColumn(name = "zone_id", referencedColumnName = "zone_id", nullable = false)
     private Zone zone;
 
 }
