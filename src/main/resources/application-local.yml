@@ -21,6 +21,9 @@ aws:
     listener:
       max-number-of-messages: 1 # 동시 처리 튜닝용
       wait-timeout : 5 # long-polling (초)
+    # 로컬 개발용 큐 URL
+    queue-url: ${SQS_QUEUE_URL_FOR_LOCAL}
+
 
 # 로컬에서 FastAPI가 돌고 있는 호스트:포트
 fastapi:
