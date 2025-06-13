@@ -55,10 +55,9 @@ public class MqttService {
                 String topic = "$aws/things/" + thingName + "/shadow/name/+/update/documents";
                 
                 mqttClient.subscribe(topic, 1, (t, msg) -> {
-                    String payload = new String(msg.getPayload(), StandardCharsets.UTF_8);
-
                     // JSON 파싱 및 DB 저장은 이후 구현 예정
                     try {
+                        String payload = new String(msg.getPayload(), StandardCharsets.UTF_8);
                         ObjectMapper mapper = new ObjectMapper();
                         JsonNode jsonNode = mapper.readTree(payload);
                         // mqtt에서 전달되는 뎁스를 따라가야함
@@ -66,7 +65,6 @@ public class MqttService {
                         Long epochSeconds = jsonNode.at("/timestamp").asLong(); // 예: "1749789746"
 
                         log.info("📥 MQTT 수신 (topic: {}): {}", t, jsonNode);
-
                         if ("Sensor".equals(thingName)) {
                             processSensorPayload(reported, epochSeconds);
                         } else if ("Wearable".equals(thingName)) {
@@ -121,7 +119,8 @@ public class MqttService {
         Integer iszone = (equipId != null && equipId.equals(zoneId)) ? 1 : 0;
         LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochSecond(epochTime), ZoneId.systemDefault());
         SensorCreateRequest dto = new SensorCreateRequest(sensorId, type, zoneId, equipId, null, null, iszone);
-        sensorService.saveSensor(dto, dateTime); // 중복이면 예외 발생
+        log.info("저장할 센서 데이터 : {} 시간: {}",dto, dateTime);
+        log.info("저장된 결과 : {}",sensorService.saveSensor(dto, dateTime)); // 중복이면 예외 발생
         log.info("✅ 센서 저장 완료: {}", sensorId);
     }
 
