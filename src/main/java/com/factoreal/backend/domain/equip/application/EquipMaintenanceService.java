@@ -62,7 +62,10 @@ public class EquipMaintenanceService {
         long daysUntilMaintenance = slackEquipAlarmService.getDaysUntilMaintenance(history.getAccidentDate());
 
         // 5. 응답 DTO 생성 및 반환
-        return LatestMaintenancePredictionResponse.fromEntity(equip, history, daysUntilMaintenance);
+        if (history.equals(latestUncheckedHistory.orElse(null))) { // 예상 점검일자에 대해 점검이 이루어 지지 않았다면 -> 점검 안됨.
+            return LatestMaintenancePredictionResponse.fromEntity(equip, history, daysUntilMaintenance,false);
+        } // 점검 기록이 있는 경우 -> 점검 됨.
+        return LatestMaintenancePredictionResponse.fromEntity(equip, history, daysUntilMaintenance,true);
     }
 
     /**
