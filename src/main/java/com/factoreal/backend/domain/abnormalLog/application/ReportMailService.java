@@ -42,8 +42,8 @@ public class ReportMailService {
     private final JavaMailSender mailSender;
     private final ControlLogRepoService controlLogRepoService;
 
-    @Scheduled(cron = "0 30 2 1 * *")   // ← 실운영용
-    public void sendMonthlyDetailReports() throws Exception {
+//    @Scheduled(cron = "0 30 2 1 * *")   // ← 실운영용
+public void sendMonthlyDetailReports() throws Exception {
 
         // 전체 존 목록 추출
         List<Zone> zones = zoneRepoService.findAll();
