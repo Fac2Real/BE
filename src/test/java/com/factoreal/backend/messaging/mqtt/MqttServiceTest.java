@@ -58,8 +58,8 @@ class MqttServiceTest {
         mqttSvc.IotShadowSubscription("Sensor");
 
         ArgumentCaptor<SensorCreateRequest> cap = ArgumentCaptor.forClass(SensorCreateRequest.class);
-        LocalDateTime now = LocalDateTime.now();
-        verify(sensorService).saveSensor(cap.capture(),now);
+        ArgumentCaptor<LocalDateTime> now = ArgumentCaptor.forClass(LocalDateTime.class);
+        verify(sensorService).saveSensor(cap.capture(),now.capture());
         SensorCreateRequest dto = cap.getValue();
 
         assertThat(dto.getEquipId()).isNull();
@@ -80,8 +80,8 @@ class MqttServiceTest {
         mqttSvc.IotShadowSubscription("Sensor");
 
         ArgumentCaptor<SensorCreateRequest> cap = ArgumentCaptor.forClass(SensorCreateRequest.class);
-        LocalDateTime now = LocalDateTime.now();
-        verify(sensorService).saveSensor(cap.capture(),now);
+        ArgumentCaptor<LocalDateTime> now = ArgumentCaptor.forClass(LocalDateTime.class);
+        verify(sensorService).saveSensor(cap.capture(),now.capture());
         assertThat(cap.getValue().getIsZone()).isEqualTo(1);
     }
 
