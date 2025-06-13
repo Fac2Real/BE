@@ -120,7 +120,7 @@ public class MqttService {
         LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochSecond(epochTime), ZoneId.systemDefault());
         SensorCreateRequest dto = new SensorCreateRequest(sensorId, type, zoneId, equipId, null, null, iszone);
         log.info("저장할 센서 데이터 : {} 시간: {}",dto, dateTime);
-        sensorService.saveSensor(dto, dateTime); // 중복이면 예외 발생
+        log.info("저장된 결과 : {}",sensorService.saveSensor(dto, dateTime)); // 중복이면 예외 발생
         log.info("✅ 센서 저장 완료: {}", sensorId);
     }
 
