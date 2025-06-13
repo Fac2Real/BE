@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.awspring.cloud.sqs.annotation.SqsListener;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.ArrayList;
@@ -21,9 +22,14 @@ public class S3EventSqsListener {
     private final EquipPredictProcessor equipPredictProcessor;
     private final ObjectMapper objectMapper;
 
+    // application-*.yml 에서 설정된 큐 URL 을 주입
+    @Value("${aws.sqs.queue-url}")
+    private String queueUrl;
+
+
     // ① 큐 이름 또는 Queue URL을 value 작성
     //   (Queue URL 을 쓰면 renaming 걱정 없음)
-    @SqsListener(value = "https://sqs.ap-northeast-2.amazonaws.com/853660505909/S3NewJsonEventAlert")
+    @SqsListener("${aws.sqs.queue-url}")
     public void handleMessage(String rawMessage) {
 
         log.info("📥 SQS 메시지 수신: {}", rawMessage);
