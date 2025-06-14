@@ -103,7 +103,7 @@ public class AbnormalController {
         return ResponseEntity.ok(reportService.buildLast30DaysReport());
     }
 
-    @Scheduled(cron = "0 0 18 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 0 17 * * *", zone = "Asia/Seoul")
     @GetMapping("/send-report")
     @Operation(summary = "공간 담당자들에게 이상치 리포트를 전송하는 테스트용 api", description = "메일 전송 체크를 위한 api")
     public ResponseEntity<Void> sendReport() throws Exception {
