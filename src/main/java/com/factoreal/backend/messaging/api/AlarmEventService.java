@@ -47,7 +47,7 @@ public class AlarmEventService {
             // TODO: 기타 처리 오류 처리
         }
     }
-
+    // 작업자의 alarmDto 생성 메서드
     public AlarmEventResponse generateAlarmDto(WearableKafkaDto data, AbnormalLog abnormalLog, RiskLevel riskLevel) {
         String source = "웨어러블";
 
@@ -58,7 +58,7 @@ public class AlarmEventService {
                 .equipId(abnormalLog.getZone().getZoneId())
                 .zoneId(abnormalLog.getZone().getZoneId())
                 .sensorType(WearableDataType.heartRate.toString())
-                .messageBody(abnormalLog.getAbnormalType()) // 이상에 대한 메세지
+                .messageBody("%s %s".formatted(abnormalLog.getTargetDetail(),abnormalLog.getAbnormalType())) // 작업자 OO수치 ㅁㅁbpm.
                 .source(source)
                 .time(data.getTime())
                 .riskLevel(riskLevel)
@@ -66,6 +66,7 @@ public class AlarmEventService {
                 .build();
     }
 
+    // 작업장 환경의 alarmdto 생성 메서드
     protected AlarmEventResponse generateAlarmDto(SensorKafkaDto data, AbnormalLog abnormalLog, RiskLevel riskLevel)
             throws Exception {
 
@@ -79,7 +80,7 @@ public class AlarmEventService {
                 .equipId(data.getEquipId())
                 .zoneId(data.getZoneId())
                 .sensorType(sensorType.name())
-                .messageBody(abnormalLog.getAbnormalType())
+                .messageBody("%s %s".formatted(abnormalLog.getTargetDetail(),abnormalLog.getAbnormalType())) // 예시) 온도센서 46.°C
                 .source(source)
                 .time(data.getTime())
                 .riskLevel(riskLevel)
