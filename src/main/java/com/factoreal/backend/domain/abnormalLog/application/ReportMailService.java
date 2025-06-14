@@ -4,14 +4,11 @@ import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailRespons
 import com.factoreal.backend.domain.abnormalLog.dto.response.reportDetailResponse.PeriodDetailReportResponse;
 import com.factoreal.backend.domain.controlLog.entity.ControlLog;
 import com.factoreal.backend.domain.controlLog.application.ControlLogRepoService;
-import com.factoreal.backend.domain.worker.application.WorkerManagerService;
 import com.factoreal.backend.domain.worker.application.WorkerService;
 import com.factoreal.backend.domain.worker.dto.response.WorkerInfoResponse;
-import com.factoreal.backend.domain.worker.dto.response.WorkerManagerResponse;
 import com.factoreal.backend.domain.zone.application.ZoneRepoService;
 import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.global.fileUtil.CsvUtil;
-// import com.factoreal.backend.global.fileUtil.Html2PdfUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
