@@ -223,6 +223,69 @@ class WorkerServiceTest {
             WorkerDetailResponse response = responses.get(0);
             assertThat(response.getEmail()).isNull();
         }
+        @Test
+        @DisplayName("zoneHistory 조회 실패 시 기본값 반환")
+        void getAllWorkers_WhenZoneHistoryThrows() {
+            // given
+            List<Worker> workers = List.of(worker);
+            given(workerRepoService.findAll()).willReturn(workers);
+            given(zoneHistoryRepoService.findByWorker_WorkerIdAndExistFlag(anyString(), anyInt()))
+                    .willThrow(new RuntimeException("DB down"));              // 예외 유도
+            given(workerZoneRepoService.findByWorker_WorkerId(workerId))
+                    .willReturn(List.of(workerZone));
+            given(workerZoneRepoService.findByWorkerWorkerIdAndManageYnIsTrue(workerId))
+                    .willReturn(Optional.empty());
+
+            // when
+            List<WorkerDetailResponse> result = workerService.getAllWorkers();
+
+            // then
+            WorkerDetailResponse dto = result.get(0);
+            assertThat(dto.getCurrentZoneId()).isEqualTo("00000000000000-000");
+            assertThat(dto.getCurrentZoneName()).isEqualTo("대기실");
+        }
+        @Test
+        @DisplayName("담당 구역이 있을 때 managedZones 채워짐")
+        void getAllWorkers_WhenManagerExists() {
+            // given
+            WorkerZone managerZone = WorkerZone.builder()
+                    .id(new WorkerZoneId(workerId, zoneId))
+                    .worker(worker)
+                    .zone(zone)
+                    .manageYn(true)
+                    .build();
+
+            given(workerRepoService.findAll()).willReturn(List.of(worker));
+            given(zoneHistoryRepoService.findByWorker_WorkerIdAndExistFlag(anyString(), anyInt()))
+                    .willReturn(zoneHist);
+            given(workerZoneRepoService.findByWorker_WorkerId(workerId))
+                    .willReturn(List.of(managerZone));                // access zones
+            given(workerZoneRepoService.findByWorkerWorkerIdAndManageYnIsTrue(workerId))
+                    .willReturn(Optional.of(managerZone));            // managed zone
+
+            // when
+            WorkerDetailResponse dto = workerService.getAllWorkers().get(0);
+
+            // then
+            assertThat(dto.getManagedZones()).hasSize(1);
+            assertThat(dto.getManagedZones().get(0).getZoneId()).isEqualTo(zoneId);
+        }
+        @Test
+        @DisplayName("DTO 변환 중 예외 시 기본값 반환")
+        void getAllWorkers_WhenConversionFails() {
+            // given: workerZoneRepoService 가 NullPointerException 유발
+            given(workerRepoService.findAll()).willReturn(List.of(worker));
+            given(workerZoneRepoService.findByWorker_WorkerId(workerId))
+                    .willThrow(new NullPointerException("mock npe"));
+
+            // when
+            WorkerDetailResponse dto = workerService.getAllWorkers().get(0);
+
+            // then
+            assertThat(dto.getAccessZones()).isEmpty();
+            assertThat(dto.getManagedZones()).isEmpty();
+            assertThat(dto.getCurrentZoneId()).isEqualTo("00000000000000-000");
+        }
     }
 
     @Nested
@@ -282,6 +345,7 @@ class WorkerServiceTest {
     class CreateWorkerTest {
 
         private CreateWorkerRequest request;
+        private Zone waitRoom;
 
         @BeforeEach
         void setUp() {
@@ -291,6 +355,11 @@ class WorkerServiceTest {
             request.setPhoneNumber(phoneNumber);
             request.setEmail(email);
             request.setZoneNames(Arrays.asList(zoneName));
+
+            waitRoom = Zone.builder()                      // 대기실 Zone 목 객체
+                    .zoneId("00000000000000-000")
+                    .zoneName("대기실")
+                    .build();
         }
 
         @Test
@@ -299,14 +368,15 @@ class WorkerServiceTest {
             // given
             given(workerRepoService.existsByWorkerId(workerId)).willReturn(false);
             given(workerRepoService.existsByPhoneNumber(phoneNumber)).willReturn(false);
-            given(zoneRepoService.findByZoneName(zoneName)).willReturn(zone);
+            given(zoneRepoService.findByZoneName(zoneName)).willReturn(zone);          // 생산 라인 A
+            given(zoneRepoService.findByZoneName("대기실")).willReturn(waitRoom);      // 대기실
 
             // when
             workerService.createWorker(request);
 
             // then
             verify(workerRepoService, times(1)).save(any(Worker.class));
-            verify(workerZoneRepoService, times(1)).save(any(WorkerZone.class));
+            verify(workerZoneRepoService, times(2)).save(any(WorkerZone.class));       // ✔ 1 → 2
             verify(zoneHistoryService, times(1))
                     .updateWorkerLocation(eq(workerId), eq("00000000000000-000"), any(LocalDateTime.class));
         }
@@ -336,38 +406,75 @@ class WorkerServiceTest {
             verify(workerRepoService, never()).save(any(Worker.class));
         }
 
+//        @Test
+//        @DisplayName("이메일이 null인 작업자 생성")
+//        void createWorker_WithNullEmail() {
+//            // given
+//            request.setEmail(null);
+//            given(workerRepoService.existsByWorkerId(workerId)).willReturn(false);
+//            given(workerRepoService.existsByPhoneNumber(phoneNumber)).willReturn(false);
+//            given(zoneRepoService.findByZoneName(zoneName)).willReturn(zone);
+//
+//            // when
+//            workerService.createWorker(request);
+//
+//            // then
+//            verify(workerRepoService, times(1)).save(any(Worker.class));
+//            verify(workerZoneRepoService, times(1)).save(any(WorkerZone.class));
+//        }
+//
+//        @Test
+//        @DisplayName("출입 가능 공간 목록이 비어있는 경우")
+//        void createWorker_WithEmptyZoneNames() {
+//            // given
+//            request.setZoneNames(List.of());
+//            given(workerRepoService.existsByWorkerId(workerId)).willReturn(false); // 존재하지 않음
+//            given(workerRepoService.existsByPhoneNumber(phoneNumber)).willReturn(false); // 존재하지 않음
+//            given(zoneRepoService.findByZoneName("대기실")).willReturn(waitRoom);
+//
+//            // when
+//            workerService.createWorker(request); // 새로운 작업자 생성
+//
+//            // then
+//            verify(workerRepoService, times(1)).save(any(Worker.class));
+//            verify(workerZoneRepoService, never()).save(any(WorkerZone.class));
+//        }
+        /* ① 이메일이 null인 작업자 생성 */
         @Test
-        @DisplayName("이메일이 null인 작업자 생성")
         void createWorker_WithNullEmail() {
             // given
             request.setEmail(null);
             given(workerRepoService.existsByWorkerId(workerId)).willReturn(false);
             given(workerRepoService.existsByPhoneNumber(phoneNumber)).willReturn(false);
             given(zoneRepoService.findByZoneName(zoneName)).willReturn(zone);
+            given(zoneRepoService.findByZoneName("대기실")).willReturn(waitRoom);   // ← 추가
 
             // when
             workerService.createWorker(request);
 
             // then
             verify(workerRepoService, times(1)).save(any(Worker.class));
-            verify(workerZoneRepoService, times(1)).save(any(WorkerZone.class));
+            verify(workerZoneRepoService, times(2)).save(any(WorkerZone.class));    // 1 → 2
         }
 
+        /* ② zoneNames 가 비어 있는 경우 */
         @Test
-        @DisplayName("출입 가능 공간 목록이 비어있는 경우")
         void createWorker_WithEmptyZoneNames() {
             // given
-            request.setZoneNames(List.of());
-            given(workerRepoService.existsByWorkerId(workerId)).willReturn(false); // 존재하지 않음
-            given(workerRepoService.existsByPhoneNumber(phoneNumber)).willReturn(false); // 존재하지 않음
+            request.setZoneNames(List.of());   // 불변 리스트
+            given(workerRepoService.existsByWorkerId(workerId)).willReturn(false);
+            given(workerRepoService.existsByPhoneNumber(phoneNumber)).willReturn(false);
+            given(zoneRepoService.findByZoneName("대기실")).willReturn(waitRoom);   // ← 필수
 
             // when
-            workerService.createWorker(request); // 새로운 작업자 생성
+            workerService.createWorker(request);
 
             // then
             verify(workerRepoService, times(1)).save(any(Worker.class));
-            verify(workerZoneRepoService, never()).save(any(WorkerZone.class));
+            verify(workerZoneRepoService, times(1)).save(any(WorkerZone.class));    // never → 1
         }
+
+
     }
 
     @Nested
