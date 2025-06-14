@@ -241,8 +241,14 @@ public class WorkerService {
 
         workerRepoService.save(worker); // 작업자 정보 저장
 
-        List<String> zoneNames = request.getZoneNames();
-        zoneNames.add("대기실");
+        /* 1. zoneNames 리스트를 생성해서 안전한 로직으로 추가하기 */
+        List<String> zoneNames = new ArrayList<>(
+                Optional.ofNullable(request.getZoneNames()).orElseGet(ArrayList::new)
+        );
+        if (!zoneNames.contains("대기실")) {
+            zoneNames.add("대기실");
+        }
+
         request.setZoneNames(zoneNames);
 
         // 2. 각 공간명으로 Zone 조회 및 WorkerZone 생성
