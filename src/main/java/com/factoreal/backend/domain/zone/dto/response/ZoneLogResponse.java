@@ -15,20 +15,20 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class ZoneLogResponse {
     private String zoneId;
-    private String targetType;
-    private String sensorType;
-    private int dangerLevel;
-    private double value;
-    private LocalDateTime timestamp;
-    private String abnormalType;
+    private String targetType; // 1. 대분류(한글) -> 환경, 설비, 작업자
+    private String sensorType; // 3. 대상
+    private int dangerLevel; // 2. 위험 레벨(세분류)
+    private double value; // 4. 측정값
+    private LocalDateTime timestamp; // 5. 발생 시각
+    private String abnormalType; // 4. 설명
     private String targetId;
 
     public static ZoneLogResponse fromEntity(AbnormalLog abnormalLog) {
         return ZoneLogResponse.builder()
                 .zoneId(abnormalLog.getZone().getZoneId())
                 .targetType(convertLogTypeToKorean(abnormalLog.getTargetType()))
-                .sensorType(abnormalLog.getTargetType().toString())
-                .dangerLevel(calculateDangerLevel(abnormalLog.getAbnormalType()))
+                .sensorType(abnormalLog.getTargetDetail())
+                .dangerLevel(abnormalLog.getDangerLevel())
                 .value(abnormalLog.getAbnVal())
                 .timestamp(abnormalLog.getDetectedAt())
                 .abnormalType(abnormalLog.getAbnormalType())

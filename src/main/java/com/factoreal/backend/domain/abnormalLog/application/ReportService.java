@@ -279,6 +279,7 @@ public class ReportService {
                 l.getId(),
                 l.getDangerLevel(),
                 l.getAbnormalType(),
+                l.getTargetDetail(),
                 l.getAbnVal(),
                 l.getDetectedAt(),
                 c == null

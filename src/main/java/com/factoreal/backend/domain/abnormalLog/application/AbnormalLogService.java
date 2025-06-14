@@ -5,11 +5,11 @@ import com.factoreal.backend.domain.abnormalLog.dto.request.AbnormalPagingReques
 import com.factoreal.backend.domain.abnormalLog.dto.response.AbnormalLogResponse;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.domain.equip.entity.Equip;
-import com.factoreal.backend.domain.sensor.application.SensorRepoService;
-import com.factoreal.backend.domain.sensor.dao.SensorRepository;
 import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
 import com.factoreal.backend.domain.sensor.entity.Sensor;
 import com.factoreal.backend.domain.state.store.InMemoryZoneWorkerStateStore;
+import com.factoreal.backend.domain.worker.application.WorkerRepoService;
+import com.factoreal.backend.domain.worker.entity.Worker;
 import com.factoreal.backend.domain.zone.application.ZoneRepoService;
 import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.messaging.kafka.dto.WearableKafkaDto;
@@ -29,7 +29,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -40,8 +42,7 @@ public class AbnormalLogService {
     private final ObjectMapper objectMapper;
     private final ZoneRepoService zoneRepoService;
     private final InMemoryZoneWorkerStateStore zoneWorkerStateStore;
-    private final SensorRepository sensorRepository;
-    private final SensorRepoService sensorRepoService;
+    private final WorkerRepoService workerRepoService;
 
     /**
      * 센서 데이터 기반의 알람 로그 생성.
@@ -75,7 +76,8 @@ public class AbnormalLogService {
         AbnormalLog abnormalLog = AbnormalLog.builder()
                 .targetId(sensorKafkaDto.getSensorId())
                 .targetType(targetType)
-                .abnormalType(riskMessageProvider.getRiskMessageBySensor(sensorType, riskLevel))
+                .targetDetail(sensorType.getKoName())
+                .abnormalType(riskMessageProvider.getRiskMessageBySensor(sensorType, riskLevel, sensorKafkaDto.getVal()))
                 .abnVal(sensorKafkaDto.getVal())
                 .dangerLevel(riskLevel.getPriority())
                 .zone(zone)
@@ -104,11 +106,13 @@ public class AbnormalLogService {
     ) {
         // workerId에 해당되는 사람이 제일 최근에 있던 공간 조회
         Zone zone = zoneRepoService.findById(zoneWorkerStateStore.getZoneId(wearableKafkaDto.getWorkerId()));
+        Worker worker = workerRepoService.findById(wearableKafkaDto.getWorkerId());
 
         AbnormalLog abnormalLog = AbnormalLog.builder()
                 .targetId(wearableKafkaDto.getWorkerId())
                 .targetType(targetType)
-                .abnormalType(riskMessageProvider.getRiskMessageByWearble(wearableDataType, riskLevel))
+                .targetDetail(worker.getName())
+                .abnormalType(riskMessageProvider.getRiskMessageByWearble(wearableDataType, riskLevel, wearableKafkaDto.getVal()))
                 .abnVal(Double.valueOf(wearableKafkaDto.getVal()))
                 .detectedAt(LocalDateTime.parse(wearableKafkaDto.getTime()))
                 .dangerLevel(riskLevel.getPriority())
@@ -188,7 +192,7 @@ public class AbnormalLogService {
         AbnormalLog abnormalLog = AbnormalLog.builder()
                 .targetId(dto.getSensorId())
                 .targetType(TargetType.Sensor)
-                .abnormalType(riskMessageProvider.getRiskMessageBySensor(sensor.getSensorType(), riskLevel))
+                .abnormalType(riskMessageProvider.getRiskMessageBySensor(sensor.getSensorType(), riskLevel, dto.getVal()))
                 .abnVal(dto.getVal())
                 .zone(sensor.getZone())
                 .detectedAt(LocalDateTime.parse(dto.getTime()))

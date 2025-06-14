@@ -9,14 +9,15 @@ import java.util.stream.Collectors;
 
 @Getter
 public enum RiskLevel {
-    INFO(0),
-    WARNING(1),    // 주의 단계
-    CRITICAL(2);    // 위험 단계
+    INFO(0,"정상"),
+    WARNING(1,"주의"),    // 주의 단계
+    CRITICAL(2,"위험");    // 위험 단계
     private final int priority;
-    RiskLevel(int priority) {
+    private final String koName;
+    RiskLevel(int priority, String koName) {
         this.priority = priority;
+        this.koName = koName;
     }
-
     public static List<RiskLevel> getUpTo(RiskLevel level){
         return Arrays.stream(values())
                 .filter(risklevel -> risklevel.priority <= level.getPriority())

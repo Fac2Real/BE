@@ -1,5 +1,6 @@
 package com.factoreal.backend.messaging.api;
 
+import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.domain.zone.application.ZoneRepoService;
 import com.factoreal.backend.domain.zone.application.ZoneService;
@@ -55,8 +56,10 @@ class AlarmEventServiceTest {
 
         abnormalLog = AbnormalLog.builder()
             .id(1L)
-            .abnormalType("온도 과열")
+            .abnormalType("35도")
             .targetId("sensor-01")
+            .targetType(TargetType.Sensor)
+            .targetDetail("온도 센서")
             .zone(zone)
             .build();
 
@@ -111,9 +114,9 @@ class AlarmEventServiceTest {
         assertNotNull(result);
         assertEquals("sensor-01", result.getSensorId());
         assertEquals("equip-02", result.getEquipId());
-        assertEquals("zone-001", result.getZoneId());
+        assertEquals("제어구역", result.getZoneName());
         assertEquals("temp", result.getSensorType()); // enum의 name()으로 저장됨
-        assertEquals("온도 과열", result.getMessageBody());
+        assertEquals("온도 센서 35도", result.getMessageBody());
         assertEquals("설비 센서", result.getSource());
         assertEquals("제어구역", result.getZoneName());
         assertEquals(RiskLevel.CRITICAL, result.getRiskLevel());
@@ -137,7 +140,7 @@ class AlarmEventServiceTest {
         assertEquals("wearable-001", result.getSensorId());
         assertEquals("zone-001", result.getEquipId());
         assertEquals(WearableDataType.heartRate.name(), result.getSensorType()); // enum의 name()으로 저장됨
-        assertEquals("온도 과열", result.getMessageBody());
+        assertEquals("온도 센서 35도", result.getMessageBody());
         assertEquals("웨어러블", result.getSource());
         assertEquals("제어구역", result.getZoneName());
         assertEquals(RiskLevel.CRITICAL, result.getRiskLevel());

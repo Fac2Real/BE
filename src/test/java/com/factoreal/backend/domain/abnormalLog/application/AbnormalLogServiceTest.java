@@ -11,6 +11,8 @@ import com.factoreal.backend.domain.sensor.application.SensorRepoService;
 import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
 import com.factoreal.backend.domain.sensor.entity.Sensor;
 import com.factoreal.backend.domain.state.store.InMemoryZoneWorkerStateStore;
+import com.factoreal.backend.domain.worker.application.WorkerRepoService;
+import com.factoreal.backend.domain.worker.entity.Worker;
 import com.factoreal.backend.domain.zone.application.ZoneRepoService;
 import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.global.exception.dto.NotFoundException;
@@ -20,6 +22,7 @@ import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
 import com.factoreal.backend.messaging.kafka.strategy.enums.SensorType;
 import com.factoreal.backend.messaging.kafka.strategy.enums.WearableDataType;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.hibernate.jdbc.Work;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -68,6 +71,9 @@ class AbnormalLogServiceTest {
     private SensorRepository sensorRepository;
 
     @Mock
+    private WorkerRepoService workerRepoService;
+
+    @Mock
     private SensorRepoService sensorRepoService;
 
     private SensorKafkaDto sensorKafkaDto;
@@ -78,6 +84,7 @@ class AbnormalLogServiceTest {
     private Sensor sensor;
     private AbnormalPagingRequest pagingRequest;
     private List<AbnormalLogResponse> abnormalLogResponses;
+    private Worker worker;
 
     @BeforeEach
     void setUp() {
@@ -92,6 +99,11 @@ class AbnormalLogServiceTest {
             .sensorId("SENSOR001")
             .zone(zone)
             .sensorType(SensorType.temp)
+            .build();
+
+        worker = Worker.builder()
+            .workerId("WORKER001")
+            .name("아무개")
             .build();
 
         // 센서 카프카 DTO 설정
@@ -112,7 +124,8 @@ class AbnormalLogServiceTest {
             .id(1L)
             .targetType(TargetType.Sensor)
             .targetId("SENSOR001")
-            .abnormalType("온도 위험")
+            .abnormalType("35도")
+            .targetDetail("온도 센서")
             .abnVal(35.5)
             .dangerLevel(2)
             .detectedAt(LocalDateTime.now())
@@ -140,7 +153,7 @@ class AbnormalLogServiceTest {
             // given
 //            when(sensorRepository.findById(anyString())).thenReturn(Optional.of(sensor));
             when(zoneRepoService.findById(anyString())).thenReturn(zone);
-            when(riskMessageProvider.getRiskMessageBySensor(any(), any())).thenReturn("온도 위험");
+            when(riskMessageProvider.getRiskMessageBySensor(any(), any(),any())).thenReturn("온도 위험");
             when(abnormalLogRepoService.save(any(AbnormalLog.class))).thenReturn(savedLog);
 
             // when
@@ -186,9 +199,10 @@ class AbnormalLogServiceTest {
         void saveAbnormalLogFromWearableKafkaDto_success() {
             // given
             when(zoneRepoService.findById(anyString())).thenReturn(zone);
-            when(riskMessageProvider.getRiskMessageByWearble(any(), any())).thenReturn("심박수 위험");
+            when(riskMessageProvider.getRiskMessageByWearble(any(), any(), any())).thenReturn("심박수 위험");
             when(abnormalLogRepoService.save(any(AbnormalLog.class))).thenReturn(savedLog);
             when(inmemoryZoneWorkerStateStore.getZoneId(anyString())).thenReturn(zone.getZoneId());
+            when(workerRepoService.findById(any())).thenReturn(worker);
             // when
             AbnormalLog result = abnormalLogService.saveAbnormalLogFromWearableKafkaDto(
                 wearableKafkaDto,
@@ -252,7 +266,7 @@ class AbnormalLogServiceTest {
         // then
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
-        assertEquals("온도 위험", result.getContent().get(0).getAbnormalType());
+        assertEquals("온도 센서 35도", result.getContent().get(0).getAbnormalType());
     }
 
     @Test
@@ -341,7 +355,7 @@ class AbnormalLogServiceTest {
 //        when(sensor.getZone()).thenReturn(zone);
 
         // riskMessageProvider 모킹 추가
-        when(riskMessageProvider.getRiskMessageBySensor(any(SensorType.class), any(RiskLevel.class)))
+        when(riskMessageProvider.getRiskMessageBySensor(any(SensorType.class), any(RiskLevel.class), any()))
             .thenReturn(abnormalTypeMessage);
 
 //        when(zoneRepoService.findById(anyString())).thenReturn(zone);
@@ -357,7 +371,7 @@ class AbnormalLogServiceTest {
         assertEquals(2, result.getDangerLevel());
 
         // 추가 검증
-        verify(riskMessageProvider, times(1)).getRiskMessageBySensor(eq(sensorType), any(RiskLevel.class));
+        verify(riskMessageProvider, times(1)).getRiskMessageBySensor(eq(sensorType), any(RiskLevel.class), any());
         verify(abnormalLogRepoService, times(1)).save(any(AbnormalLog.class));
     }
 

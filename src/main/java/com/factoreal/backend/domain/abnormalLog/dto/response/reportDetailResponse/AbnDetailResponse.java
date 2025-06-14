@@ -13,6 +13,7 @@ public class AbnDetailResponse {
     private Long abnormalId;
     private Integer dangerLevel;
     private String abnormalType;
+    private String targetDetail;
     private Double abnVal;
     private LocalDateTime detectedAt;
     private ControlInfoResponse control;  // null = 미대응

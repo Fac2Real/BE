@@ -30,9 +30,13 @@ public class AbnormalLog {
     @Column(name = "target_id", length = 100)
     private String targetId; // 고유 ID : 센서ID, WorkerID, EquipID
 
+    @Column(name = "target_detail", length = 100)
+    private String targetDetail; // 고유 명 : 작업자명, 센서타입(환경, 설비)
+
     @Column(name = "abnormal_type", length = 100)
     private String abnormalType; // 이상 유형 : (예: 심박수 위험, 온도 초과 위험, 진동 주의 등)
                                  // 이상은 위험과 주의로 구분이 애매하므로 명확한 표현 필요
+                                // 기존에서 (값) + 수치로만 변경됨
 
     @Column(name = "abn_val")
     private Double abnVal; // 이상치 값
@@ -58,9 +62,10 @@ public class AbnormalLog {
             .id(this.getId())
             .targetType(this.getTargetType())
             .targetId(this.getTargetId())
-            .abnormalType(this.getAbnormalType())
+            .abnormalType("%s %s".formatted(this.getTargetDetail(),this.getAbnormalType())) // 문자열을 포매팅해서 반환하도록 변경
             .abnVal(this.getAbnVal())
             .detectedAt(this.getDetectedAt())
+            .dangerLevel(this.getDangerLevel())
             .zoneId(this.getZone().getZoneId())
             .zoneName(this.getZone().getZoneName())
             .build();
