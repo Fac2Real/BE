@@ -2,7 +2,6 @@ package com.factoreal.backend.messaging.kafka.processor;
 
 import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogRepoService;
 import com.factoreal.backend.domain.abnormalLog.application.AbnormalLogService;
-import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.domain.sensor.application.SensorRepoService;
 import com.factoreal.backend.domain.sensor.dto.SensorKafkaDto;
@@ -14,6 +13,7 @@ import com.factoreal.backend.domain.state.store.ZoneWorkerStateStore;
 import com.factoreal.backend.domain.zone.application.ZoneRepoService;
 import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.global.exception.dto.NotFoundException;
+import com.factoreal.backend.messaging.kafka.strategy.alarmMessage.RiskMessageProvider;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
 import com.factoreal.backend.messaging.kafka.strategy.enums.SensorType;
 import com.factoreal.backend.messaging.kafka.strategy.enums.WearableDataType;
@@ -22,13 +22,9 @@ import com.factoreal.backend.messaging.api.AlarmEventService;
 import com.factoreal.backend.messaging.api.AutoControlService;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.function.Executable;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Optional;
-
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -48,11 +44,12 @@ class SensorEventProcessorTest {
     ZoneWorkerStateStore workerStateStore = new InMemoryZoneWorkerStateStore();
     SensorEventProcessor processor;
     ZoneRepoService zoneRepoService = mock(ZoneRepoService.class);
+    RiskMessageProvider riskMessageProvider = mock(RiskMessageProvider.class);
 
     @BeforeEach
     void setUp() {
         processor = new SensorEventProcessor(
-                auto, abnormalSvc, repoSvc, alarmSvc, ws, store, workerStateStore, zoneRepoService,sensorRepoService);
+                auto, abnormalSvc, repoSvc, alarmSvc, ws, store, workerStateStore, zoneRepoService, sensorRepoService, riskMessageProvider);
     }
 
     @Test
@@ -71,10 +68,12 @@ class SensorEventProcessorTest {
         dto.setEquipId(zoneId);          // ENVIRONMENT 토픽 조건
         dto.setSensorType("temp");       // use literal matching expected code
         dto.setDangerLevel(2);           // CRITICAL
+        dto.setTime("2025-06-16T00:00:00");
 
         // saveAbnormalLog stub
-        when(abnormalSvc.saveAbnormalLogFromSensorKafkaDto(
-                any(), any(), any(), any()))
+        when(zoneRepoService.findById(zoneId)).thenReturn(mock(Zone.class));
+        when(sensorRepoService.findById(sensorId)).thenReturn(mock(Sensor.class));
+        when(abnormalSvc.saveAbnormalLog(any(AbnormalLog.class)))
                 .thenReturn(mock(AbnormalLog.class));
 
         // ── act ───────────────────────────────────────────────
@@ -82,8 +81,7 @@ class SensorEventProcessorTest {
 
         // ── assert ────────────────────────────────────────────
         // 1) 위험도 변경 → saveAbnormalLog 호출
-        verify(abnormalSvc).saveAbnormalLogFromSensorKafkaDto(
-                eq(dto), eq(SensorType.temp), eq(RiskLevel.CRITICAL), eq(TargetType.Sensor));
+        verify(abnormalSvc).saveAbnormalLog(any(AbnormalLog.class));
 
         // 2) startAlarm 호출
         verify(alarmSvc).startAlarm(eq(dto), any(AbnormalLog.class), eq(2));
@@ -94,7 +92,7 @@ class SensorEventProcessorTest {
 
     @Nested
     @DisplayName("process 메서드 테스트")
-    class processTest{
+    class processTest {
         @Test
         @DisplayName("case1. Zone이 잘못된 경우")
         void processFailedZoneNotExist() {
@@ -111,10 +109,10 @@ class SensorEventProcessorTest {
 
             // Zone이 존재하지 않도록 설정
             when(zoneRepoService.findById(zoneId))
-                .thenThrow(new NotFoundException("공간을 찾을 수 없습니다: " + zoneId));
+                    .thenThrow(new NotFoundException("공간을 찾을 수 없습니다: " + zoneId));
 
             // Act & Assert
-            processor.process(dto,"ENVIRONMENT");
+            processor.process(dto, "ENVIRONMENT");
 
 
             // Verify (존재하지 않는 Zone에 대해 다른 메서드 호출이 없어야 함)
@@ -138,12 +136,12 @@ class SensorEventProcessorTest {
 
             // Zone은 유효하지만 Sensor가 존재하지 않도록 설정
             when(zoneRepoService.findById(zoneId))
-                .thenReturn(mock(Zone.class)); // Zone은 조회됨
+                    .thenReturn(mock(Zone.class)); // Zone은 조회됨
             when(sensorRepoService.findById(sensorId))
-                .thenThrow(new NotFoundException("센서를 찾을 수 없습니다: " + sensorId));
+                    .thenThrow(new NotFoundException("센서를 찾을 수 없습니다: " + sensorId));
 
             // Act & Assert
-            processor.process(dto,"ENVIRONMENT");
+            processor.process(dto, "ENVIRONMENT");
 
 
             // Verify (Sensor 관련 호출 확인)
@@ -171,9 +169,9 @@ class SensorEventProcessorTest {
 
             // Zone과 Sensor는 유효함
             when(zoneRepoService.findById(zoneId))
-                .thenReturn(mock(Zone.class));
+                    .thenReturn(mock(Zone.class));
             when(sensorRepoService.findById(sensorId))
-                .thenReturn(mock(Sensor.class));
+                    .thenReturn(mock(Sensor.class));
             when(repoSvc.countByIsReadFalse()).thenReturn(3L);
             // Act
             processor.process(dto, "ENVIRONMENT");
@@ -184,7 +182,7 @@ class SensorEventProcessorTest {
             assertThat(store.getSensorRiskLevel(zoneId, sensorId)).isEqualTo(RiskLevel.WARNING);
 
             // Verify (알람 및 로그 변경 호출 없음)
-            verifyNoInteractions(abnormalSvc, alarmSvc,auto);
+            verifyNoInteractions(abnormalSvc, alarmSvc, auto);
 
             // Verify (webSocketSender)는 안읽은 알람 수 전송을 위해 호출
             verify(ws).sendUnreadCount(3L);
@@ -192,7 +190,7 @@ class SensorEventProcessorTest {
 
         @Test
         @DisplayName("case4. Environment 토픽이지만 equip과 zone id가 다른 경우")
-        void processEnvironMentButEquipIdNEQZoneId(){
+        void processEnvironMentButEquipIdNEQZoneId() {
             // Arrange
             String zoneId = "Z1";
             String equipId = "E1";
@@ -204,22 +202,22 @@ class SensorEventProcessorTest {
             dto.setEquipId(equipId);          // ENVIRONMENT 토픽 조건
             dto.setSensorType("temp");       // 센서 타입
             dto.setDangerLevel(2);           // CRITICAL
-            processor.process(dto,"ENVIRONMENT");
-            verifyNoInteractions(ws,abnormalSvc,auto,alarmSvc);
+            processor.process(dto, "ENVIRONMENT");
+            verifyNoInteractions(ws, abnormalSvc, auto, alarmSvc);
         }
 
         @Test
         @DisplayName("case5. 존의 현재 Sensor 위험도가 이전 Sensor 위험보다 작은 경우")
-        void processCurrentDangerLevelLowerThanBefore(){
+        void processCurrentDangerLevelLowerThanBefore() {
             // Arrange
             String zoneId = "Z1";
             String sensorId = "S1";
             Sensor sensor = Sensor.builder()
-                .sensorType(SensorType.humid)
-                .build();
+                    .sensorType(SensorType.humid)
+                    .build();
             // 기존 센서 상태: WARNING(1)
             store.setSensorRiskLevel(zoneId, sensorId, RiskLevel.CRITICAL);
-
+            when(zoneRepoService.findById(zoneId)).thenReturn(mock(Zone.class));
             when(sensorRepoService.findById(anyString())).thenReturn(sensor);
 
             SensorKafkaDto dto = new SensorKafkaDto();
@@ -228,26 +226,27 @@ class SensorEventProcessorTest {
             dto.setEquipId(zoneId);          // ENVIRONMENT 토픽 조건
             dto.setSensorType("temp");       // 센서 타입
             dto.setDangerLevel(1);           // CRITICAL
-            processor.process(dto,"ENVIRONMENT");
+            processor.process(dto, "ENVIRONMENT");
 
             verify(ws).sendDangerLevel(
-                zoneId,SensorType.humid.name(),1
+                    zoneId, SensorType.humid.name(), 1
             );
         }
 
         @Test
         @DisplayName("case6. 존의 현재 Sensor 위험도가 Worker 위험도보다 작고, 과거 Sensor 위험도 ...")
-        void processSensorLTWorkerPastBig(){
+        void processSensorLTWorkerPastBig() {
             // Arrange
             String zoneId = "Z1";
             String sensorId = "S1";
             String workerId = "W1";
             Sensor sensor = Sensor.builder()
-                .sensorType(SensorType.humid)
-                .build();
+                    .sensorType(SensorType.humid)
+                    .build();
             // 기존 센서 상태: WARNING(1)
             store.setSensorRiskLevel(zoneId, sensorId, RiskLevel.CRITICAL);
             workerStateStore.setWorkerRiskLevel(zoneId, workerId, RiskLevel.CRITICAL);
+            when(zoneRepoService.findById(zoneId)).thenReturn(mock(Zone.class));
             when(sensorRepoService.findById(anyString())).thenReturn(sensor);
 
             SensorKafkaDto dto = new SensorKafkaDto();
@@ -256,10 +255,10 @@ class SensorEventProcessorTest {
             dto.setEquipId(zoneId);          // ENVIRONMENT 토픽 조건
             dto.setSensorType("temp");       // 센서 타입
             dto.setDangerLevel(1);           // CRITICAL
-            processor.process(dto,"ENVIRONMENT");
+            processor.process(dto, "ENVIRONMENT");
 
             verify(ws).sendDangerLevel(
-                zoneId, WearableDataType.heartRate.name(),2
+                    zoneId, WearableDataType.heartRate.name(), 2
             );
         }
     }

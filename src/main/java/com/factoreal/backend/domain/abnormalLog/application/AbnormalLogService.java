@@ -55,7 +55,6 @@ public class AbnormalLogService {
      * @throws Exception
      */
     @Transactional(rollbackFor = Exception.class)
-
     public AbnormalLog saveAbnormalLogFromSensorKafkaDto(
             SensorKafkaDto sensorKafkaDto,
             SensorType sensorType,
@@ -202,6 +201,11 @@ public class AbnormalLogService {
         return abnormalLogRepoService.save(abnormalLog);
     }
 
+    @Transactional(rollbackFor = Exception.class)
+    public AbnormalLog saveAbnormalLog(AbnormalLog abnormalLog) {
+        return abnormalLogRepoService.save(abnormalLog);
+    }
+
     private Pageable getPageable(AbnormalPagingRequest abnormalPagingRequest) {
         return PageRequest.of(
                 abnormalPagingRequest.getPage(),
@@ -210,9 +214,10 @@ public class AbnormalLogService {
 
     /**
      * 설비 예측 기반 이상 로그 저장
-     * @param zone 공간 엔티티
-     * @param equip 설비 엔티티
-     * @param remainDays 계산된 잔존 수명(일)
+     *
+     * @param zone        공간 엔티티
+     * @param equip       설비 엔티티
+     * @param remainDays  계산된 잔존 수명(일)
      * @param dangerLevel 위험 레벨 (1 또는 2)
      */
     @Transactional
