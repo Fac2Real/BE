@@ -23,6 +23,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
@@ -52,6 +54,7 @@ public class SensorEventProcessor {
      * @param dto   센서 데이터
      * @param topic Kafka 토픽명 (EQUIPMENT, ENVIRONMENT)
      */
+    @Transactional
     public void process(SensorKafkaDto dto, String topic) {
         try {
             String zoneId = dto.getZoneId();
