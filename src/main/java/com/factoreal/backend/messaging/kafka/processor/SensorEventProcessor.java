@@ -138,17 +138,18 @@ public class SensorEventProcessor {
                             .detectedAt(LocalDateTime.parse(dto.getTime()))
                             .isRead(false)
                             .build();
+                    // 2-1. 이상 로그 저장
+                    AbnormalLog abnLog = abnormalLogService.saveAbnormalLog(abnormalLog);
 
-                    // 2-1. 위험 알림 전송 -> 위험도별 Websocket + wearable + Slack(SMS 대체)
+                    // 2-2. 위험 알림 전송 -> 위험도별 Websocket + wearable + Slack(SMS 대체)
                     // Todo : (As-is) 전략 기반 startAlarm() 메서드 담당자 확인 필요 -> 확인됨
-                    alarmEventService.startAlarm(dto, abnormalLog, dangerLevel);
+                    alarmEventService.startAlarm(dto, abnLog, dangerLevel);
 
-                    // 2-2. 이상 로그 저장
-                    abnormalLogService.saveAbnormalLog(abnormalLog);
+
 
                     // 2-3. 자동 제어 메시지 판단
                     try {
-                        autoControlService.evaluate(dto, abnormalLog, dangerLevel);
+                        autoControlService.evaluate(dto, abnLog, dangerLevel);
                     } catch (Exception e) {
                         log.info("자동 제어 기능은 제작중인 기능입니다. Todo 입니다.");
                     }
