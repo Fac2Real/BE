@@ -6,11 +6,15 @@ import com.factoreal.backend.domain.abnormalLog.dto.TargetType;
 import com.factoreal.backend.domain.abnormalLog.entity.AbnormalLog;
 import com.factoreal.backend.domain.state.store.ZoneSensorStateStore;
 import com.factoreal.backend.domain.state.store.ZoneWorkerStateStore;
+import com.factoreal.backend.domain.worker.application.WorkerRepoService;
+import com.factoreal.backend.domain.worker.entity.Worker;
 import com.factoreal.backend.domain.zone.application.ZoneHistoryRepoService;
 import com.factoreal.backend.domain.zone.application.ZoneHistoryService;
+import com.factoreal.backend.domain.zone.application.ZoneRepoService;
 import com.factoreal.backend.domain.zone.entity.Zone;
 import com.factoreal.backend.domain.zone.entity.ZoneHist;
 import com.factoreal.backend.messaging.kafka.dto.WearableKafkaDto;
+import com.factoreal.backend.messaging.kafka.strategy.alarmMessage.RiskMessageProvider;
 import com.factoreal.backend.messaging.kafka.strategy.enums.AlarmEventResponse;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
 import com.factoreal.backend.messaging.kafka.strategy.enums.WearableDataType;
@@ -18,7 +22,9 @@ import com.factoreal.backend.messaging.sender.WebSocketSender;
 import com.factoreal.backend.messaging.api.AlarmEventService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -39,6 +45,9 @@ public class WearableEventProcessor {
     private final ZoneHistoryService zoneHistoryService;
     private final ZoneHistoryRepoService zoneHistoryRepoService;
     private final ZoneSensorStateStore zoneSensorStateStore;
+    private final ZoneRepoService zoneRepoService;
+    private final WorkerRepoService workerRepoService;
+    private final RiskMessageProvider riskMessageProvider;
     private static final String DEFAULT_ZONE_ID = "00000000000000-000";
 
     /**
@@ -57,6 +66,10 @@ public class WearableEventProcessor {
             WearableDataType wearableDataType = WearableDataType.getWearableType(dto.getSensorType());
             RiskLevel riskLevel = RiskLevel.fromPriority(dangerLevel);
             String workerId = dto.getWorkerId();
+            if (workerId == null || workerId.isBlank()) {
+                log.warn("⚠️ 유효하지 않은 workerId: null 또는 빈 문자열");
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "유효하지 않은 workerId");
+            }
             String zoneId = Optional.ofNullable(zoneWorkerStateStore.getZoneId(workerId))
                     .or(() ->
                             Optional.ofNullable(zoneHistoryRepoService.getCurrentWorkerLocation(workerId))
@@ -66,6 +79,14 @@ public class WearableEventProcessor {
                         zoneHistoryService.updateWorkerLocation(workerId, DEFAULT_ZONE_ID, LocalDateTime.now());
                         return zoneWorkerStateStore.getZoneId(workerId);
                     });
+
+            Zone zone = zoneRepoService.findById(zoneId);
+            Worker worker = workerRepoService.findById(workerId);
+            if (zone == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 공간 ID: " + zoneId);
+            } else if (worker == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 워커 ID: " + workerId);
+            }
 
             // 이전 위험도 계산
             RiskLevel prevZoneWorkerRiskLevel = zoneWorkerStateStore.getZoneRiskLevel(zoneId);
@@ -104,18 +125,28 @@ public class WearableEventProcessor {
 
             // 이벤트 Worker에 대한 RiskLevel이 변경되면
             if (prevWorkerRiskLevel.getPriority() != riskLevel.getPriority()) {
-                // 2-1. abnormalLog 기록
-                AbnormalLog abnormalLog = abnormalLogService.saveAbnormalLogFromWearableKafkaDto(
-                        dto, wearableDataType, riskLevel, TargetType.Worker
-                );
+                // abnormalLog 빌드
+                AbnormalLog abnormalLog = AbnormalLog.builder()
+                        .targetId(workerId)
+                        .targetType(TargetType.Worker)
+                        .targetDetail(worker.getName())
+                        .abnormalType(riskMessageProvider.getRiskMessageByWearble(wearableDataType, riskLevel, dto.getVal()))
+                        .abnVal(Double.valueOf(dto.getVal()))
+                        .detectedAt(LocalDateTime.parse(dto.getTime()))
+                        .dangerLevel(riskLevel.getPriority())
+                        .zone(zone)
+                        .isRead(false)
+                        .build();
 
-                // 2-2. 상세 화면으로 웹소켓 보내는 것을 생략
-                // 3. 위험 알림 전송 -> 팝업으로 알려주기
+                // 2-1. 위험 알림 전송 -> 팝업으로 알려주기
                 AlarmEventResponse alarmEventResponse = alarmEventService.generateAlarmDto(dto, abnormalLog, riskLevel);
                 webSocketSender.sendDangerAlarm(alarmEventResponse);
+
+                // 2-2. abnormalLog 기록
+                abnormalLogService.saveAbnormalLog(abnormalLog);
             }
 
-            // 4. 읽지 않은 알림 전송
+            // 3. 읽지 않은 알림 전송
             Long count = abnormalLogRepoService.countByIsReadFalse();
             webSocketSender.sendUnreadCount(count);
 

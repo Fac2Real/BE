@@ -8,6 +8,11 @@ import com.factoreal.backend.domain.sensor.application.SensorRepoService;
 import com.factoreal.backend.domain.sensor.entity.Sensor;
 import com.factoreal.backend.domain.state.store.InMemoryZoneSensorStateStore;
 import com.factoreal.backend.domain.state.store.InMemoryZoneWorkerStateStore;
+import com.factoreal.backend.domain.zone.application.ZoneRepoService;
+import com.factoreal.backend.domain.worker.application.WorkerRepoService;
+import com.factoreal.backend.domain.zone.entity.Zone;
+import com.factoreal.backend.domain.worker.entity.Worker;
+import com.factoreal.backend.messaging.kafka.strategy.alarmMessage.RiskMessageProvider;
 import com.factoreal.backend.domain.zone.application.ZoneHistoryRepoService;
 import com.factoreal.backend.domain.zone.application.ZoneHistoryService;
 import com.factoreal.backend.messaging.kafka.dto.WearableKafkaDto;
@@ -48,6 +53,9 @@ class WearableEventProcessorTest {
     private ZoneHistoryService historySvc = mock(ZoneHistoryService.class);
     private ZoneHistoryRepoService historyRepo = mock(ZoneHistoryRepoService.class);
     private SensorRepoService sensorRepoService = mock(SensorRepoService.class);
+    private ZoneRepoService zoneRepoService = mock(ZoneRepoService.class);
+    private WorkerRepoService workerRepoService = mock(WorkerRepoService.class);
+    private RiskMessageProvider riskMessageProvider = mock(RiskMessageProvider.class);
     // ── system under test ────────────────────────────────────
     private InMemoryZoneWorkerStateStore store = new InMemoryZoneWorkerStateStore();
     private InMemoryZoneSensorStateStore sensorStateStore = new InMemoryZoneSensorStateStore(sensorRepoService);
@@ -67,6 +75,8 @@ class WearableEventProcessorTest {
         dto.setSensorType(WearableDataType.heartRate.name()); // enum 이름 그대로
         dto.setDangerLevel(2);    // CRITICAL
         dto.setWearableDeviceId("DEV1");
+        dto.setVal(600L);
+        dto.setTime("2025-06-16T00:00:00");
         return dto;
     }
 
@@ -80,15 +90,20 @@ class WearableEventProcessorTest {
                 store,
                 historySvc,
                 historyRepo,
-                sensorStateStore
+                sensorStateStore,
+                zoneRepoService,
+                workerRepoService,
+                riskMessageProvider
         );
         // 공통 stub
         when(repoSvc.countByIsReadFalse()).thenReturn(3L);
         when(alarmSvc.generateAlarmDto((WearableKafkaDto) any(), any(), any()))
                 .thenReturn(mock(AlarmEventResponse.class));
-        when(abnormalSvc.saveAbnormalLogFromWearableKafkaDto(
-                any(), any(), any(), any()))
+        when(abnormalSvc.saveAbnormalLog(any(AbnormalLog.class)))
                 .thenReturn(mock(AbnormalLog.class));
+        when(zoneRepoService.findById(anyString())).thenReturn(mock(Zone.class));
+        when(workerRepoService.findById(anyString())).thenReturn(mock(Worker.class));
+        when(riskMessageProvider.getRiskMessageByWearble(any(), any(), any())).thenReturn("TEST");
     }
 
     /**
@@ -120,10 +135,7 @@ class WearableEventProcessorTest {
 
                 // 히트맵, 알림 저장, 상태 업데이트가 정상적으로 수행됨
                 verify(ws).sendDangerLevel(ZONE_ID, "heartRate", 2);
-                verify(abnormalSvc).saveAbnormalLogFromWearableKafkaDto(
-                        any(), eq(WearableDataType.heartRate),
-                        eq(RiskLevel.CRITICAL), eq(TargetType.Worker)
-                );
+                verify(abnormalSvc).saveAbnormalLog(any(AbnormalLog.class));
                 // 상태 저장소에 CRITICAL로 업데이트
                 assertThat(store.getWorkerRiskLevel(WORKER_ID)).isEqualTo(RiskLevel.CRITICAL);
                 assertThat(store.getZoneRiskLevel(ZONE_ID)).isEqualTo(RiskLevel.CRITICAL);
@@ -174,9 +186,10 @@ class WearableEventProcessorTest {
             }
         }
     }
+
     @Nested
     @DisplayName("분기문 체크")
-    class branchCheck{
+    class branchCheck {
         @Test
         @DisplayName("C) 현재 Worker 위험도가 낮다면 같은 공간에서 RiskLevel 높은 Worker 기반으로 DangerLevel 전송")
         void test_sendDangerLevel_whenNowZoneRiskIsLowerThanPrevious() {
@@ -191,9 +204,9 @@ class WearableEventProcessorTest {
                 dto.setSensorType("heartRate");
                 dto.setWorkerId(workerId);
                 Sensor sensor = Sensor.builder()
-                    .sensorId(sensorId)
-                    .sensorType(SensorType.humid)
-                    .build();
+                        .sensorId(sensorId)
+                        .sensorType(SensorType.humid)
+                        .build();
                 // 스토어 설정 (zoneId 연결)
                 // zone에 작업자가 Warning이고,
                 // sensor가 Info인 경우에,
@@ -212,6 +225,7 @@ class WearableEventProcessorTest {
                 verify(ws).sendDangerLevel(eq(zoneId), eq(SensorType.humid.name()), eq(RiskLevel.WARNING.getPriority()));
             }
         }
+
         @Test
         @DisplayName("D) 과거 Worker 위험도 >= Sensor 위험도 && 현재 Worker 위험도 < Sensor 위험도 → Sensor 기준 DangerLevel 전송")
         void test_sendDangerLevel_whenPrevWorkerWasHigherThanSensor() {
