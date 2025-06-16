@@ -156,13 +156,14 @@ public class ReportService {
 
         Map<Long, ControlLog> ctlMap = controlLogRepoService.getControlLogs(abnIds);
 
-        Map<String, String> sensorToEquip = sensorRepoService.sensorIdToEquipId(
-                logs.stream()
-                        .filter(l -> l.getTargetType() == TargetType.Equip)
-                        .map(AbnormalLog::getTargetId)
-                        .distinct()
-                        .toList()
-        );
+//        Map<String, String> sensorToEquip = sensorRepoService.sensorIdToEquipId(
+//
+//        );
+        List<String> equipIds = logs.stream()
+            .filter(l -> l.getTargetType() == TargetType.Equip)
+            .map(AbnormalLog::getTargetId)
+            .distinct()
+            .toList();
 
         Map<String, Worker> workerMap = workerRepoService.findWorkersMap(
                 logs.stream()
@@ -173,7 +174,7 @@ public class ReportService {
         );
 
         List<ZoneBlockResponse> zones = zoneMeta.stream()
-                .map(zm -> buildZoneBlock(zm, logs, ctlMap, sensorToEquip, workerMap))
+                .map(zm -> buildZoneBlock(zm, logs, ctlMap, equipIds, workerMap))
                 .toList();
 
         DateTimeFormatter f = DateTimeFormatter.ofPattern("yyyy.MM.dd");
@@ -185,7 +186,7 @@ public class ReportService {
     private ZoneBlockResponse buildZoneBlock(ZoneDetailResponse zm,
                                              List<AbnormalLog> allLogs,
                                              Map<Long, ControlLog> ctlMap,
-                                             Map<String, String> sensorToEquip,
+                                             List<String> equipIds,
                                              Map<String, Worker> workerMap) {
 
         String zid = zm.getZoneId();
@@ -210,7 +211,7 @@ public class ReportService {
         Map<String, List<AbnormalLog>> byEquip = zLogs.stream()
                 .filter(l -> l.getTargetType() == TargetType.Equip)
                 .collect(Collectors.groupingBy(
-                        l -> sensorToEquip.getOrDefault(l.getTargetId(), "UNKNOWN")
+                    AbnormalLog::getTargetId
                 ));
 
         List<EquipBlockResponse> equipBlockResponses = zm.getEquipList().stream()
