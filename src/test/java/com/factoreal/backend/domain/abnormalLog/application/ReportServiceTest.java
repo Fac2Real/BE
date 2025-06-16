@@ -225,7 +225,7 @@ class ReportServiceTest {
     void buildLast30DaysReport_basicCounts() throws JsonProcessingException {
         /* 준비 : Zone 1개, Equip 1대  */
         ZoneDetailResponse zm = zone("Z1", "생산 A",
-                List.of(equip("E1", "로봇암1")));
+                List.of(equip("S-E1-tmp", "로봇암1")));
         when(zoneSvc.getZoneItems()).thenReturn(List.of(zm));
 
         /* 준비 : AbnormalLog – 1)Sensor 2)Worker 3)Equip */
@@ -234,12 +234,17 @@ class ReportServiceTest {
         AbnormalLog lg3 = log(3, TargetType.Equip, "S-E1-tmp", "Z1", "Z-1", 1);
         when(abnLogRepoService.findPreview30daysLog()).thenReturn(List.of(lg1, lg2, lg3));
 
+        ControlLog controlLog = ControlLog.builder()
+            .id(3L)
+            .abnormalLog(lg3)
+            .build();
+
         /* 준비 : ControlLog(없어도 됨) */
-        when(ctlRepo.getControlLogs(Mockito.anyList())).thenReturn(Map.of());
+        when(ctlRepo.getControlLogs(Mockito.anyList())).thenReturn((Map<Long, ControlLog>) Map.of(3L,controlLog));
 
         /* 준비 : Sensor→Equip 매핑 */
-        when(sensorRepo.sensorIdToEquipId(Mockito.anyList()))
-                .thenReturn(Map.of("S-E1-tmp", "E1"));
+//        when(sensorRepo.sensorIdToEquipId(Mockito.anyList()))
+//                .thenReturn(Map.of("S-E1-tmp", "E1"));
 
         /* 준비 : Worker 상세 */
         Worker w100 = Worker.builder()
@@ -268,7 +273,7 @@ class ReportServiceTest {
         assertThat(zb.getTotalCnt()).isEqualTo(3);
 
         EquipBlockResponse eb = zb.getEquips().get(0);
-        assertThat(eb.getEquipId()).isEqualTo("E1");
+        assertThat(eb.getEquipId()).isEqualTo("S-E1-tmp");
         assertThat(eb.getFacCnt()).isEqualTo(1);
 
         // ── 반환되는 객체 구조 확인 ───────────────────
@@ -281,7 +286,7 @@ class ReportServiceTest {
     void buildLastMonthsReport_basicCounts() throws JsonProcessingException {
         /* 준비 : Zone 1개, Equip 1대  */
         ZoneDetailResponse zm = zone("Z1", "생산 A",
-                List.of(equip("E1", "로봇암1")));
+                List.of(equip("S-E1-tmp", "로봇암1")));
         when(zoneSvc.getZoneItems()).thenReturn(List.of(zm));
 
         /* 준비 : AbnormalLog – 1)Sensor 2)Worker 3)Equip */
@@ -289,13 +294,17 @@ class ReportServiceTest {
         AbnormalLog lg2 = log(2, TargetType.Worker, "W-100", "Z1", "Z-1", 2);
         AbnormalLog lg3 = log(3, TargetType.Equip, "S-E1-tmp", "Z1", "Z-1", 1);
         when(abnLogRepoService.findPreviousMonthLogs()).thenReturn(List.of(lg1, lg2, lg3));
+        ControlLog controlLog = ControlLog.builder()
+            .id(3L)
+            .abnormalLog(lg3)
+            .build();
 
         /* 준비 : ControlLog(없어도 됨) */
-        when(ctlRepo.getControlLogs(Mockito.anyList())).thenReturn(Map.of());
+        when(ctlRepo.getControlLogs(Mockito.anyList())).thenReturn(Map.of(3L, controlLog));
 
         /* 준비 : Sensor→Equip 매핑 */
-        when(sensorRepo.sensorIdToEquipId(Mockito.anyList()))
-                .thenReturn(Map.of("S-E1-tmp", "E1"));
+//        when(sensorRepo.sensorIdToEquipId(Mockito.anyList()))
+//                .thenReturn(Map.of("S-E1-tmp", "E1"));
 
         /* 준비 : Worker 상세 */
         Worker w100 = Worker.builder()
@@ -324,7 +333,7 @@ class ReportServiceTest {
         assertThat(zb.getTotalCnt()).isEqualTo(3);
 
         EquipBlockResponse eb = zb.getEquips().get(0);
-        assertThat(eb.getEquipId()).isEqualTo("E1");
+        assertThat(eb.getEquipId()).isEqualTo("S-E1-tmp");
         assertThat(eb.getFacCnt()).isEqualTo(1);
 
         // ── 반환되는 객체 구조 확인 ───────────────────
@@ -375,7 +384,7 @@ class ReportServiceTest {
 
         /* ③ ControlLog, Sensor→Equip 매핑은 없어도 OK */
         when(ctlRepo.getControlLogs(anyList())).thenReturn(Map.of());
-        when(sensorRepo.sensorIdToEquipId(anyList())).thenReturn(Map.of());
+//        when(sensorRepo.sensorIdToEquipId(anyList())).thenReturn(Map.of());
 
         /* ④ WorkerRepo 에서 “빈 Map” 반환 → W-999 정보를 찾지 못하는 상황 */
         when(workerRepo.findWorkersMap(anyList())).thenReturn(Map.of());
