@@ -10,6 +10,7 @@ import com.factoreal.backend.messaging.kafka.strategy.enums.AlarmEventResponse;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -24,6 +25,7 @@ public class AppPushNotificationStrategy implements NotificationStrategy {
     private final AbnormalLogRepoService abnormalLogRepoService;
 
     @Override
+    @Async
     public void send(AlarmEventResponse alarmEventResponse) {
         log.info("📲 App Push Notification Strategy.");
         // 1. 같은 공간에 있는 작업자에게 FCM 푸시 알람 전송

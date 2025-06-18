@@ -7,6 +7,7 @@ import com.factoreal.backend.messaging.kafka.strategy.enums.AlarmEventResponse;
 import com.factoreal.backend.messaging.kafka.strategy.enums.RiskLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -21,6 +22,7 @@ public class WebSocketNotificationStrategy implements NotificationStrategy {
     private static final String userId = "alarm-test";
 
     @Override
+    @Async
     public void send(AlarmEventResponse alarmEventResponse) {
         log.info("🌐WebSocket Notification Strategy");
         // /topic/userId로 메세지를 전송 => userId를 구분하여 웹 알람 발송
