@@ -40,9 +40,12 @@ public class AutoControlService {
         }
 
         Sensor sensor = sensorRepoService.findById(dto.getSensorId());
-
         if (sensor == null) {
             log.warn("❌ 센서 정보 조회 실패: sensorId={}", dto.getSensorId());
+            return;
+        }
+        if (sensor.getSensorThres() == null) {
+            log.warn("❌ 센서 임계치 없음 -> 자동 제어 스킵");
             return;
         }
 
