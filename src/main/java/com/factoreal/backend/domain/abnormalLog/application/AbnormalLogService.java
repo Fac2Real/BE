@@ -202,7 +202,7 @@ public class AbnormalLogService {
         return abnormalLogRepoService.save(abnormalLog);
     }
 
-    @Transactional(rollbackFor = Exception.class,propagation = Propagation.REQUIRES_NEW)
+    @Transactional(rollbackFor = Exception.class,propagation = Propagation.REQUIRED)
     public AbnormalLog saveAbnormalLog(AbnormalLog abnormalLog) {
         return abnormalLogRepoService.save(abnormalLog);
     }
