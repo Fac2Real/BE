@@ -16,4 +16,6 @@ public interface SensorRepository extends JpaRepository<Sensor, String> {
     List<Sensor> findByZone_ZoneId(String zoneId);
 
     List<Sensor> findBySensorIdIn(Collection<String> sensorIds);
+
+    Boolean existsSensorBy(String sensorId);
 }
