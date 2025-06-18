@@ -108,7 +108,7 @@ jacocoTestReport {
     reports {
         xml.required = true
         html.required = true
-        html.outputLocation = layout.buildDirectory.dir('jacocoHtml') // HTML 리포트 디렉토리
+        csv.required = true
     }
 }
 // ✅ 테스트 태스크에 커버리지 연결
