@@ -24,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
@@ -57,6 +58,7 @@ public class WearableEventProcessor {
      * @param dto   생체 데이터
      * @param topic Kafka 토픽명(WEARABLE)
      */
+    @Transactional
     public void process(WearableKafkaDto dto, String topic) {
         try {
             // 위험도는 0:정상, 2:비정상으로 나뉨
