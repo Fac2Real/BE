@@ -57,7 +57,7 @@ set -o allexport
 source "$ENV_FILE"
 set +o allexport
 
-./gradlew test --no-daemon
+./gradlew test jacocoTestReport --no-daemon
 '''
         }
       }
@@ -66,6 +66,15 @@ set +o allexport
           publishChecks name: GH_CHECK_NAME,
                         conclusion: 'SUCCESS',
                         detailsURL: env.BUILD_URL
+
+          jacoco execPattern: '**/build/jacoco/test.exec',
+                 classPattern: '**/build/classes/java/main',
+                 sourcePattern: '**/src/main/java',
+                 inclusionPattern: '**/*.class',
+                 exclusionPattern: '**/*Test*',
+                 changeBuildStatus: true
+
+          archiveArtifacts artifacts: '**/build/reports/jacoco/test/html/**', fingerprint: true
         }
         failure {
           publishChecks name: GH_CHECK_NAME,
