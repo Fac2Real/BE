@@ -9,8 +9,10 @@
 - Java 17 (Amazon Corretto)
 - Spring Boot 3.4.4
 - Gradle
-- H2 (로컬 테스트 DB)
-- MQTT / Kafka / Flink 연동 예정
+- MySQL
+- Kafka, MQTT, AWS SQS, FCM, WebSocket, JPA, Flyway, Swagger, Docker, Jenkins, ArgoCD
+- CI/CD: Jenkins + Docker + AWS ECR + ArgoCD
+- 모놀리식 구조
 
 ---
 
@@ -23,19 +25,57 @@
 
 ---
 
+## 🧩 주요 기능/구현 목록
+
+- **Kafka Consumer**: 센서/웨어러블/설비 토픽 수신, DTO 파싱, 이벤트 위임
+- **MQTT Client**: AWS IoT Shadow 연동, 인증서 기반 연결, 재시도/예외처리
+- **FCM Push**: Firebase Cloud Messaging, 비동기 푸시, 예외/토큰 검증
+- **AWS SQS Listener**: S3 이벤트 등 비동기 메시지 처리
+- **메일 발송**: JavaMailSender, 일/월간 리포트 첨부, CSV 변환
+- **WebSocket**: STOMP 기반 실시간 알림
+- **Flyway**: DB 마이그레이션 자동화
+- **Swagger**: API 문서 자동화 (`/swagger-ui.html`)
+- **테스트**: JUnit5, Mockito, 통합/단위 테스트
+
+---
+
 # 🛠️ Backend 프로젝트 개발 가이드
 
-## ✅ src/main/java/com/yourproject/ 하위 폴더 구조 및 역할
+## 📦 폴더/패키지 구조 및 역할
 
-| 폴더 이름     | 역할 설명                                                                                    |
-| ------------- | -------------------------------------------------------------------------------------------- |
-| `controller/` | REST API 엔드포인트 정의. `@RestController`, `@RequestMapping` 등을 통해 요청 처리 담당      |
-| `service/`    | 비즈니스 로직 처리 계층. 컨트롤러와 레포지토리 사이에서 데이터를 가공하고 흐름 제어          |
-| `repository/` | 데이터베이스 액세스를 담당하는 계층. `JpaRepository`, `CrudRepository` 등을 통해 Entity 조작 |
-| `domain/`     | JPA 엔티티 클래스 정의 (DB 테이블 구조에 해당). `@Entity`, `@Table` 등 사용                  |
-| `dto/`        | 요청/응답에 사용되는 데이터 전송 객체. `@RequestBody`, `@ResponseBody`에 주로 사용           |
-| `config/`     | 전역 설정 클래스 (MQTT, Kafka, Swagger, CORS, Security 등)를 모아두는 설정 계층              |
-| `util/`       | 공통 유틸리티 클래스, 상수, 헬퍼 함수 등을 저장. 전역에서 재사용 가능한 기능들 포함          |
+| 경로/폴더명                            | 설명                                                             |
+| -------------------------------------- | ---------------------------------------------------------------- |
+| `src/main/java/com/factoreal/backend/` | 백엔드 전체 소스 루트                                            |
+| ├─ `controller/`                       | REST API 엔드포인트, @RestController, @RequestMapping 등         |
+| ├─ `domain/`                           | JPA 엔티티, 도메인 서비스, DTO, 레포지토리 등 핵심 비즈니스 로직 |
+| ├─ `messaging/`                        | Kafka, MQTT, FCM, SQS, WebSocket 등 메시징 연동 계층             |
+| │ ├─ `kafka/consumer/`                 | Kafka Consumer, 메시지 파싱 및 위임                              |
+| │ ├─ `mqtt/`                           | MQTT 연결, Shadow Subscription 등                                |
+| │ ├─ `fcm/application/`                | FCM 푸시 발송 서비스                                             |
+| │ ├─ `sqs/listener/`                   | AWS SQS 이벤트 리스너                                            |
+| │ ├─ `common/util/`                    | 메시징 관련 공통 유틸                                            |
+| ├─ `global/config/`                    | 전역 설정 (Mail, Swagger, Kafka, MQTT, Firebase 등)              |
+| ├─ `global/fileUtil/`                  | CSV 등 파일 유틸리티                                             |
+| ├─ `util/`                             | 공통 유틸, 상수, 헬퍼 함수 등                                    |
+| `src/main/resources/`                  | 환경설정, 마이그레이션, 인증서, FCM 키 등                        |
+| ├─ `application.yml`                   | 메인 환경설정 (yml 사용, properties 미사용)                      |
+| ├─ `application-local.yml`             | 로컬 개발용 설정                                                 |
+| ├─ `application-cloud.yml`             | 클라우드/운영 환경 설정                                          |
+| ├─ `db/migration/`                     | Flyway 마이그레이션 SQL                                          |
+| ├─ `fcm_root_key/`                     | FCM 서비스 계정 키 (json)                                        |
+| `src/test/java/`                       | 단위/통합 테스트 코드                                            |
+
+---
+
+## ⚙️ 환경 변수 및 설정
+
+- 모든 민감 정보는 환경 변수 또는 `.env` 파일로 관리
+- 주요 환경 변수 예시:
+  - `MAIL_SERVER_USERNAME`, `MAIL_SERVER_PASSWORD`
+  - `FIREBASE_JSON_BASE64`
+  - `AWS_IAM_ACCESS_KEY`, `AWS_IAM_SECRET_KEY`
+  - `GRAFANA_URL_OUTER`
+  - `spring.datasource.*`, `spring.kafka.*`, `spring.mail.*` 등
 
 ---
 
@@ -47,15 +87,6 @@
 git pull
 ./gradlew clean build --refresh-dependencies -x test
 ```
-
-### 2. `application.properties` 변경 시
-
-- 로컬 DB 접속 URL, 포트, 외부 연동 설정(MQTT 등) 바뀐 경우:
-- `src/main/resources/application.properties` 참고
-- 커밋 시 **변경 내역 주석 필수**
-  - 예: `# MQTT 브로커 주소 수정 by 승희`
-
----
 
 ## 🔧 개발자 환경 동기화 컨벤션
 
@@ -73,6 +104,12 @@ git pull
 ```
 [type] | sprint | JIRA-KEY | 기능 요약 | 담당자
 ```
+
+- type: feat, fix, docs, config, refactor, test, chore, style 등
+- sprint: sprint0, sprint1, ...
+- JIRA-KEY: JIRA이슈번호 또는 없음
+- 기능 요약: 핵심 변경 내용
+- 담당자: 실명
 
 ---
 
@@ -111,9 +148,28 @@ git commit -m "chore   | sprint1 | IOT-999 | 커밋 컨벤션 README 정리   | 
 
 ---
 
-### URL
+## 🌐 주요 URL
 
-| 유형      | URL                       |
-| --------- | ------------------------- |
-| h2 (TEMP) | localhost:8080/h2-console |
-| swagger   | localhost:8080/docs       |
+| 유형    | URL                                   |
+| ------- | ------------------------------------- |
+| Swagger | http://localhost:8080/swagger-ui.html |
+| Grafana | (운영 환경) 환경 변수 참조            |
+
+---
+
+## 🔒 보안/주의사항
+
+- `.env`, `src/main/resources/certs/`, FCM 키 등 민감 파일은 git에 커밋 금지
+- `.gitignore`에 이미 포함되어 있음
+- 환경 변수/비밀키는 운영 서버 또는 CI/CD에서 안전하게 주입
+
+---
+
+## 🧑‍💻 개발/운영 참고
+
+- **새로운 설정 파일**: 반드시 `XXConfig.java` 네이밍
+- **테스트 코드**: `src/test/java/`에 JUnit5 기반 작성
+- **DB 마이그레이션**: Flyway SQL은 `src/main/resources/db/migration/`에 추가
+- **Slack/ArgoCD 연동**: Jenkinsfile 참고
+
+---
