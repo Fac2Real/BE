@@ -47,7 +47,7 @@ public class SensorRepoService {
     }
 
     public Boolean existsBySensorId(String sensorId) {
-        return sensorRepository.existsSensorBy(sensorId);
+        return sensorRepository.existsSensorBySensorId(sensorId);
     }
 
     /**
