@@ -104,7 +104,7 @@ grafana:
 # FastAPI URL
 fastapi:
   base-url: ${FASTAPI_URL:http://localhost:8000}
-  predict-endpoint: /predict  # 슬래시(/) 포함
+  predict-endpoint: /api/v1/predict  # 슬래시(/) 포함
 
 webhook:
   slack:
