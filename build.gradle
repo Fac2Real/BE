@@ -110,6 +110,20 @@ jacocoTestReport {
         html.required = true
         csv.required = true
     }
+    afterEvaluate {
+        classDirectories.setFrom(
+                files(classDirectories.files.collect {
+                    fileTree(dir: it, include: [
+                            'com/factoreal/backend/domain/**/application/**',
+                            'com/factoreal/backend/messaging/**'
+                    ],
+                    excludes: [
+                            'com/factoreal/backend/messaging/common/**',
+                            'com/factoreal/backend/messaging/config/**',
+                    ])
+                })
+        )
+    }
 }
 // ✅ 테스트 태스크에 커버리지 연결
 tasks.named('test') {
