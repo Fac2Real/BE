@@ -67,6 +67,18 @@
 
 ---
 
+## ⚙️ 환경 변수 및 설정
+
+- 모든 민감 정보는 환경 변수 또는 `.env` 파일로 관리
+- 주요 환경 변수 예시:
+  - `MAIL_SERVER_USERNAME`, `MAIL_SERVER_PASSWORD`
+  - `FIREBASE_JSON_BASE64`
+  - `AWS_IAM_ACCESS_KEY`, `AWS_IAM_SECRET_KEY`
+  - `GRAFANA_URL_OUTER`
+  - `spring.datasource.*`, `spring.kafka.*`, `spring.mail.*` 등
+
+---
+
 ## 🔁 공통 작업 시 주의사항
 
 ### 1. `build.gradle`, `settings.gradle` 변경 시
@@ -75,15 +87,6 @@
 git pull
 ./gradlew clean build --refresh-dependencies -x test
 ```
-
-### 2. `application.properties` 변경 시
-
-- 로컬 DB 접속 URL, 포트, 외부 연동 설정(MQTT 등) 바뀐 경우:
-- `src/main/resources/application.properties` 참고
-- 커밋 시 **변경 내역 주석 필수**
-  - 예: `# MQTT 브로커 주소 수정 by 승희`
-
----
 
 ## 🔧 개발자 환경 동기화 컨벤션
 
@@ -149,7 +152,6 @@ git commit -m "chore   | sprint1 | IOT-999 | 커밋 컨벤션 README 정리   | 
 
 | 유형    | URL                                   |
 | ------- | ------------------------------------- |
-| H2 콘솔 | http://localhost:8080/h2-console      |
 | Swagger | http://localhost:8080/swagger-ui.html |
 | Grafana | (운영 환경) 환경 변수 참조            |
 
