@@ -158,9 +158,7 @@ public class SensorEventProcessor {
                     }
                 }
 
-                // 3. 읽지 않은 수 전송
-                Long count = abnormalLogRepoService.countByIsReadFalse();
-                webSocketSender.sendUnreadCount(count);
+
 
                 log.info("✅ 센서 이벤트 처리 완료: sensorId={}, zoneId={}, level={} ({} topic)",
                         sensorId, zoneId, dangerLevel, topic);

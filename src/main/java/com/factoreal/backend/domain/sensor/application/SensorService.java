@@ -33,7 +33,9 @@ public class SensorService {
     public Sensor saveSensor(SensorCreateRequest dto, LocalDateTime now) {
         Zone zone = getZoneById(dto.getZoneId());
         Equip equip = getEquipById(dto.getEquipId());
-
+        if (sensorRepoService.existsBySensorId(dto.getSensorId())){
+            return null;
+        }
         Sensor sens = new Sensor();
         sens.setSensorId(dto.getSensorId());
         sens.setSensorType(SensorType.valueOf(dto.getSensorType()));

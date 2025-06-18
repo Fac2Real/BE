@@ -46,6 +46,10 @@ public class SensorRepoService {
                 .collect(Collectors.toList());
     }
 
+    public Boolean existsBySensorId(String sensorId) {
+        return sensorRepository.existsSensorBy(sensorId);
+    }
+
     /**
      * 센서 정보 저장을 위한 레포 접근 메서드
      */
