@@ -98,6 +98,33 @@ set +o allexport
                  changeBuildStatus: true
 
           archiveArtifacts artifacts: 'build/reports/jacoco/test/html/**', fingerprint: true
+          script {
+              // CSV 경로
+              def csvPath = 'build/reports/jacoco/test/jacocoTestReport.csv'
+
+              if (fileExists(csvPath)) {
+                def coverageFile = readFile(csvPath)
+                // LINE 포함된 줄을 찾고 퍼센트 숫자 추출 (예: LINE,COVERED,xxx,85.23)
+                def lineCoverageLine = coverageFile.readLines().find { it.startsWith("LINE,") }
+                def lineCoveragePercent = "알 수 없음"
+
+                if (lineCoverageLine) {
+                  def parts = lineCoverageLine.split(',')
+                  // CSV 포맷에 따라 퍼센티지 위치 다를 수 있으니 확인 필요
+                  if(parts.size() >= 4) {
+                    lineCoveragePercent = parts[3] + "%"
+                  }
+                }
+
+                // 슬랙으로 커버리지 결과 전송
+                slackSend channel: env.SLACK_CHANNEL,
+                          tokenCredentialId: env.SLACK_CRED_ID,
+                          color: '#36a64f',
+                          message: ":white_check_mark: *BE 테스트 성공* - Jacoco 라인 커버리지: ${lineCoveragePercent}"
+              } else {
+                echo "Jacoco CSV 리포트 파일이 존재하지 않습니다: ${csvPath}"
+              }
+            }
         }
         failure {
           publishChecks name: GH_CHECK_NAME,
@@ -213,42 +240,6 @@ argocd --server $ARGOCD_SERVER --insecure --grpc-web \
         }
       }
     }
-    stage('Check Jacoco CSV File') {
-            steps {
-                sh 'ls -l build/reports/jacoco/test/'
-            }
-        }
-    /* 4) PR 코맨트에 ─ 커버리지 테스트 요약 작성 */
-    stage('Report Coverage to PR') {
-      when {
-        changeRequest()
-      }
-      steps {
-        script {
-          def coverageFile = readFile('build/reports/jacoco/test/jacocoTestReport.csv')
-          def lineCoverage = coverageFile.readLines().find { it.contains('LINE') }
-          def branchCoverage = coverageFile.readLines().find { it.contains('BRANCH') }
-
-          def coverageSummary = """
-    ### ✅ Test Coverage Report
-
-    - **Line**: ${lineCoverage}
-    - **Branch**: ${branchCoverage}
-
-    [View Full Report](${env.BUILD_URL}artifact/build/reports/jacoco/test/html/index.html)
-    """
-
-          // GitHub API로 PR 코멘트 작성
-          sh """
-    curl -s -H "Authorization: token ${GITHUB_TOKEN}" \\
-         -X POST -d '{ "body": """${coverageSummary.replace("\"", "\\\"")}""" }' \\
-         https://api.github.com/repos/${env.REPO_NAME}/issues/${env.CHANGE_ID}/comments
-    """
-        }
-      }
-    }
-
-
 
     /* 4) main 전용 ─ 이미지 빌드 & ECR Push (EC2) */
     stage('Docker Build & Push (main only)') {
@@ -276,7 +267,7 @@ docker push ${ECR_REGISTRY}/${IMAGE_REPO_NAME}:${env.GIT_COMMIT}
       post {
         success {
           slackSend channel: env.SLACK_CHANNEL,
-                    tokenCredentialId: env.SLACK_CRED_ID,
+                    tokenCredentialId: env.SBELACK_CRED_ID,
                     color: '#36a64f',
                     message: """:white_check_mark: *BE main branch CI 성공*
 파이프라인: <${env.BUILD_URL}|열기>
