@@ -120,6 +120,9 @@ jacocoTestReport {
                     excludes: [
                             'com/factoreal/backend/messaging/common/**',
                             'com/factoreal/backend/messaging/config/**',
+                            '**/dao/**',
+                            '**/dto/**',
+                            '**/entity/**',
                     ])
                 })
         )
