@@ -81,11 +81,11 @@ class GrafanaZoneServiceTest {
         assertThat(d1.getSensorId()).isEqualTo("S01");
         assertThat(d1.getSensorType()).isEqualTo("TEMP");
         assertThat(d1.getIframeUrl()).isEqualTo(
-                GRAFANA_URL + "/d-solo/DUID/S01?orgId=42&panelId=1&kiosk=tv&from=now-1h&to=now");
+                GRAFANA_URL + "/d-solo/DUID/S01?orgId=42&panelId=1&kiosk=tv&from=now-15m&to=now");
 
         // 두 번째 DTO 검증
         GrafanaSensorResponseDto d2 = dtos.get(1);
-        assertThat(d2.getIframeUrl()).endsWith("panelId=2&kiosk=tv&from=now-1h&to=now");
+        assertThat(d2.getIframeUrl()).endsWith("panelId=2&kiosk=tv&from=now-15m&to=now");
 
         // 의존성 호출도 확인
         verify(factory).build("Z1", List.of(s1, s2), DATASOURCE_ID);
