@@ -190,6 +190,36 @@ argocd --server $ARGOCD_SERVER --insecure --grpc-web \
         }
       }
     }
+    /* 4) PR 코맨트에 ─ 커버리지 테스트 요약 작성 */
+    stage('Report Coverage to PR') {
+      when {
+        changeRequest()
+      }
+      steps {
+        script {
+          def coverageFile = readFile('build/reports/jacoco/test/jacocoTestReport.csv')
+          def lineCoverage = coverageFile.readLines().find { it.contains('LINE') }
+          def branchCoverage = coverageFile.readLines().find { it.contains('BRANCH') }
+
+          def coverageSummary = """
+    ### ✅ Test Coverage Report
+
+    - **Line**: ${lineCoverage}
+    - **Branch**: ${branchCoverage}
+
+    [View Full Report](${env.BUILD_URL}artifact/build/reports/jacoco/test/html/index.html)
+    """
+
+          // GitHub API로 PR 코멘트 작성
+          sh """
+    curl -s -H "Authorization: token ${GITHUB_TOKEN}" \\
+         -X POST -d '{ "body": """${coverageSummary.replace("\"", "\\\"")}""" }' \\
+         https://api.github.com/repos/${env.REPO_NAME}/issues/${env.CHANGE_ID}/comments
+    """
+        }
+      }
+    }
+
 
     /* 4) main 전용 ─ 이미지 빌드 & ECR Push (EC2) */
     stage('Docker Build & Push (main only)') {
