@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.4.4'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'jacoco'
 }
 
 group = 'com.factoreal'
@@ -97,7 +98,38 @@ dependencies {
     implementation 'io.micrometer:micrometer-registry-prometheus'
 
 }
+// ✅ JaCoCo 테스트 커버리지 리포트 생성 설정
+jacoco {
+    toolVersion = "0.8.11"
+}
 
+jacocoTestReport {
+    dependsOn test // 테스트가 실행된 후 리포트 생성
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = true
+    }
+    afterEvaluate {
+        classDirectories.setFrom(
+                files(classDirectories.files.collect {
+                    fileTree(dir: it, include: [
+                            'com/factoreal/backend/domain/**/application/**',
+                            'com/factoreal/backend/messaging/**'
+                    ],
+                    excludes: [
+                            'com/factoreal/backend/messaging/common/**',
+                            'com/factoreal/backend/messaging/config/**',
+                            '**/dao/**',
+                            '**/dto/**',
+                            '**/entity/**',
+                    ])
+                })
+        )
+    }
+}
+// ✅ 테스트 태스크에 커버리지 연결
 tasks.named('test') {
     useJUnitPlatform()
+    finalizedBy tasks.jacocoTestReport // 테스트 후 커버리지 리포트 생성
 }

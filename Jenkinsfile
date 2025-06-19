@@ -36,7 +36,30 @@ pipeline {
       }
     }
 
-    /* 1) 공통 테스트 */
+    // ✅ PR 전용 테스트 단계
+    stage('Test for PR') {
+      when {
+        changeRequest()
+      }
+      steps {
+        withCredentials([file(credentialsId: 'backend-env', variable: 'ENV_FILE')]) {
+          sh '''
+set -o allexport
+source "$ENV_FILE"
+set +o allexport
+
+./gradlew test jacocoTestReport --no-daemon
+'''
+        }
+      }
+      post {
+        success {
+          archiveArtifacts artifacts: 'build/reports/jacoco/test/**', fingerprint: true
+        }
+      }
+    }
+
+    // ✅ PR이 아닐 때만 실행되는 테스트 (develop/main 제외)
     stage('Test') {
       when {
         allOf {
@@ -57,7 +80,7 @@ set -o allexport
 source "$ENV_FILE"
 set +o allexport
 
-./gradlew test --no-daemon
+./gradlew test jacocoTestReport --no-daemon
 '''
         }
       }
@@ -66,6 +89,42 @@ set +o allexport
           publishChecks name: GH_CHECK_NAME,
                         conclusion: 'SUCCESS',
                         detailsURL: env.BUILD_URL
+
+          jacoco execPattern: 'build/jacoco/test.exec',
+                 classPattern: 'build/classes/java/main',
+                 sourcePattern: 'src/main/java',
+                 inclusionPattern: '**/*.class',
+                 exclusionPattern: '**/*Test*',
+                 changeBuildStatus: true
+
+          archiveArtifacts artifacts: 'build/reports/jacoco/test/html/**', fingerprint: true
+          script {
+              // CSV 경로
+              def csvPath = 'build/reports/jacoco/test/jacocoTestReport.csv'
+
+              if (fileExists(csvPath)) {
+                def coverageFile = readFile(csvPath)
+                // LINE 포함된 줄을 찾고 퍼센트 숫자 추출 (예: LINE,COVERED,xxx,85.23)
+                def lineCoverageLine = coverageFile.readLines().find { it.startsWith("LINE,") }
+                def lineCoveragePercent = "알 수 없음"
+
+                if (lineCoverageLine) {
+                  def parts = lineCoverageLine.split(',')
+                  // CSV 포맷에 따라 퍼센티지 위치 다를 수 있으니 확인 필요
+                  if(parts.size() >= 4) {
+                    lineCoveragePercent = parts[3] + "%"
+                  }
+                }
+
+                // 슬랙으로 커버리지 결과 전송
+                slackSend channel: env.SLACK_CHANNEL,
+                          tokenCredentialId: env.SLACK_CRED_ID,
+                          color: '#36a64f',
+                          message: ":white_check_mark: *BE 테스트 성공* - Jacoco 라인 커버리지: ${lineCoveragePercent}"
+              } else {
+                echo "Jacoco CSV 리포트 파일이 존재하지 않습니다: ${csvPath}"
+              }
+            }
         }
         failure {
           publishChecks name: GH_CHECK_NAME,
@@ -208,7 +267,7 @@ docker push ${ECR_REGISTRY}/${IMAGE_REPO_NAME}:${env.GIT_COMMIT}
       post {
         success {
           slackSend channel: env.SLACK_CHANNEL,
-                    tokenCredentialId: env.SLACK_CRED_ID,
+                    tokenCredentialId: env.SBELACK_CRED_ID,
                     color: '#36a64f',
                     message: """:white_check_mark: *BE main branch CI 성공*
 파이프라인: <${env.BUILD_URL}|열기>
