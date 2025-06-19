@@ -36,7 +36,30 @@ pipeline {
       }
     }
 
-    /* 1) 공통 테스트 */
+    // ✅ PR 전용 테스트 단계
+    stage('Test for PR') {
+      when {
+        changeRequest()
+      }
+      steps {
+        withCredentials([file(credentialsId: 'backend-env', variable: 'ENV_FILE')]) {
+          sh '''
+set -o allexport
+source "$ENV_FILE"
+set +o allexport
+
+./gradlew test jacocoTestReport --no-daemon
+'''
+        }
+      }
+      post {
+        success {
+          archiveArtifacts artifacts: 'build/reports/jacoco/test/**', fingerprint: true
+        }
+      }
+    }
+
+    // ✅ PR이 아닐 때만 실행되는 테스트 (develop/main 제외)
     stage('Test') {
       when {
         allOf {
