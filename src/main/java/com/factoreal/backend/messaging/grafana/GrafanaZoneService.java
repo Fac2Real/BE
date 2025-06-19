@@ -59,7 +59,7 @@ public class GrafanaZoneService {
             int panelId = i + 1;
 
             String iframeUrl = String.format(
-                    "%s/d-solo/%s/%s?orgId=%d&panelId=%d&kiosk=tv&from=now-1h&to=now",
+                    "%s/d-solo/%s/%s?orgId=%d&panelId=%d&kiosk=tv&from=now-15m&to=now",
                     grafanaUrl, dashboardUid, sensorId, orgId, panelId
             );
             responses.add(new GrafanaSensorResponseDto(sensorId, sensorType, iframeUrl));
