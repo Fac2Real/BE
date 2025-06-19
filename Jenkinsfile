@@ -190,6 +190,11 @@ argocd --server $ARGOCD_SERVER --insecure --grpc-web \
         }
       }
     }
+    stage('Check Jacoco CSV File') {
+            steps {
+                sh 'ls -l build/reports/jacoco/test/'
+            }
+        }
     /* 4) PR 코맨트에 ─ 커버리지 테스트 요약 작성 */
     stage('Report Coverage to PR') {
       when {
@@ -219,11 +224,7 @@ argocd --server $ARGOCD_SERVER --insecure --grpc-web \
         }
       }
     }
-    stage('Check Jacoco CSV File') {
-        steps {
-            sh 'ls -l build/reports/jacoco/test/'
-        }
-    }
+
 
 
     /* 4) main 전용 ─ 이미지 빌드 & ECR Push (EC2) */
